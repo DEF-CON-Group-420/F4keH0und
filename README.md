@@ -1,6 +1,3 @@
-### **Final `README.md` File**
-
-````markdown
 # F4keH0und
 *A PowerShell framework for deploying Active Directory & Entra ID deception at scale.*
 
@@ -141,4 +138,5 @@ The module is designed to be easily extended with new detection types. Follow th
 This project is licensed under the MIT License.
 
 ```
+
 ```
