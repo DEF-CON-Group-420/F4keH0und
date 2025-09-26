@@ -137,6 +137,3 @@ The module is designed to be easily extended with new detection types. Follow th
 
 This project is licensed under the MIT License.
 
-```
-
-```
