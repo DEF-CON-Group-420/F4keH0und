@@ -48,7 +48,7 @@ This tool follows a "Suggest -> Approve -> Create" workflow, with safety feature
 
 1.  Clone this repository or download the source code as a ZIP file.
 2.  Unzip the folder and ensure the directory containing the module is named `F4keH0und`.
-3.  Copy the entire `F4keH0und` folder to one of the directories listed in your `$env:PSModulePath`. A common location is `C:\Users\<YourUsername>\Documents\PowerShell\Modules\`.
+3.  Copy the entire `F4keH0und` folder to one of the directories listed in your `$env:PSModulePath`. A common location is `C:\Users\<YourUsername>\Documents\WinndowsPowerShell\Modules\`.
 4.  Open a new PowerShell terminal and verify the installation with `Get-Module -ListAvailable -Name F4keH0und`.
 
 ---
@@ -136,4 +136,5 @@ The module is designed to be easily extended with new detection types. Follow th
 ## 📄 License
 
 This project is licensed under the MIT License.
+
 
