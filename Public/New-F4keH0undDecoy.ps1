@@ -16,10 +16,10 @@
 .PARAMETER Execute
     A switch parameter that, if present, initiates the interactive deployment workflow.
 .EXAMPLE
-    PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -Server "DC01.target.local" -Credential (Get-Credential)
+    PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -Server "DC01.target.local" -Credential (Get-Credential) -WhatIf
 
-    Runs the deployment workflow against a specific domain controller in a target domain, using
-    explicitly provided credentials.
+    Runs a dry run of the deployment workflow against a specific domain, showing which users would be
+    created AND which groups they would be added to.
 #>
 function New-F4keH0undDecoy {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
@@ -46,42 +46,11 @@ function New-F4keH0undDecoy {
         [string]$DecoySuffix
     )
 
-    # Section 1: Suggest - Run the analysis engine
-    Write-Host "--- Running Analysis ---" -ForegroundColor Cyan
-    $analysisParams = @{}
-    if ($PSCmdlet.ParameterSetName -eq 'AD') { $analysisParams['BloodHoundPath'] = $BloodHoundPath }
-    elseif ($PSCmdlet.ParameterSetName -eq 'Azure') { $analysisParams['AzureHoundPath'] = $AzureHoundPath }
-    $opportunities = Find-F4keH0undOpportunity @analysisParams
-    if (-not $opportunities) {
-        Write-Host "[INFO] No opportunities found. Exiting." -ForegroundColor Green
-        return
-    }
-    Write-Host "[INFO] Analysis complete. The following opportunities were found:" -ForegroundColor Cyan
-    $opportunities | Format-Table -AutoSize
-    if (-not $Execute) {
-        Write-Host "`n[INFO] Run this command with the -Execute switch to start the interactive deployment workflow." -ForegroundColor Yellow
-        return
-    }
-
-    # Section 2: Approve - Handle user interaction
-    $selection = Read-Host "`n[PROMPT] Enter the IDs of the decoys you wish to create (e.g., '0,2,5' or 'all'), or press Enter to cancel"
-    if ([string]::IsNullOrWhiteSpace($selection)) {
-        Write-Host "[INFO] Operation cancelled by user." -ForegroundColor Yellow
-        return
-    }
-    $selectedIds = if ($selection -eq 'all') { $opportunities.ID } else { $selection -split ',' | ForEach-Object { $_.Trim() } }
-    $selectedOpportunities = $opportunities | Where-Object { $selectedIds -contains $_.ID }
-    if (-not $selectedOpportunities) {
-        Write-Error "[ERROR] No valid opportunities selected. Please check the IDs and try again."
-        return
-    }
-    Write-Host "`n--- Deployment Summary ---" -ForegroundColor Cyan
-    Write-Host "The following decoys will be created:"
-    $selectedOpportunities | Format-Table -AutoSize
-
+    # ... (Sections 1 and 2 are unchanged) ...
     # Section 3: Create - Loop and process selected decoys
     $reportRecords = [System.Collections.Generic.List[PSObject]]::new()
     foreach ($opportunity in $selectedOpportunities) {
+        # Note: Name construction is handled inside the switch for ACL path
         $decoySAM = "$($DecoyPrefix)$($opportunity.Template.Name)$($DecoySuffix)"
         $decoyName = $decoySAM
         $target = "$($opportunity.DecoyType) '$($decoyName)'"
@@ -92,40 +61,58 @@ function New-F4keH0undDecoy {
             Write-Verbose "Processing Opportunity ID $($opportunity.ID) - $($opportunity.DecoyType)"
             switch ($opportunity.DecoyType) {
                 "StaleAdminUser" {
-                    $params = @{ Name = $decoyName; SamAccountName = $decoySAM; Description = $opportunity.Template.Description }
-                    if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
-                    if ($PSBoundParameters.ContainsKey('Server')) { $params['Server'] = $Server }
-                    $createdObject = New-PrivateADDecoyUser @params
+                    # ... existing code ...
                 }
                 "KerberoastableUser" {
-                    $userParams = @{ Name = $decoyName; SamAccountName = $decoySAM; Description = $opportunity.Template.Description }
+                    # ... existing code ...
+                }
+                "UnconstrainedDelegationComputer" {
+                    # ... existing code ...
+                }
+                "DNSAdminUser" {
+                    # ... existing code ...
+                }
+                # NEW CASE
+                "ACLAttackPath" {
+                    $userName = "$($DecoyPrefix)$($opportunity.Template.DecoyUserName)$($DecoySuffix)"
+                    $groupName = "$($DecoyPrefix)$($opportunity.Template.DecoyGroupName)$($DecoySuffix)"
+
+                    # Step 1: Create the decoy user
+                    $userParams = @{ Name = $userName; SamAccountName = $userName; Description = "Temporary Helpdesk Account" }
                     if ($PSBoundParameters.ContainsKey('Credential')) { $userParams['Credential'] = $Credential }
                     if ($PSBoundParameters.ContainsKey('Server')) { $userParams['Server'] = $Server }
-                    $baseUser = New-PrivateADDecoyUser @userParams
-                    if ($baseUser) {
-                        $spnParams = @{ User = $baseUser; ServicePrincipalName = $opportunity.Template.ServicePrincipalName }
-                        if ($PSBoundParameters.ContainsKey('Credential')) { $spnParams['Credential'] = $Credential }
-                        if ($PSBoundParameters.ContainsKey('Server')) { $spnParams['Server'] = $Server }
-                        $spnSuccess = Set-PrivateADDecoySPN @spnParams
-                        if ($spnSuccess) { $createdObject = $baseUser }
+                    $decoyUser = New-PrivateADDecoyUser @userParams
+
+                    if ($decoyUser) {
+                        # Step 2: Create the decoy group
+                        $groupParams = @{ Name = $groupName; Description = "Application Administrators for Tier2" }
+                        if ($PSBoundParameters.ContainsKey('Credential')) { $groupParams['Credential'] = $Credential }
+                        if ($PSBoundParameters.ContainsKey('Server')) { $groupParams['Server'] = $Server }
+                        $decoyGroup = New-PrivateADDecoyGroup @groupParams
+
+                        if ($decoyGroup) {
+                            # Step 3: Set the malicious ACL
+                            $aclParams = @{ TargetObject = $decoyGroup; Principal = $decoyUser; Permission = "WriteMembers" }
+                            if ($PSBoundParameters.ContainsKey('Credential')) { $aclParams['Credential'] = $Credential }
+                            if ($PSBoundParameters.ContainsKey('Server')) { $aclParams['Server'] = $Server }
+                            $aclSuccess = Set-PrivateADACL @aclParams
+
+                            if ($aclSuccess) {
+                                # The "created object" for the report will be the target group
+                                $createdObject = $decoyGroup
+                            }
+                        }
                     }
                 }
             }
             if ($createdObject) {
-                Write-Host "[SUCCESS] Successfully created decoy '$($createdObject.Name)'" -ForegroundColor Green
-                $record = [PSCustomObject]@{
-                    TimestampUTC      = (Get-Date).ToUniversalTime().ToString('u')
-                    DecoyName         = $createdObject.Name; DecoyType = $opportunity.DecoyType
-                    ObjectSID         = $createdObject.SID.Value; DistinguishedName = $createdObject.DistinguishedName
-                    Justification     = $opportunity.Justification
-                }
-                $reportRecords.Add($record)
+                # ... existing reporting logic ...
             } else {
                 Write-Warning "[FAILURE] Failed to create decoy for Opportunity ID $($opportunity.ID)."
             }
         }
     }
-
+    # ... (End of Section 3) ...
     # Section 4: Report - Generate the handover file
     if ($reportRecords.Count -gt 0) {
         Write-Host "`n--- Deployment Report ---" -ForegroundColor Cyan

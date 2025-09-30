@@ -7,7 +7,7 @@
 RootModule = 'F4keH0und.psm1' # CHANGED
 
 # Version number of this module.
-ModuleVersion = '0.1.0'
+ModuleVersion = '2.0.0'
 
 # ID used to uniquely identify this module
 GUID = 'd2b0e6f3-8d3c-4e8f-8c6a-1e9f4c3a2b1d'
@@ -22,7 +22,7 @@ CompanyName = 'DCG420'
 Copyright = '(c) 2025 m3c4n1sm0. All rights reserved.'
 
 # Description of the functionality provided by this module.
-Description = 'A PowerShell framework to analyze BloodHound data, recommend deception opportunities, and deploy decoy objects in AD and Entra ID.' # We'll keep the description professional
+Description = 'A PowerShell framework to analyze BloodHound data, recommend deception opportunities, and deploy decoy objects in AD and Entra ID.'
 
 # Functions to export from this module, for best performance, do not use wildcards.
 FunctionsToExport = @(

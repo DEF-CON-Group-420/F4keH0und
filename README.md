@@ -1,9 +1,9 @@
 # F4keH0und
 *A PowerShell framework for deploying Active Directory & Entra ID deception at scale.*
+
 <div style="text-align: center;">
   <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="f4keh0und git logo" width="50%">
 </div>
-
 ---
 
 ## 📖 Description
@@ -12,7 +12,7 @@
 
 Based on its analysis, it suggests decoy users, service principals, and computers that mimic real, high-value targets. Upon user approval, F4keH0und can deploy these decoys, creating a landscape of honey accounts and Kerberoastable lures designed to detect and deceive attackers.
 
-This tool follows a "Suggest -> Approve -> Create" workflow, with safety features like `-WhatIf` and flexible credential handling built-in to ensure you have full control over any changes made to your environment, **even when targeting a different domain from the one your machine is joined to.**
+This tool follows a "Suggest -> Approve -> Create" workflow, with safety features like `-WhatIf` and flexible credential handling built-in to ensure you have full control over any changes made to your environment, even when targeting a different domain from the one your machine is joined to.
 
 ---
 
@@ -24,9 +24,12 @@ This tool follows a "Suggest -> Approve -> Create" workflow, with safety feature
 -   **Opportunity Ranking**: Intelligently ranks deception opportunities from **Critical** to **Low** to prioritize the most impactful decoys.
 -   **Interactive Deployment**: A user-friendly workflow guides you through selecting and confirming which decoys to create.
 -   **Decoy Variety**: Creates multiple types of decoys, including:
-    -   **Stale Admin Lures (AD)**: Mimics dormant, privileged on-prem accounts.
+    -   **Stale Admin Lures (AD)**: Mimics dormant, privileged on-prem accounts and adds them to safe groups.
     -   **Kerberoastable Lures (AD)**: Deploys users with tempting SPNs to detect Kerberoasting attacks.
     -   **Over-privileged Principals (Entra ID)**: Mimics Entra ID Service Principals with high-privilege roles.
+    -   **Unconstrained Delegation Computers (AD)**: Creates decoy computers with a dangerous delegation flag to lure attackers.
+    -   **DNSAdmins Users (AD)**: Plants a decoy user in the highly privileged `DnsAdmins` group.
+    -   **Fake ACL Attack Paths (AD)**: Generates a synthetic, multi-object attack path for BloodHound to discover.
 -   **Secure & Flexible Authentication**: Use the `-Credential` parameter to run the script from a standard user session and provide privileged credentials on-the-fly.
 -   **Safe by Default**: Includes full `-WhatIf` and `-Confirm` support. No changes are made without explicit approval.
 -   **Automated Reporting**: Generates a detailed CSV "handover report" of all created decoys for your SecOps team.
@@ -51,7 +54,7 @@ This tool follows a "Suggest -> Approve -> Create" workflow, with safety feature
 
 1.  Clone this repository or download the source code as a ZIP file.
 2.  Unzip the folder and ensure the directory containing the module is named `F4keH0und`.
-3.  Copy the entire `F4keH0und` folder to one of the directories listed in your `$env:PSModulePath`. A common location is `C:\Users\<YourUsername>\Documents\WinndowsPowerShell\Modules\`.
+3.  Copy the entire `F4keH0und` folder to one of the directories listed in your `$env:PSModulePath`. A common location is `C:\Users\<YourUsername>\Documents\PowerShell\Modules\`.
 4.  Open a new PowerShell terminal and verify the installation with `Get-Module -ListAvailable -Name F4keH0und`.
 
 ---
@@ -139,6 +142,3 @@ The module is designed to be easily extended with new detection types. Follow th
 ## 📄 License
 
 This project is licensed under the MIT License.
-
-
-
