@@ -1,5 +1,8 @@
 # F4keH0und
 *A PowerShell framework for deploying Active Directory & Entra ID deception at scale.*
+<div style="text-align: center;">
+  <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="f4keh0und git logo" width="50%">
+</div>
 
 ---
 
@@ -136,5 +139,6 @@ The module is designed to be easily extended with new detection types. Follow th
 ## 📄 License
 
 This project is licensed under the MIT License.
+
 
 
