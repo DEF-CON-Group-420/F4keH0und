@@ -20,19 +20,18 @@ function Set-PrivateADACL {
     try {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Setting '$Permission' for '$($Principal.SamAccountName)' on '$($TargetObject.Name)'"
         
-        # Get the current ACL of the target object
-        $acl = Get-Acl -Path "AD:$($TargetObject.DistinguishedName)" @adParams
+        # Get the object's current security descriptor (ACL)
+        $getParams = $adParams.Clone()
+        $getParams['Identity'] = $TargetObject.DistinguishedName
+        $getParams['Properties'] = 'nTSecurityDescriptor'
+        $sd = (Get-ADGroup @getParams).nTSecurityDescriptor
 
         # Define the permission to grant
         $permissionMap = @{
             "WriteMembers" = [System.DirectoryServices.ActiveDirectoryRights]::WriteProperty
         }
-        $propertyGuid = [guid]''
         # This GUID represents the "Member" property of a group.
-        # See: https://learn.microsoft.com/en-us/windows/win32/adschema/r-group-member
-        if ($Permission -eq 'WriteMembers') {
-            $propertyGuid = [guid]"{bf9679c0-0de6-11d0-a285-00aa003049e2}"
-        }
+        $propertyGuid = [guid]'{bf9679c0-0de6-11d0-a285-00aa003049e2}'
 
         # Create a new Access Control Rule
         $newRule = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
@@ -43,11 +42,15 @@ function Set-PrivateADACL {
             [System.DirectoryServices.ActiveDirectorySecurityInheritance]::None
         )
 
-        # Add the new rule to the ACL
-        $acl.AddAccessRule($newRule)
+        # Add the new rule to the security descriptor
+        $sd.AddAccessRule($newRule)
 
-        # Apply the modified ACL to the target object
-        Set-Acl -Path "AD:$($TargetObject.DistinguishedName)" -AclObject $acl @adParams
+        # Apply the modified security descriptor to the target object
+        $setParams = $adParams.Clone()
+        $setParams['Identity'] = $TargetObject.DistinguishedName
+        $setParams['SecurityDescriptor'] = $sd
+        
+        Set-ADObject @setParams
 
         Write-Verbose "[$($MyInvocation.MyCommand)] - Successfully set ACL."
         return $true
