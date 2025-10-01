@@ -79,8 +79,13 @@ function New-F4keH0undDecoy {
     Write-Host "The following decoys will be created:"
     $selectedOpportunities | Format-Table -AutoSize
 
+    # =================================================================
     # Section 3: Create - Loop and process selected decoys
+    # =================================================================
+    
+    # --- THIS LINE HAS BEEN MOVED to its correct location ---
     $reportRecords = [System.Collections.Generic.List[PSObject]]::new()
+
     foreach ($opportunity in $selectedOpportunities) {
         $decoySAM = "$($DecoyPrefix)$($opportunity.Template.Name)$($DecoySuffix)"
         $decoyName = $decoySAM
@@ -179,10 +184,13 @@ function New-F4keH0undDecoy {
         }
     }
 
+    # =================================================================
     # Section 4: Report - Generate the handover file
+    # =================================================================
     if ($reportRecords.Count > 0) {
         Write-Host "`n--- Deployment Report ---" -ForegroundColor Cyan
         $reportRecords | Format-Table -AutoSize
+
         $confirmSave = Read-Host "`n[PROMPT] Save this report to a CSV file? (y/n)"
         if ($confirmSave -eq 'y') {
             $dateString = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
