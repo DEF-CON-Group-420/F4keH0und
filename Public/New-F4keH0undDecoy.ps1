@@ -57,7 +57,7 @@ function New-F4keH0undDecoy {
         return
     }
     Write-Host "[INFO] Analysis complete. The following opportunities were found:" -ForegroundColor Cyan
-    $opportunities | Format-Table -AutoSize
+    $opportunities | Format-Table -AutoSize | Out-Host
     if (-not $Execute) {
         Write-Host "`n[INFO] Run this command with the -Execute switch to start the interactive deployment workflow." -ForegroundColor Yellow
         return
@@ -77,15 +77,10 @@ function New-F4keH0undDecoy {
     }
     Write-Host "`n--- Deployment Summary ---" -ForegroundColor Cyan
     Write-Host "The following decoys will be created:"
-    $selectedOpportunities | Format-Table -AutoSize
+    $selectedOpportunities | Format-Table -AutoSize | Out-Host
 
-    # =================================================================
     # Section 3: Create - Loop and process selected decoys
-    # =================================================================
-    
-    # --- THIS LINE HAS BEEN MOVED to its correct location ---
     $reportRecords = [System.Collections.Generic.List[PSObject]]::new()
-
     foreach ($opportunity in $selectedOpportunities) {
         $decoySAM = "$($DecoyPrefix)$($opportunity.Template.Name)$($DecoySuffix)"
         $decoyName = $decoySAM
@@ -187,9 +182,11 @@ function New-F4keH0undDecoy {
     # =================================================================
     # Section 4: Report - Generate the handover file
     # =================================================================
-    if ($reportRecords.Count > 0) {
+    if ($reportRecords.Count -gt 0) {
         Write-Host "`n--- Deployment Report ---" -ForegroundColor Cyan
-        $reportRecords | Format-Table -AutoSize
+        
+        $tableOutput = $reportRecords | Format-Table -AutoSize | Out-String
+        Write-Host $tableOutput
 
         $confirmSave = Read-Host "`n[PROMPT] Save this report to a CSV file? (y/n)"
         if ($confirmSave -eq 'y') {
