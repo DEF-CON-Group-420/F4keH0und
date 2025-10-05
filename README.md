@@ -14,7 +14,6 @@ Based on its analysis, it suggests decoy users, service principals, and computer
 
 This tool follows a "Suggest -> Approve -> Create" workflow, with safety features like `-WhatIf` and flexible credential handling built-in to ensure you have full control over any changes made to your environment, even when targeting a different domain from the one your machine is joined to.
 
----
 
 ## ✨ Features
 
@@ -140,5 +139,6 @@ The module is designed to be easily extended with new detection types. Follow th
 -----
 
 ## 📄 License
+
 
 This project is licensed under the MIT License.
