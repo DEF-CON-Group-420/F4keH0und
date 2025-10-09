@@ -25,8 +25,8 @@
     System.Collections.Generic.List[PSObject]
     Returns a list of custom PowerShell objects, where each object represents a single deception opportunity.
 .NOTES
-    Author: Your Name Here
-    Version: 0.1.0
+    Author: m3c4n1sm0
+    Version: 2.5
     This function performs a read-only analysis and does not make any changes to your environment.
 .LINK
     Get-Help New-F4keH0undDecoy
