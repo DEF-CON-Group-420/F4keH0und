@@ -47,7 +47,7 @@ PrivateData = @{
     PSData = @{
         Tags = @('BloodHound', 'Active Directory', 'Entra ID', 'Deception', 'Cybersecurity', 'Hacking') # Added a new tag!
         # LicenseUri = ''
-        # ProjectUri = ''
+        ProjectUri = 'https://github.com/DEF-CON-Group-420/F4keH0und'
         # IconUri = ''
     }
 }
