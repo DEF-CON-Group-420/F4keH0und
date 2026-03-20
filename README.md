@@ -5,6 +5,9 @@
   <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="f4keh0und git logo" width="50%">
 </div>
 
+[![CI](https://github.com/DEF-CON-Group-420/F4keH0und/actions/workflows/ci.yml/badge.svg)](https://github.com/DEF-CON-Group-420/F4keH0und/actions/workflows/ci.yml)
+[![Fork me on GitHub](https://img.shields.io/badge/Fork%20me%20on-GitHub-blue?logo=github)](https://github.com/DEF-CON-Group-420/F4keH0und/fork)
+
 
 ## 📖 Description
 
@@ -129,6 +132,12 @@ The module is designed to be easily extended with new detection types. Follow th
 2.  **Add Analysis Logic**: Edit `Public\Find-F4keH0undOpportunity.ps1` to include a new block that filters for your target and creates a new opportunity object with a unique `DecoyType`.
 3.  **Add Ranking Logic**: Edit `Private\Get-F4keH0undRank.ps1` and add a new `case` to the `switch` statement for your new `DecoyType` to assign it a rank.
 4.  **Add Deployment Logic**: Edit `Public\New-F4keH0undDecoy.ps1` by adding a new `case` to its `switch` statement. You will likely need to create a new private helper function (e.g., `New-PrivateADDecoyGroup.ps1`) to handle the actual creation.
+
+-----
+
+## 🤝 Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on forking the repository, setting up your environment, and submitting pull requests.
 
 -----
 
