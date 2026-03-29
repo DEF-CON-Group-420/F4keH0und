@@ -97,7 +97,10 @@ function Set-PrivateADDecoyComputer {
         [System.Management.Automation.PSCredential]$Credential,
 
         [Parameter()]
-        [string]$Server
+        [string]$Server,
+
+        [Parameter()]
+        [string]$AuditLogPath
     )
 
     process {
@@ -279,6 +282,39 @@ function Set-PrivateADDecoyComputer {
 
         if ($EnableUnconstrainedDelegation -and $updatedComputer.TrustedForDelegation) {
             Write-Verbose "[$($MyInvocation.MyCommand)] - Unconstrained Delegation is now ENABLED (highly attractive to attackers)."
+        }
+
+        # ------------------------------------------------------------------
+        # Write audit log entry
+        # ------------------------------------------------------------------
+        if ($PSBoundParameters.ContainsKey('AuditLogPath') -and -not [string]::IsNullOrWhiteSpace($AuditLogPath)) {
+            $originalState = @{
+                name           = $computer.Name
+                samAccountName = $computer.SamAccountName
+                rid            = [int]($computer.SID.Value.Split('-')[-1])
+                whenCreated    = $computer.whenCreated.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+                enabled        = $computer.Enabled
+                lastLogon      = if ($computer.LastLogonDate) { $computer.LastLogonDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $null }
+                operatingSystem            = $computer.OperatingSystem
+                description    = $computer.Description
+            }
+            $modifications = @{
+                description = "Changed to: $Description"
+            }
+            if ($EnableUnconstrainedDelegation) {
+                $modifications['trustedForDelegation'] = 'Changed to: True'
+            }
+            if ($PSBoundParameters.ContainsKey('KeepDisabled') -and (-not $KeepDisabled)) {
+                $modifications['enabled'] = 'Changed to: True'
+            }
+
+            Write-F4keH0undAuditLog `
+                -AuditLogPath  $AuditLogPath `
+                -Operation     'RecycleComputer' `
+                -ObjectGuid    ($computer.ObjectGUID.ToString()) `
+                -Source        'AD' `
+                -OriginalState $originalState `
+                -Modifications $modifications
         }
 
         return $updatedComputer

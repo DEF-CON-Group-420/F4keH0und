@@ -85,7 +85,10 @@ function Set-PrivateADDecoyUser {
         [System.Management.Automation.PSCredential]$Credential,
 
         [Parameter()]
-        [string]$Server
+        [string]$Server,
+
+        [Parameter()]
+        [string]$AuditLogPath
     )
 
     process {
@@ -265,6 +268,38 @@ function Set-PrivateADDecoyUser {
     }
 
     Write-Verbose "[$($MyInvocation.MyCommand)] - Successfully recycled user '$($updatedUser.SamAccountName)' (RID: $($updatedUser.SID.Value.Split('-')[-1])) created on $($updatedUser.whenCreated)."
+
+    # ------------------------------------------------------------------
+    # Write audit log entry
+    # ------------------------------------------------------------------
+    if ($PSBoundParameters.ContainsKey('AuditLogPath') -and -not [string]::IsNullOrWhiteSpace($AuditLogPath)) {
+        $originalState = @{
+            samAccountName = $user.SamAccountName
+            rid            = [int]($user.SID.Value.Split('-')[-1])
+            whenCreated    = $user.whenCreated.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            enabled        = $user.Enabled
+            lastLogon      = if ($user.LastLogonDate) { $user.LastLogonDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $null }
+            description    = $user.Description
+            spns           = if ($user.ServicePrincipalNames) { @($user.ServicePrincipalNames) } else { @() }
+        }
+        $modifications = @{
+            description = "Changed to: $Description"
+        }
+        if ($PSBoundParameters.ContainsKey('ServicePrincipalName')) {
+            $modifications['servicePrincipalName'] = "Added: $ServicePrincipalName"
+        }
+        if ($PSBoundParameters.ContainsKey('KeepDisabled') -and (-not $KeepDisabled)) {
+            $modifications['enabled'] = 'Changed to: True'
+        }
+
+        Write-F4keH0undAuditLog `
+            -AuditLogPath  $AuditLogPath `
+            -Operation     'RecycleUser' `
+            -ObjectGuid    ($user.ObjectGUID.ToString()) `
+            -Source        'AD' `
+            -OriginalState $originalState `
+            -Modifications $modifications
+    }
 
     return $updatedUser
     } # end process

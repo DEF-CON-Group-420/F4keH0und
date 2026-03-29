@@ -8,6 +8,12 @@
 
     When run in AD mode, the function first scans for recyclable AD objects using
     Find-F4keH0undRecyclableObject and prioritises recycling over creating new objects.
+
+    When run in Azure mode, the function scans Entra ID (Azure AD) for disabled service
+    principals, inactive guest users, and unused app registrations using
+    Find-F4keH0undRecyclableEntraObject, then generates cloud recycling opportunities.
+    Hybrid identity mapping is included to correlate Entra objects with their on-premises
+    AD counterparts (deceptionClone mapping via OnPremisesSamAccountName/ImmutableId).
 .PARAMETER BloodHoundPath
     Specifies the file path to the directory containing the unzipped SharpHound JSON files.
     This directory must contain files like users.json, groups.json, etc. This parameter is mandatory.
@@ -38,6 +44,21 @@
 .PARAMETER Credential
     Allows you to provide credentials for the recyclable-object discovery AD queries.
     Required for cross-domain operations.
+.PARAMETER EntraIncludeServicePrincipals
+    Azure mode only. When specified, discovers disabled service principals as recycling candidates.
+.PARAMETER EntraIncludeGuestUsers
+    Azure mode only. When specified, discovers inactive guest (B2B) users as recycling candidates.
+.PARAMETER EntraIncludeAppRegistrations
+    Azure mode only. When specified, discovers unused app registrations as recycling candidates.
+    If none of the three Entra* Include flags are set, all three object types are scanned.
+.PARAMETER EntraRecyclingMinimumAgeDays
+    Azure mode only. Minimum age in days for Entra objects to be recyclable. Default: 180 days.
+.PARAMETER EntraRecyclingMaximumAgeDays
+    Azure mode only. Maximum age in days for Entra objects to be recyclable. Default: 3650 days.
+.PARAMETER EntraPreferRecycling
+    Azure mode only. When specified, Entra recycling opportunities are ranked higher.
+.PARAMETER EntraRecyclingOnly
+    Azure mode only. When specified, ONLY returns Entra recycling opportunities.
 .EXAMPLE
     PS C:\> Find-F4keH0undOpportunity -BloodHoundPath C:\Path\To\BloodHound_Data\
     Analyzes the Active Directory data located in the specified folder and returns a ranked list
@@ -58,12 +79,18 @@
 .EXAMPLE
     PS C:\> Find-F4keH0undOpportunity -BloodHoundPath C:\BH_Data\ -PreferRecycling -Server "DC01.target.local" -Credential $cred
     Cross-domain recycling opportunity discovery.
+.EXAMPLE
+    PS C:\> Find-F4keH0undOpportunity -AzureHoundPath C:\AzureHound_Data\ -EntraIncludeServicePrincipals -EntraPreferRecycling -Verbose
+    Discover Entra ID recycling opportunities for disabled service principals.
+.EXAMPLE
+    PS C:\> Find-F4keH0undOpportunity -AzureHoundPath C:\AzureHound_Data\ -EntraIncludeGuestUsers -EntraIncludeAppRegistrations
+    Discover inactive guest users and unused app registrations as recycling candidates.
 .OUTPUTS
     System.Collections.Generic.List[PSObject]
     Returns a list of custom PowerShell objects, where each object represents a single deception opportunity.
 .NOTES
     Author: m3c4n1sm0
-    Version: 3.0
+    Version: 3.1
     This function performs a read-only analysis and does not make any changes to your environment.
 .LINK
     Get-Help New-F4keH0undDecoy
@@ -102,7 +129,28 @@ function Find-F4keH0undOpportunity {
         [string]$Server,
 
         [Parameter(ParameterSetName = 'AD')]
-        [System.Management.Automation.PSCredential]$Credential
+        [System.Management.Automation.PSCredential]$Credential,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [switch]$EntraIncludeServicePrincipals,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [switch]$EntraIncludeGuestUsers,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [switch]$EntraIncludeAppRegistrations,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [int]$EntraRecyclingMinimumAgeDays = 180,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [int]$EntraRecyclingMaximumAgeDays = 3650,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [switch]$EntraPreferRecycling,
+
+        [Parameter(ParameterSetName = 'Azure')]
+        [switch]$EntraRecyclingOnly
     )
 
     begin {
@@ -117,6 +165,7 @@ function Find-F4keH0undOpportunity {
         $recyclableUsers = @()
         $recyclableComputers = @()
         $recyclableGroups = @()
+        $recyclableEntraObjects = @()
     }
     process {
         if ($PSCmdlet.ParameterSetName -eq 'AD') {
@@ -495,7 +544,140 @@ function Find-F4keH0undOpportunity {
         }
         elseif ($PSCmdlet.ParameterSetName -eq 'Azure') {
             $data = Get-F4keH0undData -Path $AzureHoundPath -DataType 'Azure' -ErrorAction SilentlyContinue
-            # ... (Azure analysis logic is unchanged) ...
+
+            # ------------------------------------------------------------------
+            # Phase 1 (Entra) - Discover Recyclable Entra Objects
+            # ------------------------------------------------------------------
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Phase 1 (Entra): Discovering recyclable Entra ID objects..."
+
+            $entraRecyclingAvailable = $null -ne (Get-Command -Name Find-F4keH0undRecyclableEntraObject -ErrorAction SilentlyContinue)
+            if (-not $entraRecyclingAvailable) {
+                Write-Warning "[$($MyInvocation.MyCommand)] - Find-F4keH0undRecyclableEntraObject function not found. Entra recycling features disabled."
+            }
+
+            if ($entraRecyclingAvailable) {
+                $entraSearchTypes = @()
+                if ($EntraIncludeServicePrincipals -or (-not $PSBoundParameters.ContainsKey('EntraIncludeServicePrincipals') -and
+                    -not $PSBoundParameters.ContainsKey('EntraIncludeGuestUsers') -and
+                    -not $PSBoundParameters.ContainsKey('EntraIncludeAppRegistrations'))) {
+                    $entraSearchTypes += 'IncludeServicePrincipals'
+                }
+                if ($EntraIncludeGuestUsers -or (-not $PSBoundParameters.ContainsKey('EntraIncludeServicePrincipals') -and
+                    -not $PSBoundParameters.ContainsKey('EntraIncludeGuestUsers') -and
+                    -not $PSBoundParameters.ContainsKey('EntraIncludeAppRegistrations'))) {
+                    $entraSearchTypes += 'IncludeGuestUsers'
+                }
+                if ($EntraIncludeAppRegistrations -or (-not $PSBoundParameters.ContainsKey('EntraIncludeServicePrincipals') -and
+                    -not $PSBoundParameters.ContainsKey('EntraIncludeGuestUsers') -and
+                    -not $PSBoundParameters.ContainsKey('EntraIncludeAppRegistrations'))) {
+                    $entraSearchTypes += 'IncludeAppRegistrations'
+                }
+
+                $entraDiscoveryParams = @{
+                    MinimumAgeDays = $EntraRecyclingMinimumAgeDays
+                    MaximumAgeDays = $EntraRecyclingMaximumAgeDays
+                    MaxResults     = 50
+                    ErrorAction    = 'SilentlyContinue'
+                }
+                foreach ($t in $entraSearchTypes) { $entraDiscoveryParams[$t] = $true }
+
+                try {
+                    $recyclableEntraObjects = @(Find-F4keH0undRecyclableEntraObject @entraDiscoveryParams)
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - Found $($recyclableEntraObjects.Count) recyclable Entra objects."
+                }
+                catch {
+                    Write-Warning "[$($MyInvocation.MyCommand)] - Failed to discover recyclable Entra objects: $($_.Exception.Message)"
+                }
+            }
+
+            # ------------------------------------------------------------------
+            # Phase 2 (Entra) - Generate Recycling Opportunities
+            # ------------------------------------------------------------------
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Phase 2 (Entra): Generating Entra recycling opportunities..."
+
+            foreach ($entraObj in ($recyclableEntraObjects | Where-Object { $_.ObjectType -eq 'ServicePrincipal' } | Select-Object -First 5)) {
+                $lastSignInStr = if ($entraObj.LastSignInDateTime) { $entraObj.LastSignInDateTime.ToString('yyyy-MM-dd') } else { 'Never' }
+                $opportunity = [PSCustomObject]@{
+                    ID               = $opportunityId++
+                    Rank             = 'High'
+                    DecoyType        = 'EntraServicePrincipalDecoy'
+                    Strategy         = 'Recycle'
+                    RecyclableObject = $entraObj
+                    Justification    = "Recycles legitimately old disabled service principal '$($entraObj.DisplayName)' (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), last credential: $lastSignInStr, staleness: $($entraObj.StalenessScore)%) to simulate a forgotten cloud workload and detect OAuth credential-stuffing attempts."
+                    Template         = @{
+                        Description           = "Legacy BI Analytics Connector - Enterprise Reporting"
+                        AssignHighPrivilegeRole = $false
+                    }
+                }
+                $allOpportunities.Add($opportunity)
+            }
+
+            foreach ($entraObj in ($recyclableEntraObjects | Where-Object { $_.ObjectType -eq 'GuestUser' } | Select-Object -First 3)) {
+                $opportunityShell = [PSCustomObject]@{ DecoyType = "EntraGuestUserDecoy" }
+                $lastSignInStr = if ($entraObj.LastSignInDateTime) { $entraObj.LastSignInDateTime.ToString('yyyy-MM-dd') } else { 'Never' }
+
+                # Hybrid identity mapping: note if this cloud object has an on-prem twin
+                $hybridNote = ''
+                if ($entraObj.OnPremisesSamAccountName) {
+                    $hybridNote = " (on-prem twin: $($entraObj.OnPremisesSamAccountName))"
+                }
+
+                $opportunity = [PSCustomObject]@{
+                    ID               = $opportunityId++
+                    Rank             = 'Medium'
+                    DecoyType        = 'EntraGuestUserDecoy'
+                    Strategy         = 'Recycle'
+                    RecyclableObject = $entraObj
+                    Justification    = "Recycles inactive guest user '$($entraObj.DisplayName)'$hybridNote (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), last sign-in: $lastSignInStr, staleness: $($entraObj.StalenessScore)%) to detect lateral movement from external identities."
+                    Template         = @{
+                        Description = "Partner Integration Account - Vendor Access"
+                    }
+                }
+                $allOpportunities.Add($opportunity)
+            }
+
+            foreach ($entraObj in ($recyclableEntraObjects | Where-Object { $_.ObjectType -eq 'AppRegistration' } | Select-Object -First 3)) {
+                $opportunity = [PSCustomObject]@{
+                    ID               = $opportunityId++
+                    Rank             = 'Medium'
+                    DecoyType        = 'EntraAppRegistrationDecoy'
+                    Strategy         = 'Recycle'
+                    RecyclableObject = $entraObj
+                    Justification    = "Recycles unused app registration '$($entraObj.DisplayName)' (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), staleness: $($entraObj.StalenessScore)%) to detect OAuth consent-grant hunting and app enumeration."
+                    Template         = @{
+                        Description = "Legacy Enterprise SSO - Internal HR Portal"
+                    }
+                }
+                $allOpportunities.Add($opportunity)
+            }
+
+            # Boost recycling opportunities if EntraPreferRecycling specified
+            if ($EntraPreferRecycling) {
+                foreach ($opp in $allOpportunities) {
+                    if ($opp.Strategy -eq 'Recycle') {
+                        switch ($opp.Rank) {
+                            'Low'    { $opp.Rank = 'Medium' }
+                            'Medium' { $opp.Rank = 'High' }
+                            'High'   { $opp.Rank = 'Critical' }
+                        }
+                    }
+                }
+                Write-Verbose "[$($MyInvocation.MyCommand)] - Boosted ranking for Entra recycling opportunities (-EntraPreferRecycling)."
+            }
+
+            if ($EntraRecyclingOnly -and $allOpportunities.Count -eq 0) {
+                Write-Warning "[$($MyInvocation.MyCommand)] - EntraRecyclingOnly specified but no recyclable Entra objects found."
+            }
+
+            Write-Verbose "[$($MyInvocation.MyCommand)] - ======================================="
+            Write-Verbose "[$($MyInvocation.MyCommand)] - ENTRA ID RECYCLING-AWARE ANALYSIS"
+            Write-Verbose "[$($MyInvocation.MyCommand)] - ======================================="
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable Entra objects found: $($recyclableEntraObjects.Count)"
+            Write-Verbose "[$($MyInvocation.MyCommand)] -   Service principals : $(($recyclableEntraObjects | Where-Object ObjectType -eq 'ServicePrincipal').Count)"
+            Write-Verbose "[$($MyInvocation.MyCommand)] -   Guest users        : $(($recyclableEntraObjects | Where-Object ObjectType -eq 'GuestUser').Count)"
+            Write-Verbose "[$($MyInvocation.MyCommand)] -   App registrations  : $(($recyclableEntraObjects | Where-Object ObjectType -eq 'AppRegistration').Count)"
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Total Entra opportunities: $($allOpportunities.Count)"
+            Write-Verbose "[$($MyInvocation.MyCommand)] - ======================================="
         }
     }
     end {
@@ -528,6 +710,7 @@ function Find-F4keH0undOpportunity {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable users found    : $($recyclableUsers.Count)"
         Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable computers found: $($recyclableComputers.Count)"
         Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable groups found   : $($recyclableGroups.Count)"
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable Entra objects  : $($recyclableEntraObjects.Count)"
         $recycleCount = ($allOpportunities | Where-Object { $_.Strategy -eq 'Recycle' }).Count
         $createCount  = ($allOpportunities | Where-Object { $_.Strategy -eq 'Create' }).Count
         Write-Verbose "[$($MyInvocation.MyCommand)] - Total recycling opportunities: $recycleCount"

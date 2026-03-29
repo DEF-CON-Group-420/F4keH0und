@@ -103,7 +103,10 @@ function Set-PrivateADDecoyGroup {
         [System.Management.Automation.PSCredential]$Credential,
 
         [Parameter()]
-        [string]$Server
+        [string]$Server,
+
+        [Parameter()]
+        [string]$AuditLogPath
     )
 
     process {
@@ -328,6 +331,36 @@ function Set-PrivateADDecoyGroup {
     $finalRid = try { $updatedGroup.SID.Value.Split('-')[-1] } catch { 'unknown' }
     Write-Verbose "[$($MyInvocation.MyCommand)] - Successfully recycled group '$($updatedGroup.Name)' (RID: $finalRid) created on $($updatedGroup.whenCreated)."
     Write-Verbose "[$($MyInvocation.MyCommand)] - Group remains empty ($(@($updatedGroup.Members).Count) members) and is ready for ACL attack path configuration."
+
+    # ------------------------------------------------------------------
+    # Write audit log entry
+    # ------------------------------------------------------------------
+    if ($PSBoundParameters.ContainsKey('AuditLogPath') -and -not [string]::IsNullOrWhiteSpace($AuditLogPath)) {
+        $originalState = @{
+            name           = $group.Name
+            samAccountName = $group.SamAccountName
+            rid            = $rid
+            whenCreated    = $group.whenCreated.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            groupScope     = $group.GroupScope.ToString()
+            groupCategory  = $group.GroupCategory.ToString()
+            description    = $group.Description
+            managedBy      = $group.ManagedBy
+        }
+        $modifications = @{
+            description = "Changed to: $Description"
+        }
+        if ($PSBoundParameters.ContainsKey('ManagedBy')) {
+            $modifications['managedBy'] = "Changed to: $ManagedBy"
+        }
+
+        Write-F4keH0undAuditLog `
+            -AuditLogPath  $AuditLogPath `
+            -Operation     'RecycleGroup' `
+            -ObjectGuid    ($group.ObjectGUID.ToString()) `
+            -Source        'AD' `
+            -OriginalState $originalState `
+            -Modifications $modifications
+    }
 
     return $updatedGroup
     } # end process
