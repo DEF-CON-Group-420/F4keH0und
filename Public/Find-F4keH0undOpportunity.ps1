@@ -475,7 +475,7 @@ function Find-F4keH0undOpportunity {
         # ------------------------------------------------------------------
         # Phase 4 - Adjust Ranking for Recycling Preference
         # ------------------------------------------------------------------
-        if ($PreferRecycling -or (-not $PSBoundParameters.ContainsKey('PreferRecycling') -and $recyclableUsers.Count -gt 0)) {
+        if ($PreferRecycling -or (-not $PSBoundParameters.ContainsKey('PreferRecycling') -and ($recyclableUsers.Count -gt 0 -or $recyclableComputers.Count -gt 0 -or $recyclableGroups.Count -gt 0))) {
             foreach ($opp in $allOpportunities) {
                 if ($opp.Strategy -eq 'Recycle') {
                     switch ($opp.Rank) {
@@ -508,7 +508,9 @@ function Find-F4keH0undOpportunity {
             Expression = { $rankOrder[$_.Rank] }
         }, @{
             Expression = {
-                if ($_.RecyclableObject -and ($_.RecyclableObject.PSObject.Properties.Name -contains 'StalenessScore')) {
+                if ($_.RecyclableObject -and
+                    $_.RecyclableObject -isnot [hashtable] -and
+                    ($_.RecyclableObject.PSObject.Properties.Name -contains 'StalenessScore')) {
                     -$_.RecyclableObject.StalenessScore
                 }
                 else {
