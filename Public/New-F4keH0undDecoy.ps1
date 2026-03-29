@@ -90,6 +90,20 @@ function New-F4keH0undDecoy {
         Write-Warning "[$($MyInvocation.MyCommand)] - Some recycling functions are missing. Only creation-based deployment will be available."
     }
 
+    # Load configuration
+    $deployConfig = Get-F4keH0undConfig -Section 'DeploymentSettings'
+
+    # Apply deployment settings from config if not specified
+    if (-not $PSBoundParameters.ContainsKey('DecoyPrefix') -and $deployConfig.DefaultDecoyPrefix) {
+        $DecoyPrefix = $deployConfig.DefaultDecoyPrefix
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured DecoyPrefix: '$DecoyPrefix'"
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('DecoySuffix') -and $deployConfig.DefaultDecoySuffix) {
+        $DecoySuffix = $deployConfig.DefaultDecoySuffix
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured DecoySuffix: '$DecoySuffix'"
+    }
+
     # Section 1: Suggest - Run the analysis engine
     Write-Host "--- Running Analysis ---" -ForegroundColor Cyan
     $analysisParams = @{}
@@ -488,7 +502,17 @@ function New-F4keH0undDecoy {
     # =================================================================
     if ($deployedDecoys.Count -gt 0) {
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-        $reportPath = Join-Path -Path $PWD -ChildPath "F4keH0und_Deployment_Report_$timestamp.csv"
+
+        # Use configured report path if available
+        $reportPath = if ($deployConfig.ReportOutputPath) {
+            if (-not (Test-Path $deployConfig.ReportOutputPath)) {
+                New-Item -Path $deployConfig.ReportOutputPath -ItemType Directory -Force | Out-Null
+            }
+            Join-Path -Path $deployConfig.ReportOutputPath -ChildPath "F4keH0und_Deployment_Report_$timestamp.csv"
+        }
+        else {
+            Join-Path -Path $PWD -ChildPath "F4keH0und_Deployment_Report_$timestamp.csv"
+        }
 
         $reportData = $deployedDecoys | ForEach-Object {
             # Extract RID from SID

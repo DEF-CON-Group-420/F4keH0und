@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "F4keH0und Configuration",
+  "description": "Configuration for F4keH0und recycling and deployment behavior",
+
+  "RecyclingPreferences": {
+    "PreferRecycling": true,
+    "RecyclingOnly": false,
+    "MinimumObjectAgeDays": 180,
+    "MaximumObjectAgeDays": 3650,
+    "MaxRecyclableUsersPerScan": 50,
+    "MaxRecyclableComputersPerScan": 20,
+    "MaxRecyclableGroupsPerScan": 20
+  },
+
+  "SafetyFilters": {
+    "ExcludedOUs": [
+      "OU=VIP,DC=*",
+      "OU=Executives,DC=*",
+      "OU=Domain Controllers,DC=*",
+      "CN=Builtin,DC=*"
+    ],
+
+    "ProtectedUserPatterns": [
+      "^Administrator$",
+      "^krbtgt$",
+      "^Guest$",
+      "^MSOL_",
+      "^AAD_",
+      "^AZUREADSSOACC",
+      "^sync_",
+      "^admin",
+      "^svc_prod",
+      "^prod_"
+    ],
+
+    "ProtectedComputerPatterns": [
+      "^DC\\d*$",
+      "^.*-DC-.*$",
+      "^PDC.*$",
+      "^DNS.*$",
+      "^EXCH.*$",
+      "^MAIL.*$",
+      "^DHCP.*$",
+      "^NPS.*$",
+      "^ADFS.*$",
+      "^.*-CA-.*$",
+      "^SQL-PROD.*$"
+    ],
+
+    "ProtectedGroupPatterns": [
+      "^Domain Admins$",
+      "^Enterprise Admins$",
+      "^Schema Admins$",
+      "^Administrators$",
+      "^.*Admins$",
+      "^Exchange.*$",
+      "^MSOL_",
+      "^AAD_",
+      "^AWS-"
+    ],
+
+    "RequireEmptyGroups": true,
+    "AllowServiceAccountRecycling": true,
+    "MinimumPasswordAgeDays": 180,
+    "RequireDisabledAccounts": true
+  },
+
+  "DeploymentSettings": {
+    "DefaultDecoyPrefix": "",
+    "DefaultDecoySuffix": "",
+    "AutoGenerateReport": true,
+    "ReportOutputPath": "./reports",
+    "InteractiveMode": true,
+    "VerboseLogging": false,
+    "WhatIfByDefault": false
+  },
+
+  "RankingWeights": {
+    "RecyclingRankBoost": true,
+    "StalenessScoreWeight": 0.4,
+    "PrivilegedGroupProximityWeight": 0.3,
+    "IsolationWeight": 0.2,
+    "AgeWeight": 0.1
+  },
+
+  "AuditSettings": {
+    "EnableAuditLogging": true,
+    "AuditLogPath": "./audit",
+    "LogFormat": "JSON",
+    "IncludeOriginalObjectState": true,
+    "IncludeModificationDetails": true,
+    "IncludeRecyclingMetadata": true
+  },
+
+  "AdvancedOptions": {
+    "EnableCrossForestRecycling": false,
+    "TrustedForests": [],
+    "CacheRecyclableObjects": true,
+    "CacheDurationMinutes": 60,
+    "ParallelDiscovery": false,
+    "MaxParallelThreads": 4
+  }
+}

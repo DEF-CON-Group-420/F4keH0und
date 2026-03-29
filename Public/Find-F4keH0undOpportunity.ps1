@@ -120,6 +120,39 @@ function Find-F4keH0undOpportunity {
     }
     process {
         if ($PSCmdlet.ParameterSetName -eq 'AD') {
+            # Load configuration
+            $config = Get-F4keH0undConfig
+
+            # Apply recycling preferences from config if not specified
+            if (-not $PSBoundParameters.ContainsKey('PreferRecycling')) {
+                if ($config.RecyclingPreferences.PreferRecycling) {
+                    $PreferRecycling = $config.RecyclingPreferences.PreferRecycling
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured PreferRecycling: $PreferRecycling"
+                }
+            }
+
+            if (-not $PSBoundParameters.ContainsKey('RecyclingOnly')) {
+                if ($config.RecyclingPreferences.RecyclingOnly) {
+                    $RecyclingOnly = $config.RecyclingPreferences.RecyclingOnly
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured RecyclingOnly: $RecyclingOnly"
+                }
+            }
+
+            if (-not $PSBoundParameters.ContainsKey('RecyclingMinimumAgeDays')) {
+                $RecyclingMinimumAgeDays = $config.RecyclingPreferences.MinimumObjectAgeDays
+                Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured RecyclingMinimumAgeDays: $RecyclingMinimumAgeDays"
+            }
+
+            if (-not $PSBoundParameters.ContainsKey('RecyclingMaximumAgeDays')) {
+                $RecyclingMaximumAgeDays = $config.RecyclingPreferences.MaximumObjectAgeDays
+                Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured RecyclingMaximumAgeDays: $RecyclingMaximumAgeDays"
+            }
+
+            if (-not $PSBoundParameters.ContainsKey('ExcludeOUs') -and $config.SafetyFilters.ExcludedOUs) {
+                $ExcludeOUs = $config.SafetyFilters.ExcludedOUs
+                Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured ExcludedOUs: $($ExcludeOUs.Count) patterns"
+            }
+
             # Dependency check for recycling support
             $recyclingAvailable = $null -ne (Get-Command -Name Find-F4keH0undRecyclableObject -ErrorAction SilentlyContinue)
             if (-not $recyclingAvailable) {
@@ -148,12 +181,12 @@ function Find-F4keH0undOpportunity {
                         Type           = 'User'
                         MinimumAgeDays = $RecyclingMinimumAgeDays
                         MaximumAgeDays = $RecyclingMaximumAgeDays
-                        MaxResults     = 50
+                        MaxResults     = $config.RecyclingPreferences.MaxRecyclableUsersPerScan
                         ErrorAction    = 'Stop'
                     }
-                    if ($PSBoundParameters.ContainsKey('ExcludeOUs')) { $userRecycleParams['ExcludeOUs'] = $ExcludeOUs }
-                    if ($PSBoundParameters.ContainsKey('Server'))     { $userRecycleParams['Server']     = $Server }
-                    if ($PSBoundParameters.ContainsKey('Credential')) { $userRecycleParams['Credential'] = $Credential }
+                    if ($ExcludeOUs)                                       { $userRecycleParams['ExcludeOUs'] = $ExcludeOUs }
+                    if ($PSBoundParameters.ContainsKey('Server'))           { $userRecycleParams['Server']     = $Server }
+                    if ($PSBoundParameters.ContainsKey('Credential'))       { $userRecycleParams['Credential'] = $Credential }
 
                     $recyclableUsers = @(Find-F4keH0undRecyclableObject @userRecycleParams)
                     Write-Verbose "[$($MyInvocation.MyCommand)] - Found $($recyclableUsers.Count) recyclable user objects."
@@ -168,12 +201,12 @@ function Find-F4keH0undOpportunity {
                         Type           = 'Computer'
                         MinimumAgeDays = $RecyclingMinimumAgeDays
                         MaximumAgeDays = $RecyclingMaximumAgeDays
-                        MaxResults     = 20
+                        MaxResults     = $config.RecyclingPreferences.MaxRecyclableComputersPerScan
                         ErrorAction    = 'Stop'
                     }
-                    if ($PSBoundParameters.ContainsKey('ExcludeOUs')) { $computerRecycleParams['ExcludeOUs'] = $ExcludeOUs }
-                    if ($PSBoundParameters.ContainsKey('Server'))     { $computerRecycleParams['Server']     = $Server }
-                    if ($PSBoundParameters.ContainsKey('Credential')) { $computerRecycleParams['Credential'] = $Credential }
+                    if ($ExcludeOUs)                                       { $computerRecycleParams['ExcludeOUs'] = $ExcludeOUs }
+                    if ($PSBoundParameters.ContainsKey('Server'))           { $computerRecycleParams['Server']     = $Server }
+                    if ($PSBoundParameters.ContainsKey('Credential'))       { $computerRecycleParams['Credential'] = $Credential }
 
                     $recyclableComputers = @(Find-F4keH0undRecyclableObject @computerRecycleParams)
                     Write-Verbose "[$($MyInvocation.MyCommand)] - Found $($recyclableComputers.Count) recyclable computer objects."
@@ -188,12 +221,12 @@ function Find-F4keH0undOpportunity {
                         Type           = 'Group'
                         MinimumAgeDays = $RecyclingMinimumAgeDays
                         MaximumAgeDays = $RecyclingMaximumAgeDays
-                        MaxResults     = 20
+                        MaxResults     = $config.RecyclingPreferences.MaxRecyclableGroupsPerScan
                         ErrorAction    = 'Stop'
                     }
-                    if ($PSBoundParameters.ContainsKey('ExcludeOUs')) { $groupRecycleParams['ExcludeOUs'] = $ExcludeOUs }
-                    if ($PSBoundParameters.ContainsKey('Server'))     { $groupRecycleParams['Server']     = $Server }
-                    if ($PSBoundParameters.ContainsKey('Credential')) { $groupRecycleParams['Credential'] = $Credential }
+                    if ($ExcludeOUs)                                       { $groupRecycleParams['ExcludeOUs'] = $ExcludeOUs }
+                    if ($PSBoundParameters.ContainsKey('Server'))           { $groupRecycleParams['Server']     = $Server }
+                    if ($PSBoundParameters.ContainsKey('Credential'))       { $groupRecycleParams['Credential'] = $Credential }
 
                     $recyclableGroups = @(Find-F4keH0undRecyclableObject @groupRecycleParams)
                     Write-Verbose "[$($MyInvocation.MyCommand)] - Found $($recyclableGroups.Count) recyclable group objects."

@@ -1,0 +1,32 @@
+{
+  "_comment": "F4keH0und Configuration Example",
+  "_comment_recycling": "Recycling preferences control how stale objects are discovered and prioritized",
+
+  "RecyclingPreferences": {
+    "_comment": "Set PreferRecycling to true to prioritize using existing objects over creating new ones",
+    "PreferRecycling": true,
+
+    "_comment": "Set RecyclingOnly to true to refuse deployment if no recyclable objects are found",
+    "RecyclingOnly": false,
+
+    "_comment": "Only recycle objects older than this many days (prevents recycling recently disabled accounts)",
+    "MinimumObjectAgeDays": 180,
+
+    "_comment": "Don't recycle objects older than this (may indicate ancient, possibly still-referenced objects)",
+    "MaximumObjectAgeDays": 3650
+  },
+
+  "SafetyFilters": {
+    "_comment": "Exclude these OUs from recycling - use wildcards with DC=*",
+    "ExcludedOUs": [
+      "OU=VIP,DC=*",
+      "OU=Executives,DC=*"
+    ],
+
+    "_comment": "Regex patterns - never recycle users matching these patterns",
+    "ProtectedUserPatterns": [
+      "^admin",
+      "^svc_prod"
+    ]
+  }
+}

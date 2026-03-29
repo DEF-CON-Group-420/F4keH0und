@@ -124,6 +124,61 @@ Remove-F4keH0undDecoy -Identity "decoy_svc_mssql_prod" -Server "DC01.target.loca
 
 -----
 
+## ⚙️ Configuration
+
+F4keH0und can be configured using the `config.json` file in the module root directory.
+
+### Configuration Sections
+
+#### RecyclingPreferences
+Controls how recycling opportunities are discovered and prioritized.
+
+- `PreferRecycling` (default: `true`) - Prioritize recycling over creation
+- `MinimumObjectAgeDays` (default: `180`) - Only recycle objects older than this
+- `MaximumObjectAgeDays` (default: `3650`) - Don't recycle objects older than this
+- `MaxRecyclableUsersPerScan` (default: `50`) - Maximum recyclable users per scan
+- `MaxRecyclableComputersPerScan` (default: `20`) - Maximum recyclable computers per scan
+- `MaxRecyclableGroupsPerScan` (default: `20`) - Maximum recyclable groups per scan
+
+#### SafetyFilters
+Defines which objects should never be recycled.
+
+- `ExcludedOUs` - Array of OU paths to exclude (supports wildcards)
+- `ProtectedUserPatterns` - Regex patterns for usernames to never recycle
+- `ProtectedComputerPatterns` - Regex patterns for computer names to never recycle
+- `ProtectedGroupPatterns` - Regex patterns for group names to never recycle
+- `RequireDisabledAccounts` (default: `true`) - Only recycle disabled accounts
+
+#### DeploymentSettings
+Controls deployment behavior and output paths.
+
+- `DefaultDecoyPrefix` - Prefix applied to newly created decoy names
+- `DefaultDecoySuffix` - Suffix applied to newly created decoy names
+- `ReportOutputPath` (default: `./reports`) - Directory for deployment CSV reports
+
+### Example Configuration
+
+```json
+{
+  "RecyclingPreferences": {
+    "PreferRecycling": true,
+    "MinimumObjectAgeDays": 365
+  },
+  "SafetyFilters": {
+    "ExcludedOUs": ["OU=VIP,DC=contoso,DC=local"],
+    "ProtectedUserPatterns": ["^admin", "^svc_prod"]
+  }
+}
+```
+
+### Validating Configuration
+
+```powershell
+Test-F4keH0undConfig -Verbose
+```
+
+-----
+
 ## 🔧 Extending F4keH0und
 
 The module is designed to be easily extended with new detection types. Follow this 4-step process:
