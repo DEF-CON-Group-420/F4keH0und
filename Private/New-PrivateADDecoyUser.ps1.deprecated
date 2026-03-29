@@ -1,3 +1,37 @@
+<#
+.DEPRECATED
+    This file has been deprecated in favour of Set-PrivateADDecoyUser.
+
+    REASON FOR DEPRECATION:
+        New-PrivateADDecoyUser creates brand-new AD user objects, which receive
+        high, sequential RID values and a recent whenCreated timestamp.  An
+        attacker running even a basic domain-enumeration script can trivially
+        detect these as synthetic decoys by correlating:
+            - Anomalously high RID values relative to the account's claimed age
+            - whenCreated timestamps that contradict the "stale admin" narrative
+            - Sequential RID patterns matching automated creation bursts
+
+    MIGRATION PATH:
+        Replace calls to New-PrivateADDecoyUser with Set-PrivateADDecoyUser,
+        supplying an existing disabled account obtained from
+        Find-F4keH0undRecyclableObject.  The new function recycles the object in
+        place, preserving its original RID and whenCreated metadata while
+        transforming it into a functional decoy.
+
+        OLD (creates new object – detectable):
+            New-PrivateADDecoyUser -Name "svc_sql" -SamAccountName "svc_sql" \
+                -Description "SQL Service Account"
+
+        NEW (recycles existing object – authentic metadata):
+            $stale = Find-F4keH0undRecyclableObject -Type User | Select-Object -First 1
+            Set-PrivateADDecoyUser -ExistingUser $stale.Identity \
+                -Description "SQL Service Account"
+
+    SEE ALSO:
+        Private/Set-PrivateADDecoyUser.ps1
+        Private/Find-F4keH0undRecyclableObject.ps1
+#>
+
 function New-PrivateADDecoyUser {
     [CmdletBinding()]
     param (
