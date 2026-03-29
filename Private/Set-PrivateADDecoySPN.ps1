@@ -1,5 +1,6 @@
 function Set-PrivateADDecoySPN {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
+    [OutputType([bool])]
     param (
         [Parameter(Mandatory = $true)]
         [Microsoft.ActiveDirectory.Management.ADUser]$User,
@@ -15,6 +16,10 @@ function Set-PrivateADDecoySPN {
     )
 
     Write-Verbose "[$($MyInvocation.MyCommand)] - Setting SPN '$($ServicePrincipalName)' for user '$($User.SamAccountName)'."
+
+    if (-not $PSCmdlet.ShouldProcess($User.SamAccountName, "Add SPN '$ServicePrincipalName'")) {
+        return $false
+    }
 
     try {
         $spnParams = @{

@@ -106,6 +106,7 @@ function Set-PrivateADDecoyGroup {
         [string]$Server
     )
 
+    process {
     # ------------------------------------------------------------------
     # Module prerequisite check
     # ------------------------------------------------------------------
@@ -329,4 +330,5 @@ function Set-PrivateADDecoyGroup {
     Write-Verbose "[$($MyInvocation.MyCommand)] - Group remains empty ($(@($updatedGroup.Members).Count) members) and is ready for ACL attack path configuration."
 
     return $updatedGroup
+    } # end process
 }

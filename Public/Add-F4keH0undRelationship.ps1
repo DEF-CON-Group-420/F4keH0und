@@ -72,7 +72,6 @@ function Add-F4keH0undRelationship {
                             }
                             if ($PSBoundParameters.ContainsKey('Server')) { $params['Server'] = $Server }
                             if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
-                            
                             Add-ADGroupMember @params
                             Write-Host "[SUCCESS] Successfully added '$($Decoy.Name)' to group '$($Target)'." -ForegroundColor Green
                         }

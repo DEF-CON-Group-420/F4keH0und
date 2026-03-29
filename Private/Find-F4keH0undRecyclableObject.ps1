@@ -58,6 +58,7 @@
 #>
 function Find-F4keH0undRecyclableObject {
     [CmdletBinding()]
+    [OutputType([System.Object[]])]
     param (
         [Parameter(Mandatory = $true)]
         [ValidateSet("User", "Computer", "Group")]

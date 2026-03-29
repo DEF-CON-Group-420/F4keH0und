@@ -57,7 +57,6 @@ function Get-F4keH0undData {
 
         $filePath = $azureFiles[0].FullName
         Write-Verbose "[$($MyInvocation.MyCommand)] - Found and attempting to parse '$filePath'."
-        
         try {
             # Parse the single large JSON file
             $fullJsonData = Get-Content -Raw -Path $filePath | ConvertFrom-Json -ErrorAction Stop

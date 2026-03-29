@@ -1,5 +1,6 @@
 function Set-PrivateADACL {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory=$true)]
         [Microsoft.ActiveDirectory.Management.ADGroup]$TargetObject,
@@ -16,10 +17,13 @@ function Set-PrivateADACL {
     $adParams = @{}
     if ($PSBoundParameters.ContainsKey('Server')) { $adParams['Server'] = $Server }
     if ($PSBoundParameters.ContainsKey('Credential')) { $adParams['Credential'] = $Credential }
-    
+
+    if (-not $PSCmdlet.ShouldProcess($TargetObject.Name, "Set '$Permission' permission for '$($Principal.SamAccountName)'")) {
+        return $false
+    }
+
     try {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Setting '$Permission' for '$($Principal.SamAccountName)' on '$($TargetObject.Name)'"
-        
         # Get the object's current security descriptor (ACL)
         $getParams = $adParams.Clone()
         $getParams['Identity'] = $TargetObject.DistinguishedName
@@ -49,7 +53,6 @@ function Set-PrivateADACL {
         $setParams = $adParams.Clone()
         $setParams['Identity'] = $TargetObject.DistinguishedName
         $setParams['SecurityDescriptor'] = $sd
-        
         Set-ADObject @setParams
 
         Write-Verbose "[$($MyInvocation.MyCommand)] - Successfully set ACL."
