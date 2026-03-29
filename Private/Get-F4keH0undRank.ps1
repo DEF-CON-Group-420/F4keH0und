@@ -9,7 +9,7 @@ function Get-F4keH0undRank {
     process {
     # Use a switch statement to determine the rank based on the DecoyType
     switch ($Opportunity.DecoyType) {
-        "StaleAdminUser" {
+        "StaleAdminLure" {
             return "Critical"
         }
         "KerberoastableUser" {

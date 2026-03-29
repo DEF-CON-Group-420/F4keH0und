@@ -371,7 +371,7 @@ function Find-F4keH0undOpportunity {
                             $safeGroupsToAdd += ($safeGroup -split '@')[0]
                         }
                     }
-                    $opportunityShell = [PSCustomObject]@{ DecoyType = "StaleAdminUser" }
+                    $opportunityShell = [PSCustomObject]@{ DecoyType = "StaleAdminLure" }
                     $opportunity = [PSCustomObject]@{
                         ID               = $opportunityId++
                         Rank             = Get-F4keH0undRank -Opportunity $opportunityShell
@@ -382,7 +382,7 @@ function Find-F4keH0undOpportunity {
                         Template         = @{
                             Name           = "$($admin.Properties.samaccountname)_backup"
                             Description    = "Legacy Admin Account for $($admin.Properties.samaccountname)"
-                            samaccountname = $admin.Properties.samaccountname
+                            SamAccountName = $admin.Properties.samaccountname
                             GroupsToAdd    = $safeGroupsToAdd
                         }
                     }
@@ -403,7 +403,7 @@ function Find-F4keH0undOpportunity {
                         Strategy         = "Create"
                         RecyclableObject = $null
                         Justification    = "Creates an attractive Kerberoastable user with a common SPN format (e.g., MSSQLSvc) to detect TTP T1558.003."
-                        Template         = @{ Name = "svc_mssql_prod"; Description = "Production SQL Service Account"; ServicePrincipalName = $decoySPN }
+                        Template         = @{ Name = "svc_mssql_prod"; SamAccountName = "svc_mssql_prod"; Description = "Production SQL Service Account"; ServicePrincipalName = $decoySPN }
                     }
                     $allOpportunities.Add($opportunity)
                 }
@@ -437,7 +437,7 @@ function Find-F4keH0undOpportunity {
                         Strategy         = "Create"
                         RecyclableObject = $null
                         Justification    = "Creates a decoy user and adds it to the highly privileged 'DnsAdmins' group to detect attempts at DLL loading on DNS servers."
-                        Template         = @{ Name = "svc_dns_manager"; Description = "DNS Management Service Account"; GroupsToAdd = @(($dnsAdminsGroup.Name -split '@')[0]) }
+                        Template         = @{ Name = "svc_dns_manager"; SamAccountName = "svc_dns_manager"; Description = "DNS Management Service Account"; GroupsToAdd = @(($dnsAdminsGroup.Name -split '@')[0]) }
                     }
                     $allOpportunities.Add($opportunity)
                 }
