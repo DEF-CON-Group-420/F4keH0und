@@ -83,6 +83,31 @@ function Find-F4keH0undRecyclableObject {
         [string]$Server
     )
 
+    # Load configuration
+    $config = Get-F4keH0undConfig -Section 'RecyclingPreferences'
+    $safetyConfig = Get-F4keH0undConfig -Section 'SafetyFilters'
+
+    # Apply config defaults if parameters not specified
+    if (-not $PSBoundParameters.ContainsKey('MinimumAgeDays')) {
+        $MinimumAgeDays = $config.MinimumObjectAgeDays
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured MinimumAgeDays: $MinimumAgeDays"
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('MaximumAgeDays')) {
+        $MaximumAgeDays = $config.MaximumObjectAgeDays
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured MaximumAgeDays: $MaximumAgeDays"
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('ExcludeOUs') -and $safetyConfig.ExcludedOUs) {
+        $ExcludeOUs = $safetyConfig.ExcludedOUs
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Using configured ExcludedOUs: $($ExcludeOUs.Count) patterns"
+    }
+
+    # Use configured protected patterns in safety checks
+    $protectedUserPatterns     = $safetyConfig.ProtectedUserPatterns
+    $protectedComputerPatterns = $safetyConfig.ProtectedComputerPatterns
+    $protectedGroupPatterns    = $safetyConfig.ProtectedGroupPatterns
+
     if (-not (Get-Module -ListAvailable -Name ActiveDirectory)) {
         Write-Error "[$($MyInvocation.MyCommand)] - The 'ActiveDirectory' module is not installed. Please install RSAT-AD-Tools."
         return @()
@@ -102,8 +127,12 @@ function Find-F4keH0undRecyclableObject {
     $maximumAgeThreshold = $now.AddDays(-$MaximumAgeDays)
 
     $activeDescriptionKeywords = @('service', 'production', 'critical', 'backup')
-    $excludedSamPrefixes = @('krbtgt', 'MSOL_', 'AAD_', 'AZUREADSSOACC')
-    $privilegedGroupNames = @('Domain Admins', 'Enterprise Admins', 'Schema Admins', 'Administrators', 'Account Operators')
+    $privilegedGroupNames = if ($safetyConfig.PrivilegedGroupNames -and $safetyConfig.PrivilegedGroupNames.Count -gt 0) {
+        $safetyConfig.PrivilegedGroupNames
+    }
+    else {
+        @('Domain Admins', 'Enterprise Admins', 'Schema Admins', 'Administrators', 'Account Operators')
+    }
 
     Write-Verbose "[$($MyInvocation.MyCommand)] - Starting discovery for Type='$Type', MinAge=$MinimumAgeDays days, MaxAge=$MaximumAgeDays days."
 
@@ -151,15 +180,15 @@ function Find-F4keH0undRecyclableObject {
                 $candidates = @($candidates | Where-Object {
                     $sam = $_.SamAccountName
                     $isExcluded = $false
-                    foreach ($prefix in $excludedSamPrefixes) {
-                        if ($sam -like "$prefix*") {
+                    foreach ($pattern in $protectedUserPatterns) {
+                        if ($sam -match $pattern) {
                             $isExcluded = $true
                             break
                         }
                     }
                     -not $isExcluded
                 })
-                Write-Verbose "[$($MyInvocation.MyCommand)] - After SAM prefix filter: $($candidates.Count) users remain."
+                Write-Verbose "[$($MyInvocation.MyCommand)] - After protected user pattern filter: $($candidates.Count) users remain."
 
                 $candidates = @($candidates | Where-Object {
                     $memberOf = $_.MemberOf
@@ -231,6 +260,21 @@ function Find-F4keH0undRecyclableObject {
                 })
                 Write-Verbose "[$($MyInvocation.MyCommand)] - After description keyword filter: $($candidates.Count) computers remain."
 
+                if ($protectedComputerPatterns -and $protectedComputerPatterns.Count -gt 0) {
+                    $candidates = @($candidates | Where-Object {
+                        $name = $_.Name
+                        $isProtected = $false
+                        foreach ($pattern in $protectedComputerPatterns) {
+                            if ($name -match $pattern) {
+                                $isProtected = $true
+                                break
+                            }
+                        }
+                        -not $isProtected
+                    })
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - After protected computer pattern filter: $($candidates.Count) computers remain."
+                }
+
                 $rawObjects = $candidates
             }
             catch {
@@ -273,6 +317,21 @@ function Find-F4keH0undRecyclableObject {
                 })
                 Write-Verbose "[$($MyInvocation.MyCommand)] - After scope filter (Global/Universal only): $($candidates.Count) groups remain."
 
+                if ($protectedGroupPatterns -and $protectedGroupPatterns.Count -gt 0) {
+                    $candidates = @($candidates | Where-Object {
+                        $name = $_.Name
+                        $isProtected = $false
+                        foreach ($pattern in $protectedGroupPatterns) {
+                            if ($name -match $pattern) {
+                                $isProtected = $true
+                                break
+                            }
+                        }
+                        -not $isProtected
+                    })
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - After protected group pattern filter: $($candidates.Count) groups remain."
+                }
+
                 $rawObjects = $candidates
             }
             catch {
@@ -282,7 +341,7 @@ function Find-F4keH0undRecyclableObject {
         }
     }
 
-    if ($PSBoundParameters.ContainsKey('ExcludeOUs') -and $rawObjects.Count -gt 0) {
+    if ($ExcludeOUs -and $ExcludeOUs.Count -gt 0 -and $rawObjects.Count -gt 0) {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Applying OU exclusion for $($ExcludeOUs.Count) pattern(s)."
         $rawObjects = @($rawObjects | Where-Object {
             $dn = $_.DistinguishedName

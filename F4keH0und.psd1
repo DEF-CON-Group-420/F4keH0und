@@ -29,7 +29,9 @@ FunctionsToExport = @(
     'Find-F4keH0undOpportunity',   # CHANGED
     'New-F4keH0undDecoy',          # CHANGED
     'Add-F4keH0undRelationship',   # CHANGED
-    'Remove-F4keH0undDecoy'        # CHANGED
+    'Remove-F4keH0undDecoy',       # CHANGED
+    'Get-F4keH0undConfig',         # CHANGED
+    'Test-F4keH0undConfig'         # CHANGED
 )
 
 # Cmdlets to export from this module
