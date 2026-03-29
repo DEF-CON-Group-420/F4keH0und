@@ -124,13 +124,18 @@ function Get-F4keH0undDefaultConfig {
             )
             ProtectedUserPatterns = @(
                 "^Administrator$", "^krbtgt$", "^Guest$",
-                "^MSOL_", "^AAD_", "^AZUREADSSOACC"
+                "^MSOL_", "^AAD_", "^AZUREADSSOACC",
+                "^sync_", "^admin", "^svc_prod", "^prod_"
             )
             ProtectedComputerPatterns = @(
                 "^DC\\d*$", "^.*-DC-.*$", "^DNS.*$", "^EXCH.*$"
             )
             ProtectedGroupPatterns = @(
                 "^Domain Admins$", "^Enterprise Admins$", "^.*Admins$"
+            )
+            PrivilegedGroupNames = @(
+                "Domain Admins", "Enterprise Admins", "Schema Admins",
+                "Administrators", "Account Operators"
             )
             RequireEmptyGroups           = $true
             AllowServiceAccountRecycling = $true

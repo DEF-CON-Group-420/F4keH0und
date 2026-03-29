@@ -60,6 +60,14 @@
       "^AWS-"
     ],
 
+    "PrivilegedGroupNames": [
+      "Domain Admins",
+      "Enterprise Admins",
+      "Schema Admins",
+      "Administrators",
+      "Account Operators"
+    ],
+
     "RequireEmptyGroups": true,
     "AllowServiceAccountRecycling": true,
     "MinimumPasswordAgeDays": 180,

@@ -127,7 +127,12 @@ function Find-F4keH0undRecyclableObject {
     $maximumAgeThreshold = $now.AddDays(-$MaximumAgeDays)
 
     $activeDescriptionKeywords = @('service', 'production', 'critical', 'backup')
-    $privilegedGroupNames = @('Domain Admins', 'Enterprise Admins', 'Schema Admins', 'Administrators', 'Account Operators')
+    $privilegedGroupNames = if ($safetyConfig.PrivilegedGroupNames -and $safetyConfig.PrivilegedGroupNames.Count -gt 0) {
+        $safetyConfig.PrivilegedGroupNames
+    }
+    else {
+        @('Domain Admins', 'Enterprise Admins', 'Schema Admins', 'Administrators', 'Account Operators')
+    }
 
     Write-Verbose "[$($MyInvocation.MyCommand)] - Starting discovery for Type='$Type', MinAge=$MinimumAgeDays days, MaxAge=$MaximumAgeDays days."
 
