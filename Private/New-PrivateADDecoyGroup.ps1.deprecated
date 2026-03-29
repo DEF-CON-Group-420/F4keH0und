@@ -1,0 +1,72 @@
+<#
+.DEPRECATED
+    This file has been deprecated in favour of Set-PrivateADDecoyGroup.
+
+    REASON FOR DEPRECATION:
+        New-PrivateADDecoyGroup creates brand-new AD security group objects, which
+        receive high, sequential RID values and a recent whenCreated timestamp.
+        An attacker running even a basic domain-enumeration script can trivially
+        detect these as synthetic decoys by correlating:
+            - Anomalously high RID values relative to the group's claimed age
+            - whenCreated timestamps that contradict a "legacy forgotten group"
+              narrative (e.g., a supposed Tier-2 admin group created yesterday)
+            - Sequential RID patterns matching automated creation bursts
+
+    MIGRATION PATH:
+        Replace calls to New-PrivateADDecoyGroup with Set-PrivateADDecoyGroup,
+        supplying an existing empty security group obtained from
+        Find-F4keH0undRecyclableObject.  The new function recycles the object in
+        place, preserving its original RID and whenCreated metadata while
+        transforming it into a functional ACL attack path decoy target.
+
+        OLD (creates new object -- detectable):
+            New-PrivateADDecoyGroup -Name "Legacy-App-Team" \
+                -Description "Application Administrators for Tier2"
+
+        NEW (recycles existing object -- authentic metadata):
+            $stale = Find-F4keH0undRecyclableObject -Type Group | Select-Object -First 1
+            Set-PrivateADDecoyGroup -ExistingGroup $stale.Identity \
+                -Description "Application Administrators for Tier2"
+
+    SEE ALSO:
+        Private/Set-PrivateADDecoyGroup.ps1
+        Private/Find-F4keH0undRecyclableObject.ps1
+#>
+
+function New-PrivateADDecoyGroup {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [Parameter()]
+        [string]$Description,
+        [Parameter()]
+        [System.Management.Automation.PSCredential]$Credential,
+        [Parameter()]
+        [string]$Server
+    )
+
+    $adParams = @{}
+    if ($PSBoundParameters.ContainsKey('Server')) { $adParams['Server'] = $Server }
+    if ($PSBoundParameters.ContainsKey('Credential')) { $adParams['Credential'] = $Credential }
+
+    try {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Creating AD Group '$Name'."
+        $groupParams = $adParams.Clone()
+        $groupParams['Name'] = $Name
+        $groupParams['SamAccountName'] = $Name
+        $groupParams['GroupCategory'] = 'Security'
+        $groupParams['GroupScope'] = 'Global'
+        $groupParams['Description'] = $Description
+        $groupParams['PassThru'] = $true
+        $groupParams['ErrorAction'] = 'Stop'
+
+        $newGroup = New-ADGroup @groupParams
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Successfully created group '$($newGroup.DistinguishedName)'."
+        return $newGroup
+    }
+    catch {
+        Write-Error "[$($MyInvocation.MyCommand)] - Failed to create AD group '$Name'. Error: $($_.Exception.Message)"
+        return $null
+    }
+}
