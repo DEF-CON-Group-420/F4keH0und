@@ -15,6 +15,11 @@
     account for the Active Directory operations. Required for cross-domain operations.
 .PARAMETER Execute
     A switch parameter that, if present, initiates the interactive deployment workflow.
+.PARAMETER AuditLogPath
+    Optional path to a JSON audit log file. When specified, every recycling operation writes
+    a structured audit entry (timestamp, operation, original object state, modifications made)
+    to this file in NDJSON format. The file is created on first use; each run appends to it.
+    Compatible with the PostgreSQL schema defined in Write-F4keH0undAuditLog.
 .EXAMPLE
     PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -Server "DC01.target.local" -Credential (Get-Credential) -WhatIf
 
@@ -72,7 +77,10 @@ function New-F4keH0undDecoy {
         [string]$DecoyPrefix,
 
         [Parameter()]
-        [string]$DecoySuffix
+        [string]$DecoySuffix,
+
+        [Parameter()]
+        [string]$AuditLogPath
     )
 
     # Check for recycling function dependencies
@@ -182,6 +190,7 @@ function New-F4keH0undDecoy {
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
                         if ($PSBoundParameters.ContainsKey('Server')) { $params['Server'] = $Server }
+                        if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $params['AuditLogPath'] = $AuditLogPath }
 
                         $createdObject = Set-PrivateADDecoyUser @params
 
@@ -241,6 +250,7 @@ function New-F4keH0undDecoy {
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $userParams['Credential'] = $Credential }
                         if ($PSBoundParameters.ContainsKey('Server')) { $userParams['Server'] = $Server }
+                        if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $userParams['AuditLogPath'] = $AuditLogPath }
 
                         $createdObject = Set-PrivateADDecoyUser @userParams
 
@@ -295,6 +305,7 @@ function New-F4keH0undDecoy {
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
                         if ($PSBoundParameters.ContainsKey('Server')) { $params['Server'] = $Server }
+                        if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $params['AuditLogPath'] = $AuditLogPath }
 
                         $createdObject = Set-PrivateADDecoyComputer @params
 
@@ -334,6 +345,7 @@ function New-F4keH0undDecoy {
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
                         if ($PSBoundParameters.ContainsKey('Server')) { $params['Server'] = $Server }
+                        if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $params['AuditLogPath'] = $AuditLogPath }
 
                         $createdObject = Set-PrivateADDecoyUser @params
 
@@ -392,6 +404,7 @@ function New-F4keH0undDecoy {
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $userParams['Credential'] = $Credential }
                         if ($PSBoundParameters.ContainsKey('Server')) { $userParams['Server'] = $Server }
+                        if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $userParams['AuditLogPath'] = $AuditLogPath }
 
                         $decoyUser = Set-PrivateADDecoyUser @userParams
 
@@ -405,6 +418,7 @@ function New-F4keH0undDecoy {
                             }
                             if ($PSBoundParameters.ContainsKey('Credential')) { $groupParams['Credential'] = $Credential }
                             if ($PSBoundParameters.ContainsKey('Server')) { $groupParams['Server'] = $Server }
+                            if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $groupParams['AuditLogPath'] = $AuditLogPath }
 
                             $decoyGroup = Set-PrivateADDecoyGroup @groupParams
 
