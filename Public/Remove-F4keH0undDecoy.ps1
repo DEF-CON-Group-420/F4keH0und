@@ -33,6 +33,7 @@ function Remove-F4keH0undDecoy {
         [string]$DecoyType = "User"
     )
 
+    process {
     $adParams = @{}
     if ($PSBoundParameters.ContainsKey('Server')) { $adParams['Server'] = $Server }
     if ($PSBoundParameters.ContainsKey('Credential')) { $adParams['Credential'] = $Credential }
@@ -72,7 +73,6 @@ function Remove-F4keH0undDecoy {
             }
         }
     }
-    
     $target = $decoyObject.DistinguishedName; $action = "Remove Decoy Object"
     if ($PSCmdlet.ShouldProcess($target, $action)) {
         try {
@@ -85,4 +85,5 @@ function Remove-F4keH0undDecoy {
         }
         catch { Write-Error "[ERROR] Failed to remove decoy. Error: $($_.Exception.Message)" }
     }
+    } # end process
 }

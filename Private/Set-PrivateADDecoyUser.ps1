@@ -88,6 +88,7 @@ function Set-PrivateADDecoyUser {
         [string]$Server
     )
 
+    process {
     # ------------------------------------------------------------------
     # Module prerequisite check
     # ------------------------------------------------------------------
@@ -177,10 +178,12 @@ function Set-PrivateADDecoyUser {
     }
 
     # ------------------------------------------------------------------
-    # Generate a cryptographically random 30-character password
+    # Generate a cryptographically random 30-character password (SecureString)
     # ------------------------------------------------------------------
-    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 30 | ForEach-Object { [char]$_ })
-    $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
+    $charPool = (48..57) + (65..90) + (97..122)
+    $securePassword = [System.Security.SecureString]::new()
+    1..30 | ForEach-Object { $securePassword.AppendChar([char]($charPool | Get-Random)) }
+    $securePassword.MakeReadOnly()
 
     # ------------------------------------------------------------------
     # Build Set-ADUser parameter hashtable
@@ -218,7 +221,7 @@ function Set-PrivateADDecoyUser {
     }
 
     # ------------------------------------------------------------------
-    # Optionally add an SPN (separate call – SPN changes require their own
+    # Optionally add an SPN (separate call - SPN changes require their own
     # parameter set and cannot be combined with AccountPassword)
     # ------------------------------------------------------------------
     if ($PSBoundParameters.ContainsKey('ServicePrincipalName')) {
@@ -264,4 +267,5 @@ function Set-PrivateADDecoyUser {
     Write-Verbose "[$($MyInvocation.MyCommand)] - Successfully recycled user '$($updatedUser.SamAccountName)' (RID: $($updatedUser.SID.Value.Split('-')[-1])) created on $($updatedUser.whenCreated)."
 
     return $updatedUser
+    } # end process
 }

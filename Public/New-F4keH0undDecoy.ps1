@@ -26,7 +26,6 @@ function New-F4keH0undDecoy {
     param (
         [Parameter(Mandatory = $true, ParameterSetName = 'AD')]
         [string]$BloodHoundPath,
-        
         [Parameter(Mandatory = $true, ParameterSetName = 'Azure')]
         [string]$AzureHoundPath,
 
@@ -184,7 +183,6 @@ function New-F4keH0undDecoy {
     # =================================================================
     if ($reportRecords.Count -gt 0) {
         Write-Host "`n--- Deployment Report ---" -ForegroundColor Cyan
-        
         $tableOutput = $reportRecords | Format-Table -AutoSize | Out-String
         Write-Host $tableOutput
 
