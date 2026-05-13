@@ -204,6 +204,16 @@ Import-Module F4keH0und -Force
 Get-Module F4keH0und
 ```
 
+> **Updating the module later?**
+> After a `git pull`, the copy in `$HOME\Documents\PowerShell\Modules\F4keH0und` is **not** updated automatically —
+> PowerShell will keep loading the old cached version. Run `Reinstall-F4keH0und.ps1` to wipe every stale copy and
+> reinstall from your local clone:
+> ```powershell
+> cd C:\path\to\F4keH0und
+> .\Reinstall-F4keH0und.ps1 -PullLatest
+> ```
+> See the [Troubleshooting](#-troubleshooting) section for details.
+
 ### Step 2 — Analyze
 
 ```powershell
@@ -466,6 +476,44 @@ Check that all required keys exist and that regex patterns in `ProtectedUserPatt
 ### WhatIf shows changes I didn't expect
 
 Review the `config.json` defaults — particularly `DefaultDecoyPrefix`/`DefaultDecoySuffix` — which affect naming of newly created (non-recycled) objects.
+
+### `-PreferRecycling` (or another new parameter) is reported as unknown after updating
+
+**Cause:** PowerShell is loading a stale copy of the module from `$env:PSModulePath` (typically
+`$HOME\Documents\PowerShell\Modules\F4keH0und`) and/or from the `ModuleAnalysisCache`, rather
+than the freshly-pulled source in your local git checkout. Running `git pull` in your clone does
+**not** update the installed copy.
+
+**Fix:** Run the included `Reinstall-F4keH0und.ps1` script from the repository root:
+
+```powershell
+cd C:\path\to\F4keH0und
+.\Reinstall-F4keH0und.ps1 -PullLatest
+```
+
+The script will:
+1. Unload every in-memory copy of the module from the current session.
+2. Delete every installed copy from every directory in `$env:PSModulePath`.
+3. Clear the PowerShell `ModuleAnalysisCache`.
+4. Pull the latest source from `origin/main` (when `-PullLatest` is passed).
+5. Reinstall the fresh copy to `$HOME\Documents\PowerShell\Modules\F4keH0und`.
+6. Import the module and verify that `-PreferRecycling` is available.
+
+**Manual sanity checks** (if it still fails after running the script):
+
+```powershell
+# Which file is actually loaded?
+(Get-Module F4keH0und).Path
+
+# Confirm the parameter is present on the cmdlet
+(Get-Command New-F4keH0undDecoy).Parameters['PreferRecycling']
+
+# Hunt for any other F4keH0und manifests on disk
+Get-ChildItem -Path C:\ -Filter F4keH0und.psd1 -Recurse -ErrorAction SilentlyContinue
+```
+
+If `(Get-Module F4keH0und).Path` points anywhere other than your freshly installed copy, delete
+that location and re-run `Import-Module F4keH0und -Force`.
 
 ---
 
