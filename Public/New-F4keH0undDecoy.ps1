@@ -15,6 +15,24 @@
     account for the Active Directory operations. Required for cross-domain operations.
 .PARAMETER Execute
     A switch parameter that, if present, initiates the interactive deployment workflow.
+.PARAMETER PreferRecycling
+    When specified, passes the PreferRecycling flag to the analysis engine so that recycling
+    opportunities are ranked higher than creation opportunities. Prioritizes using existing
+    stale AD objects over creating new ones, avoiding RID anomaly detection.
+.PARAMETER RecyclingOnly
+    When specified, passes the RecyclingOnly flag to the analysis engine so that ONLY recycling
+    opportunities are returned. If no suitable recyclable objects are found the run exits with no
+    decoys deployed. Use this to enforce a strict "no new objects" policy.
+.PARAMETER RecyclingMinimumAgeDays
+    Minimum age (in days) for AD objects to be considered recyclable. Passed directly to the
+    analysis engine. Default: 180 days.
+.PARAMETER RecyclingMaximumAgeDays
+    Maximum age (in days) for AD objects to be considered recyclable. Passed directly to the
+    analysis engine. Default: 3650 days (~10 years).
+.PARAMETER ExcludeOUs
+    Array of Organizational Unit DistinguishedName patterns to exclude from recyclable-object
+    discovery. Passed directly to the analysis engine.
+    Example: @("OU=VIP,DC=contoso,DC=local", "OU=Executives,DC=contoso,DC=local")
 .PARAMETER AuditLogPath
     Optional path to a JSON audit log file. When specified, every recycling operation writes
     a structured audit entry (timestamp, operation, original object state, modifications made)
@@ -27,7 +45,7 @@
     created AND which groups they would be added to.
 
 .EXAMPLE
-    PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -Verbose
+    PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -PreferRecycling -Verbose
 
     Deploy decoys with recycling preference. Will automatically prefer recycling opportunities over creation.
 
@@ -73,6 +91,21 @@ function New-F4keH0undDecoy {
         [Parameter()]
         [switch]$Execute,
 
+        [Parameter(ParameterSetName = 'AD')]
+        [switch]$PreferRecycling,
+
+        [Parameter(ParameterSetName = 'AD')]
+        [switch]$RecyclingOnly,
+
+        [Parameter(ParameterSetName = 'AD')]
+        [int]$RecyclingMinimumAgeDays = 180,
+
+        [Parameter(ParameterSetName = 'AD')]
+        [int]$RecyclingMaximumAgeDays = 3650,
+
+        [Parameter(ParameterSetName = 'AD')]
+        [string[]]$ExcludeOUs,
+
         [Parameter()]
         [string]$DecoyPrefix,
 
@@ -115,7 +148,16 @@ function New-F4keH0undDecoy {
     # Section 1: Suggest - Run the analysis engine
     Write-Host "--- Running Analysis ---" -ForegroundColor Cyan
     $analysisParams = @{}
-    if ($PSCmdlet.ParameterSetName -eq 'AD') { $analysisParams['BloodHoundPath'] = $BloodHoundPath }
+    if ($PSCmdlet.ParameterSetName -eq 'AD') {
+        $analysisParams['BloodHoundPath'] = $BloodHoundPath
+        if ($PSBoundParameters.ContainsKey('PreferRecycling')) { $analysisParams['PreferRecycling'] = $PreferRecycling }
+        if ($PSBoundParameters.ContainsKey('RecyclingOnly')) { $analysisParams['RecyclingOnly'] = $RecyclingOnly }
+        if ($PSBoundParameters.ContainsKey('RecyclingMinimumAgeDays')) { $analysisParams['RecyclingMinimumAgeDays'] = $RecyclingMinimumAgeDays }
+        if ($PSBoundParameters.ContainsKey('RecyclingMaximumAgeDays')) { $analysisParams['RecyclingMaximumAgeDays'] = $RecyclingMaximumAgeDays }
+        if ($PSBoundParameters.ContainsKey('ExcludeOUs')) { $analysisParams['ExcludeOUs'] = $ExcludeOUs }
+        if ($PSBoundParameters.ContainsKey('Server')) { $analysisParams['Server'] = $Server }
+        if ($PSBoundParameters.ContainsKey('Credential')) { $analysisParams['Credential'] = $Credential }
+    }
     elseif ($PSCmdlet.ParameterSetName -eq 'Azure') { $analysisParams['AzureHoundPath'] = $AzureHoundPath }
     $opportunities = Find-F4keH0undOpportunity @analysisParams
     if (-not $opportunities) {
