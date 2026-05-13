@@ -1,4 +1,4 @@
-# F4keH0und - T E S T I N G
+# F4keH0undv2.0
 *A PowerShell framework for deploying Active Directory & Entra ID deception at scale — recycling-first.*
 
 <div style="text-align: center;">
