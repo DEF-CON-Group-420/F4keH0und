@@ -105,7 +105,15 @@ if ($PullLatest) {
     Write-Host "[4/6] Pulling latest source (origin/$Branch) in $SourcePath..." -ForegroundColor Cyan
     Push-Location $SourcePath
     git fetch --all
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        throw "git fetch --all failed with exit code $LASTEXITCODE."
+    }
     git reset --hard "origin/$Branch"
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        throw "git reset --hard origin/$Branch failed with exit code $LASTEXITCODE."
+    }
     Pop-Location
 } else {
     Write-Host "[4/6] Skipping git pull (use -PullLatest to pull origin/$Branch first)." -ForegroundColor DarkGray

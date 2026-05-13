@@ -212,7 +212,7 @@ Get-Module F4keH0und
 > cd C:\path\to\F4keH0und
 > .\Reinstall-F4keH0und.ps1 -PullLatest
 > ```
-> See the [Troubleshooting](#️-troubleshooting) section for details.
+> See the [Troubleshooting](#-troubleshooting) section for details.
 
 ### Step 2 — Analyze
 
