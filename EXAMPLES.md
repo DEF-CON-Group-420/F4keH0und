@@ -1,6 +1,6 @@
-# F4keH0und — Deployment Examples
+# F4keH0und - Last Generation — Deployment Examples
 
-This file contains annotated, real-world deployment scenarios. Each example is self-contained and can be run directly after importing the module.
+This file contains annotated, real-world deployment scenarios for F4keH0und - Last Generation. Each example is self-contained and can be run directly after importing the module.
 
 ---
 
@@ -18,6 +18,7 @@ This file contains annotated, real-world deployment scenarios. Each example is s
 10. [Entra ID Hybrid Deployment](#10-entra-id-hybrid-deployment)
 11. [Post-Deployment Verification](#11-post-deployment-verification)
 12. [Bulk Cleanup](#12-bulk-cleanup)
+13. [Inventory Interface](#13-inventory-interface)
 
 ---
 
@@ -481,16 +482,32 @@ if ($confirm -eq "yes") {
 }
 ```
 
-**What Remove-F4keH0undDecoy does for recycled objects:**
+**Current removal behavior:**
 
-For objects that were recycled (not created fresh), the removal process:
-1. Removes any SPNs that were added.
-2. Removes group memberships that were added.
-3. Reverts the description to its original value.
-4. Removes the `TrustedForDelegation` flag if it was set.
-5. **Does not delete the underlying AD object** — the stale object is left in its original disabled state.
+`Remove-F4keH0undDecoy` performs lifecycle cleanup by:
+1. Removing group memberships where applicable.
+2. Removing the target decoy object (`User`, `Computer`, or `Group`) from AD.
 
-This is the key safety property: recycled objects are never deleted, only restored to their pre-recycling state.
+For environments that require restore-in-place recycling reversal (instead of object deletion), use a dry run first and plan the restoration workflow explicitly.
+
+---
+
+## 13. Inventory Interface
+
+Use the unified inventory interface to review deceptive elements, deployment location, and current status.
+
+```powershell
+$cred = Get-Credential
+
+# Latest report with live AD checks
+Get-F4keH0undInventory -Server "DC01.corp.local" -Credential $cred |
+    Format-Table Identity, DecoyType, Platform, Status, Location, DeployedAt -AutoSize
+
+# Historical inventory across all reports (recorded state)
+Get-F4keH0undInventory -AllReports -SkipLiveStatus |
+    Sort-Object DeployedAt -Descending |
+    Select-Object -First 20
+```
 
 ---
 

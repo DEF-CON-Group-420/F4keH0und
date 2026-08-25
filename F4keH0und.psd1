@@ -22,7 +22,7 @@ CompanyName = 'DCG420'
 Copyright = '(c) 2025 m3c4n1sm0. All rights reserved.'
 
 # Description of the functionality provided by this module.
-Description = 'A PowerShell framework to analyze BloodHound data, recommend deception opportunities, and deploy decoy objects in AD and Entra ID.'
+Description = 'F4keH0und - Last Generation: A PowerShell framework to analyze BloodHound data, recommend deception opportunities, and manage deceptive elements in AD and Entra ID.'
 
 # Functions to export from this module, for best performance, do not use wildcards.
 FunctionsToExport = @(
@@ -30,6 +30,7 @@ FunctionsToExport = @(
     'New-F4keH0undDecoy',          # CHANGED
     'Add-F4keH0undRelationship',   # CHANGED
     'Remove-F4keH0undDecoy',       # CHANGED
+    'Get-F4keH0undInventory',      # CHANGED
     'Get-F4keH0undConfig',         # CHANGED
     'Test-F4keH0undConfig'         # CHANGED
 )
@@ -47,7 +48,7 @@ AliasesToExport = @()
 PrivateData = @{
 
     PSData = @{
-        Tags = @('BloodHound', 'Active Directory', 'Entra ID', 'Deception', 'Cybersecurity', 'Hacking') # Added a new tag!
+        Tags = @('BloodHound', 'Active Directory', 'Entra ID', 'Deception', 'Cybersecurity', 'PowerShell', 'LastGeneration')
         # LicenseUri = ''
         ProjectUri = 'https://github.com/DEF-CON-Group-420/F4keH0und'
         # IconUri = ''

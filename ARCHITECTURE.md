@@ -1,6 +1,6 @@
-# F4keH0und — Architecture
+# F4keH0und - Last Generation — Architecture
 
-This document describes the internal architecture of F4keH0und v2.0, including module structure, data-flow diagrams, design decisions, and extension points for developers.
+This document describes the internal architecture of F4keH0und - Last Generation, including module structure, data-flow diagrams, design decisions, and extension points for developers.
 
 ---
 
@@ -21,7 +21,7 @@ This document describes the internal architecture of F4keH0und v2.0, including m
 
 ## 1. Philosophy: Recycling-First
 
-F4keH0und v2.0 is built around a single principle: **decoys that look real must be real**. The most detectable property of a newly created decoy is its RID (Relative Identifier) — a sequentially assigned number that immediately reveals when an object was added to the domain. An attacker who sorts all AD objects by SID can trivially identify every decoy created after a baseline date.
+F4keH0und - Last Generation is built around a single principle: **decoys that look real must be real**. The most detectable property of a newly created decoy is its RID (Relative Identifier) — a sequentially assigned number that immediately reveals when an object was added to the domain. An attacker who sorts all AD objects by SID can trivially identify every decoy created after a baseline date.
 
 The solution is to never create new objects when a suitable stale object already exists. By modifying a disabled account that has existed in the domain for years, the decoy inherits the original RID, `whenCreated` timestamp, and the entire history of that object — making it indistinguishable from a legitimate dormant account.
 
@@ -46,6 +46,7 @@ F4keH0und/
 ├── Public/                                 # Exported functions (user-facing API)
 │   ├── Find-F4keH0undOpportunity.ps1       # Analysis engine — parses BH data, calls recycling engine
 │   ├── New-F4keH0undDecoy.ps1              # Deployment orchestrator — calls Set-Private* helpers
+│   ├── Get-F4keH0undInventory.ps1          # Inventory interface — reads reports and verifies live status
 │   ├── Add-F4keH0undRelationship.ps1       # ACL relationship writer for ACLAttackPath decoys
 │   └── Remove-F4keH0undDecoy.ps1           # Cleanup — reverses all changes made by New-F4keH0undDecoy
 │
@@ -77,7 +78,7 @@ The `.deprecated` files are retained for historical reference and are explicitly
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════════╗
-║                         F4keH0und v2.0 Architecture                       ║
+║              F4keH0und - Last Generation Architecture                     ║
 ╠═══════════════════════════════════════════════════════════════════════════╣
 ║                                                                           ║
 ║  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────────────┐ ║

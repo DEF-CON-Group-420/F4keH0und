@@ -4,8 +4,8 @@
     the freshly-pulled source from a local git clone.
 
 .DESCRIPTION
-    Users who install F4keH0und by copying the module to
-    $HOME\Documents\PowerShell\Modules\F4keH0und and later run `git pull`
+    Users who install F4keH0und by copying the module to a path in
+    $env:PSModulePath and later run `git pull`
     in their local clone frequently hit errors like:
 
         New-F4keH0undDecoy: A parameter cannot be found that matches
@@ -17,15 +17,15 @@
 
       1. Unloads any in-memory copy of the module from the current session.
       2. Wipes every installed copy from every directory in $env:PSModulePath.
-      3. Clears the PowerShell ModuleAnalysisCache at both known locations.
+      3. Clears the PowerShell ModuleAnalysisCache across common Windows/macOS/Linux paths.
       4. Optionally pulls the latest source via `git fetch --all` and
          `git reset --hard origin/<Branch>` (requires -PullLatest).
-      5. Reinstalls the fresh copy to $HOME\Documents\PowerShell\Modules\F4keH0und.
+      5. Reinstalls the fresh copy to your user module path in $env:PSModulePath.
       6. Imports the module and verifies the -PreferRecycling parameter is present.
 
 .PARAMETER SourcePath
     Path to the local git clone of F4keH0und.
-    Default: C:\Users\Administrator\Downloads\git\F4keH0und
+    Default: current repository root (script directory)
 
 .PARAMETER PullLatest
     When set, runs `git fetch --all` and `git reset --hard origin/<Branch>`
@@ -49,10 +49,15 @@
     .\Reinstall-F4keH0und.ps1 -SourcePath 'C:\repos\F4keH0und' -PullLatest -Branch dev
 
     Pulls origin/dev, then reinstalls from a custom source path.
+
+.EXAMPLE
+    ./Reinstall-F4keH0und.ps1 -SourcePath "$HOME/src/F4keH0und" -PullLatest
+
+    Pulls latest code and reinstalls from a macOS/Linux clone path.
 #>
 [CmdletBinding()]
 param(
-    [string]$SourcePath = 'C:\Users\Administrator\Downloads\git\F4keH0und',
+    [string]$SourcePath = $PSScriptRoot,
     [switch]$PullLatest,
     [string]$Branch = 'main'
 )
@@ -82,8 +87,13 @@ foreach ($p in $modulePaths) {
     $target = Join-Path $p $ModuleName
     if (Test-Path $target) {
         Write-Host "      Removing $target" -ForegroundColor Yellow
-        Remove-Item -Path $target -Recurse -Force
-        Write-Host "      Removed  $target" -ForegroundColor Green
+        try {
+            Remove-Item -Path $target -Recurse -Force -ErrorAction Stop
+            Write-Host "      Removed  $target" -ForegroundColor Green
+        }
+        catch {
+            Write-Warning "      Could not remove '$target': $($_.Exception.Message)"
+        }
     }
 }
 
@@ -91,8 +101,27 @@ foreach ($p in $modulePaths) {
 # Step 3 — Clear PowerShell ModuleAnalysisCache
 # ------------------------------------------------------------------
 Write-Host "[3/6] Clearing ModuleAnalysisCache..." -ForegroundColor Cyan
-Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\ModuleAnalysisCache" -Force -ErrorAction SilentlyContinue
-Remove-Item "$env:LOCALAPPDATA\PowerShell\ModuleAnalysisCache"                   -Force -ErrorAction SilentlyContinue
+
+$cacheCandidates = [System.Collections.Generic.List[string]]::new()
+if ($env:LOCALAPPDATA) {
+    $cacheCandidates.Add((Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\PowerShell\ModuleAnalysisCache'))
+    $cacheCandidates.Add((Join-Path $env:LOCALAPPDATA 'PowerShell\ModuleAnalysisCache'))
+}
+if ($env:XDG_CACHE_HOME) {
+    $cacheCandidates.Add((Join-Path $env:XDG_CACHE_HOME 'powershell/ModuleAnalysisCache'))
+}
+
+$homePath = [Environment]::GetFolderPath('UserProfile')
+if ($homePath) {
+    $cacheCandidates.Add((Join-Path $homePath '.cache/powershell/ModuleAnalysisCache'))
+    $cacheCandidates.Add((Join-Path $homePath '.local/share/powershell/ModuleAnalysisCache'))
+}
+
+$cacheCandidates | Select-Object -Unique | ForEach-Object {
+    if (Test-Path $_) {
+        Remove-Item $_ -Force -ErrorAction SilentlyContinue
+    }
+}
 
 # ------------------------------------------------------------------
 # Step 4 — Optional git pull
@@ -122,12 +151,24 @@ if ($PullLatest) {
 # ------------------------------------------------------------------
 # Step 5 — Reinstall fresh copy
 # ------------------------------------------------------------------
-$destRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Modules'
-$dest     = Join-Path $destRoot $ModuleName
+$homePath = [Environment]::GetFolderPath('UserProfile')
+$destRoot = $modulePaths | Where-Object { $homePath -and $_ -like "$homePath*" } | Select-Object -First 1
+if (-not $destRoot) {
+    $destRoot = $modulePaths | Select-Object -First 1
+}
+if (-not $destRoot) {
+    throw "No PowerShell module destination was found in `$env:PSModulePath."
+}
+
+$dest = Join-Path $destRoot $ModuleName
 
 Write-Host "[5/6] Installing fresh copy to $dest..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
-Copy-Item -Path $SourcePath -Destination $dest -Recurse -Force
+if (Test-Path $dest) {
+    Remove-Item -Path $dest -Recurse -Force -ErrorAction SilentlyContinue
+}
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item -Path (Join-Path $SourcePath '*') -Destination $dest -Recurse -Force
 
 # ------------------------------------------------------------------
 # Step 6 — Import and verify

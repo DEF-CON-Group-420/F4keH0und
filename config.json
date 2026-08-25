@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "F4keH0und Configuration",
-  "description": "Configuration for F4keH0und recycling and deployment behavior",
+  "title": "F4keH0und - Last Generation Configuration",
+  "description": "Configuration for F4keH0und - Last Generation recycling and deployment behavior",
 
   "RecyclingPreferences": {
     "PreferRecycling": true,

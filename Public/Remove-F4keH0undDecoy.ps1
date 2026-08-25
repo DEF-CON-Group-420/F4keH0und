@@ -2,15 +2,17 @@
 .SYNOPSIS
     Safely removes a decoy object and its associated relationships from Active Directory.
 .DESCRIPTION
-    This function finds a specified decoy user in Active Directory, removes it from any groups
-    it is a member of, and then deletes the user object itself.
+    This function finds a specified decoy object in Active Directory, removes it from any groups
+    it is a member of, and then deletes the object itself.
     It fully supports -WhatIf, -Confirm, -Server, and -Credential for operational safety.
 .PARAMETER Identity
-    The SamAccountName of the decoy user you want to remove.
+    The SamAccountName/Name of the decoy object you want to remove.
 .PARAMETER Server
     Specify a Domain Controller to run all AD commands against. Required for cross-domain operations.
 .PARAMETER Credential
     Provide the credentials of a privileged account. Required for cross-domain operations.
+.PARAMETER DecoyType
+    The object type to remove. Supports User, Computer, and Group.
 .EXAMPLE
     PS C:\> Remove-F4keH0undDecoy -Identity "decoy_admin" -Server "DC01.target.local" -Credential (Get-Credential) -WhatIf
 
@@ -41,21 +43,30 @@ function Remove-F4keH0undDecoy {
     Write-Verbose "[$($MyInvocation.MyCommand)] - Attempting to find decoy '$Identity'."
     $decoyObject = $null
     try {
+        $findParams = $adParams.Clone()
+        $findParams['Identity'] = $Identity
+        $findParams['Properties'] = @('MemberOf', 'DistinguishedName', 'Name')
+        $findParams['ErrorAction'] = 'Stop'
+
         switch ($DecoyType) {
-            "User" {
-                $findParams = $adParams.Clone()
-                $findParams['Identity'] = $Identity
-                $findParams['Properties'] = "MemberOf"
-                $findParams['ErrorAction'] = "Stop"
-                $decoyObject = Get-ADUser @findParams
-            }
+            "User"     { $decoyObject = Get-ADUser @findParams }
+            "Computer" { $decoyObject = Get-ADComputer @findParams }
+            "Group"    { $decoyObject = Get-ADGroup @findParams }
         }
     }
-    catch { Write-Error "[ERROR] Failed to find a decoy with Identity '$Identity' and Type '$DecoyType'. Error: $($_.Exception.Message)"; return }
-    if ($null -eq $decoyObject) { Write-Error "[ERROR] Could not find a decoy with Identity '$Identity' and Type '$DecoyType'."; return }
+    catch {
+        Write-Error "[ERROR] Failed to find a decoy with Identity '$Identity' and Type '$DecoyType'. Error: $($_.Exception.Message)"
+        return
+    }
+
+    if ($null -eq $decoyObject) {
+        Write-Error "[ERROR] Could not find a decoy with Identity '$Identity' and Type '$DecoyType'."
+        return
+    }
+
     Write-Host "[INFO] Found decoy: $($decoyObject.DistinguishedName)" -ForegroundColor Cyan
 
-    if ($decoyObject.MemberOf.Count -gt 0) {
+    if (@($decoyObject.MemberOf).Count -gt 0) {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Decoy is a member of $($decoyObject.MemberOf.Count) groups. Removing memberships..."
         foreach ($groupDN in $decoyObject.MemberOf) {
             $target = "Group '$($groupDN)'"; $action = "Remove member '$($decoyObject.Name)' from"
@@ -76,14 +87,22 @@ function Remove-F4keH0undDecoy {
     $target = $decoyObject.DistinguishedName; $action = "Remove Decoy Object"
     if ($PSCmdlet.ShouldProcess($target, $action)) {
         try {
-            $removeUserParams = $adParams.Clone()
-            $removeUserParams['Identity'] = $decoyObject
-            $removeUserParams['Confirm'] = $false
-            $removeUserParams['ErrorAction'] = "Stop"
-            Remove-ADUser @removeUserParams
-            Write-Host "[SUCCESS] Successfully removed decoy '$($decoyObject.Name)'." -ForegroundColor Green
+            $removeParams = $adParams.Clone()
+            $removeParams['Identity'] = $decoyObject
+            $removeParams['Confirm'] = $false
+            $removeParams['ErrorAction'] = "Stop"
+
+            switch ($DecoyType) {
+                "User"     { Remove-ADUser @removeParams }
+                "Computer" { Remove-ADComputer @removeParams }
+                "Group"    { Remove-ADGroup @removeParams }
+            }
+
+            Write-Host "[SUCCESS] Successfully removed decoy '$($decoyObject.Name)' (Type: $DecoyType)." -ForegroundColor Green
         }
-        catch { Write-Error "[ERROR] Failed to remove decoy. Error: $($_.Exception.Message)" }
+        catch {
+            Write-Error "[ERROR] Failed to remove decoy. Error: $($_.Exception.Message)"
+        }
     }
     } # end process
 }

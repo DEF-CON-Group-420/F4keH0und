@@ -1,6 +1,6 @@
-# Contributing to F4keH0und
+# Contributing to F4keH0und - Last Generation
 
-Thank you for your interest in F4keH0und! Contributions, bug reports, and feature suggestions are welcome.
+Thank you for your interest in F4keH0und - Last Generation! Contributions, bug reports, and feature suggestions are welcome.
 
 ## Forking the Repository
 

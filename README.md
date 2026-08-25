@@ -1,20 +1,26 @@
-# F4keH0undv2.0
-*A PowerShell framework for deploying Active Directory & Entra ID deception at scale — recycling-first.*
+# F4keH0und - Last Generation
+*A PowerShell-first deception framework for Active Directory & Entra ID with recycling-first deployment and lifecycle management.*
 
-<div style="text-align: center;">
-  <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="f4keh0und git logo" width="50%">
-</div>
+<p align="center">
+  <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="F4keH0und - Last Generation logo" width="50%">
+</p>
 
 [![CI](https://github.com/DEF-CON-Group-420/F4keH0und/actions/workflows/ci.yml/badge.svg)](https://github.com/DEF-CON-Group-420/F4keH0und/actions/workflows/ci.yml)
+[![PowerShell](https://img.shields.io/badge/PowerShell-7%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-1f6feb)](https://github.com/PowerShell/PowerShell)
+[![Active Directory](https://img.shields.io/badge/Active%20Directory-RSAT-0A66C2)](https://learn.microsoft.com/powershell/module/activedirectory/)
+[![Microsoft Graph](https://img.shields.io/badge/Microsoft%20Graph-Enabled-0078D4?logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/powershell/microsoftgraph/)
+[![BloodHound](https://img.shields.io/badge/BloodHound-SharpHound%20%2B%20AzureHound-8A2BE2)](https://bloodhound.specterops.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Fork me on GitHub](https://img.shields.io/badge/Fork%20me%20on-GitHub-blue?logo=github)](https://github.com/DEF-CON-Group-420/F4keH0und/fork)
 
 ---
 
 ## 📖 Description
 
-**F4keH0und** is a PowerShell module for blue teams, red teams, and security researchers. It analyzes BloodHound collector output (SharpHound and AzureHound) to identify high-value deception opportunities in Active Directory and Microsoft Entra ID, then deploys decoy objects that blend perfectly into the environment.
+**F4keH0und - Last Generation** is a PowerShell module for blue teams, red teams, and security researchers. It analyzes BloodHound collector output (SharpHound and AzureHound) to identify high-value deception opportunities in Active Directory and Microsoft Entra ID, then deploys and tracks decoy objects that blend into the environment.
 
-The v2.0 architecture introduces a **recycling-first philosophy**: rather than creating brand-new objects that attackers can trivially detect, F4keH0und repurposes stale or disabled AD objects that already exist — preserving their original RIDs, creation timestamps, and security history.
+The Last Generation architecture uses a **recycling-first philosophy**: rather than creating brand-new objects that attackers can trivially detect, F4keH0und repurposes stale or disabled AD objects that already exist — preserving their original RIDs, creation timestamps, and security history.
 
 ---
 
@@ -52,8 +58,8 @@ The recycled object keeps its original RID (`1104`) and `whenCreated` timestamp,
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        F4keH0und v2.0                               │
-│                   Recycling-First Architecture                       │
+│                F4keH0und - Last Generation                          │
+│              Recycling-First PowerShell Architecture                │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐  │
@@ -91,18 +97,27 @@ For a detailed module structure, data-flow diagrams, and design decisions see [A
 
 ## ✨ Features
 
-- **Recycling-First Engine**: Scans for stale/disabled AD objects and repurposes them — preserving RID and creation timestamp to defeat RID-anomaly detection.
-- **Staleness Scoring**: Each candidate object receives a `StalenessScore` (0–100) based on age, inactivity, group isolation, and description emptiness.
-- **Data-Driven Analysis**: Parses timestamp-prefixed JSON from SharpHound and single-file JSON from AzureHound.
-- **Hybrid Environment Support**: Analyzes both on-premises Active Directory and Microsoft Entra ID.
-- **Cross-Domain Operations**: Use `-Server` and `-Credential` to operate from a bastion host or a machine in a different domain.
-- **Opportunity Ranking**: Ranks opportunities from **Critical** to **Low** (recycling candidates receive a rank boost).
-- **Interactive Deployment**: A guided workflow lets you review, select, and confirm decoys before any changes are made.
-- **Five Decoy Types**: StaleAdminLure, KerberoastableUser, UnconstrainedDelegationComputer, DNSAdminUser, and ACLAttackPath (see below).
-- **Entra ID Support**: Deploys PrivilegedEntraSP decoys for cloud-hybrid environments.
-- **Safe by Default**: Full `-WhatIf` and `-Confirm` support. Nothing changes without your explicit approval.
-- **Automated Reporting**: Generates a CSV handover report for your SecOps team after each deployment.
-- **Clean Removal**: `Remove-F4keH0undDecoy` cleanly reverses all changes and removes group memberships.
+- **Recycling-First Engine**: Scans stale/disabled identities and repurposes them to preserve RID and creation timelines.
+- **Identity-First Priority**: Focuses on high-detection decoys like stale admins, token-bearing identities, and privileged account lures.
+- **AD + Entra Coverage**: Supports hybrid deception analysis for on-prem AD and Microsoft Entra ID.
+- **Cross-Platform PowerShell**: Designed for Windows, macOS, and Linux when required PowerShell modules are installed.
+- **Lifecycle Controls**: `New-`, `Get-`, and `Remove-` workflows support deployment, status tracking, and cleanup.
+- **Inventory Interface**: `Get-F4keH0undInventory` provides a consolidated view of deployed deceptive elements and status.
+- **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
+- **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
+- **Automated Reporting**: Generates CSV handover reports for SecOps and purple-team operations.
+
+---
+
+## 🗺️ Last Generation Focus
+
+- **PowerShell-first, cross-platform**: Keep `pwsh` as the primary runtime while maintaining compatibility for Windows, macOS, and Linux.
+- **Unified deceptive-element interface**: Track tokens, identities, services, and other decoys with deployment location and status visibility.
+- **AD + Entra parity**: Expand Entra coverage to mirror the breadth and lifecycle depth currently available for AD.
+- **Lifecycle completeness**: Extend command surface for create, inspect, update, redesign, disable, and remove workflows.
+- **Identity and token priority**: Lead with low-cost/high-detection elements like identity decoys, fake credentials, and token bait.
+
+For execution details and phased delivery, see [LAST-GENERATION-ROADMAP.md](LAST-GENERATION-ROADMAP.md).
 
 ---
 
@@ -165,7 +180,7 @@ Add-F4keH0undRelationship -SourceIdentity "decoy_user_01" `
 
 ## 🆚 Recycling vs. Creation
 
-| | Recycling (v2.0 default) | Creating new objects |
+| | Recycling (Last Generation default) | Creating new objects |
 |---|---|---|
 | **RID** | Original RID preserved | Sequential, obviously recent |
 | **whenCreated** | Original timestamp preserved | Current date — stands out |
@@ -178,13 +193,15 @@ Add-F4keH0undRelationship -SourceIdentity "decoy_user_01" `
 
 ## ⚙️ Prerequisites
 
-1. **PowerShell 7+**: Recommended for best compatibility.
+1. **PowerShell 7+**: Required for consistent behavior across Windows, macOS, and Linux.
 2. **Permissions**: You have two options:
-   - **Run As Privileged User**: Run PowerShell as a user with permissions in the target domain (requires domain membership).
-   - **Use `-Credential` Parameter**: Supply privileged credentials at runtime. **Required for cross-domain operations.**
-3. **Active Directory Module**: Required for on-premises AD operations (part of RSAT).
-4. **Network Connectivity**: TCP 9389 (AD Web Services) must be open to the target DC when using `-Server`.
-5. **BloodHound Data**: JSON output from a recent SharpHound or AzureHound collection run.
+   - **Run As Privileged User**: Run PowerShell as a user with permissions in the target domain.
+   - **Use `-Credential` Parameter**: Supply privileged credentials at runtime (recommended for cross-domain).
+3. **Module Requirements**:
+   - **ActiveDirectory** module for on-prem AD operations.
+   - **Microsoft.Graph** modules for Entra discovery/recycling flows.
+4. **Network Connectivity**: TCP 9389 (AD Web Services) must be reachable for AD operations using `-Server`.
+5. **BloodHound Data**: JSON output from recent SharpHound and/or AzureHound collection runs.
 
 ---
 
@@ -195,9 +212,10 @@ Add-F4keH0undRelationship -SourceIdentity "decoy_user_01" `
 ```powershell
 # Clone the repository
 git clone https://github.com/DEF-CON-Group-420/F4keH0und.git
+Set-Location ./F4keH0und
 
-# Copy to your PowerShell modules directory
-Copy-Item -Recurse .\F4keH0und "$HOME\Documents\PowerShell\Modules\F4keH0und"
+# Reinstall from this source clone (cross-platform)
+./Reinstall-F4keH0und.ps1
 
 # Import and verify
 Import-Module F4keH0und -Force
@@ -205,12 +223,12 @@ Get-Module F4keH0und
 ```
 
 > **Updating the module later?**
-> After a `git pull`, the copy in `$HOME\Documents\PowerShell\Modules\F4keH0und` is **not** updated automatically —
+> After a `git pull`, the copy in your user module path from `$env:PSModulePath` is **not** updated automatically —
 > PowerShell will keep loading the old cached version. Run `Reinstall-F4keH0und.ps1` to wipe every stale copy and
 > reinstall from your local clone:
 > ```powershell
-> cd C:\path\to\F4keH0und
-> .\Reinstall-F4keH0und.ps1 -PullLatest
+> cd /path/to/F4keH0und
+> ./Reinstall-F4keH0und.ps1 -PullLatest
 > ```
 > See the [Troubleshooting](#-troubleshooting) section for details.
 
@@ -218,7 +236,8 @@ Get-Module F4keH0und
 
 ```powershell
 # Analyze AD data and discover recycling + creation opportunities
-$opportunities = Find-F4keH0undOpportunity -BloodHoundPath C:\BH_Data\ -PreferRecycling -Verbose
+$bloodHoundPath = Join-Path $PWD 'BH_Data'
+$opportunities = Find-F4keH0undOpportunity -BloodHoundPath $bloodHoundPath -PreferRecycling -Verbose
 
 # Review what was found
 $opportunities | Format-Table DecoyType, Rank, Source, Identity, StalenessScore -AutoSize
@@ -228,17 +247,17 @@ $opportunities | Format-Table DecoyType, Rank, Source, Identity, StalenessScore 
 
 ```powershell
 # Always test with -WhatIf first — no changes are made
-New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -PreferRecycling -WhatIf
+New-F4keH0undDecoy -BloodHoundPath $bloodHoundPath -Execute -PreferRecycling -WhatIf
 ```
 
 ### Step 4 — Deploy
 
 ```powershell
 # Domain-joined machine — use existing session
-New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -PreferRecycling
+New-F4keH0undDecoy -BloodHoundPath $bloodHoundPath -Execute -PreferRecycling
 
 # Bastion / cross-domain — supply server and credentials
-New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -PreferRecycling `
+New-F4keH0undDecoy -BloodHoundPath $bloodHoundPath -Execute -PreferRecycling `
     -Server "DC01.target.local" -Credential (Get-Credential)
 ```
 
@@ -252,6 +271,18 @@ Remove-F4keH0undDecoy -Identity "j.harris" -WhatIf `
 # Live removal
 Remove-F4keH0undDecoy -Identity "j.harris" `
     -Server "DC01.target.local" -Credential (Get-Credential)
+```
+
+### Step 6 — Inventory Interface
+
+```powershell
+# Show latest deceptive element inventory with live AD status checks
+Get-F4keH0undInventory -Server "DC01.target.local" -Credential (Get-Credential) |
+    Format-Table Identity, DecoyType, Platform, Status, Location, DeployedAt -AutoSize
+
+# Historical view from all report files (recorded state only)
+Get-F4keH0undInventory -AllReports -SkipLiveStatus |
+    Sort-Object DeployedAt -Descending
 ```
 
 ---
@@ -480,15 +511,15 @@ Review the `config.json` defaults — particularly `DefaultDecoyPrefix`/`Default
 ### `-PreferRecycling` (or another new parameter) is reported as unknown after updating
 
 **Cause:** PowerShell is loading a stale copy of the module from `$env:PSModulePath` (typically
-`$HOME\Documents\PowerShell\Modules\F4keH0und`) and/or from the `ModuleAnalysisCache`, rather
+`$HOME/.local/share/powershell/Modules/F4keH0und` on macOS/Linux, or a user module path on Windows) and/or from the `ModuleAnalysisCache`, rather
 than the freshly-pulled source in your local git checkout. Running `git pull` in your clone does
 **not** update the installed copy.
 
 **Fix:** Run the included `Reinstall-F4keH0und.ps1` script from the repository root:
 
 ```powershell
-cd C:\path\to\F4keH0und
-.\Reinstall-F4keH0und.ps1 -PullLatest
+cd /path/to/F4keH0und
+./Reinstall-F4keH0und.ps1 -PullLatest
 ```
 
 The script will:
@@ -496,7 +527,7 @@ The script will:
 2. Delete every installed copy from every directory in `$env:PSModulePath`.
 3. Clear the PowerShell `ModuleAnalysisCache`.
 4. Pull the latest source from `origin/main` (when `-PullLatest` is passed).
-5. Reinstall the fresh copy to `$HOME\Documents\PowerShell\Modules\F4keH0und`.
+5. Reinstall the fresh copy to your user module path from `$env:PSModulePath`.
 6. Import the module and verify that `-PreferRecycling` is available.
 
 **Manual sanity checks** (if it still fails after running the script):
@@ -509,7 +540,7 @@ The script will:
 (Get-Command New-F4keH0undDecoy).Parameters['PreferRecycling']
 
 # Hunt for any other F4keH0und manifests on disk
-Get-ChildItem -Path C:\ -Filter F4keH0und.psd1 -Recurse -ErrorAction SilentlyContinue
+Get-ChildItem -Path $HOME -Filter F4keH0und.psd1 -Recurse -ErrorAction SilentlyContinue
 ```
 
 If `(Get-Module F4keH0und).Path` points anywhere other than your freshly installed copy, delete
@@ -524,6 +555,7 @@ that location and re-run `Import-Module F4keH0und -Force`.
 | [README.md](README.md) | This file — overview, quick start, feature reference |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
 | [EXAMPLES.md](EXAMPLES.md) | 10+ complete deployment scenarios with annotated commands |
+| [LAST-GENERATION-ROADMAP.md](LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |
 
 ---
@@ -534,6 +566,6 @@ that location and re-run `Import-Module F4keH0und -Force`.
 
 ---
 
-## �� License
+## 📄 License
 
 This project is licensed under the MIT License.
