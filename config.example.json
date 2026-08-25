@@ -28,5 +28,15 @@
       "^admin",
       "^svc_prod"
     ]
+  },
+
+  "InventorySettings": {
+    "_comment": "Persistent lifecycle inventory backend settings",
+    "EnablePersistentInventory": true,
+    "PreferredSource": "Auto",
+    "InventoryDirectory": "./inventory",
+    "EventLogFileName": "F4keH0und_Inventory_Events.ndjson",
+    "SnapshotFileName": "F4keH0und_Inventory_Snapshot.json",
+    "UpdateSnapshotOnWrite": true
   }
 }

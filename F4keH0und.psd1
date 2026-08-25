@@ -7,7 +7,7 @@
 RootModule = 'F4keH0und.psm1' # CHANGED
 
 # Version number of this module.
-ModuleVersion = '2.5.0'
+ModuleVersion = '2.6.0'
 
 # ID used to uniquely identify this module
 GUID = 'd2b0e6f3-8d3c-4e8f-8c6a-1e9f4c3a2b1d'
@@ -28,6 +28,9 @@ Description = 'F4keH0und - Last Generation: A PowerShell framework to analyze Bl
 FunctionsToExport = @(
     'Find-F4keH0undOpportunity',   # CHANGED
     'New-F4keH0undDecoy',          # CHANGED
+    'Update-F4keH0undDecoy',       # CHANGED
+    'Disable-F4keH0undDecoy',      # CHANGED
+    'Enable-F4keH0undDecoy',       # CHANGED
     'Add-F4keH0undRelationship',   # CHANGED
     'Remove-F4keH0undDecoy',       # CHANGED
     'Get-F4keH0undInventory',      # CHANGED
@@ -50,7 +53,7 @@ PrivateData = @{
     PSData = @{
         Tags = @('BloodHound', 'Active Directory', 'Entra ID', 'Deception', 'Cybersecurity', 'PowerShell', 'LastGeneration')
         # LicenseUri = ''
-        ProjectUri = 'https://github.com/DEF-CON-Group-420/F4keH0und'
+        ProjectUri = 'https://github.com/th3r3d/F4keH0und-LG'
         # IconUri = ''
     }
 }

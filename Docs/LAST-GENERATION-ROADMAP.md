@@ -49,11 +49,11 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 
 - `Find-F4keH0undOpportunity` (existing, expanded)
 - `New-F4keH0undDecoy` (existing, expanded)
-- `Get-F4keH0undInventory` (implemented baseline)
-- `Update-F4keH0undDecoy` (new)
+- `Get-F4keH0undInventory` (implemented: reports + persistent events)
+- `Update-F4keH0undDecoy` (implemented)
 - `Redesign-F4keH0undDecoy` (new)
-- `Disable-F4keH0undDecoy` (new)
-- `Enable-F4keH0undDecoy` (new)
+- `Disable-F4keH0undDecoy` (implemented)
+- `Enable-F4keH0undDecoy` (implemented)
 - `Remove-F4keH0undDecoy` (existing, expanded)
 - `New-F4keH0undToken` (new)
 - `Test-F4keH0undCoverage` (new)
@@ -86,6 +86,12 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - `Update-F4keH0undDecoy`
 - `Disable-F4keH0undDecoy` / `Enable-F4keH0undDecoy`
 - Event-sourced inventory history
+
+**Current implementation status:**
+- ✅ Event-sourced NDJSON inventory backend and snapshot cache
+- ✅ `Update-F4keH0undDecoy`
+- ✅ `Disable-F4keH0undDecoy` / `Enable-F4keH0undDecoy`
+- ✅ Lifecycle event writes from deploy/update/disable/enable/remove flows
 
 ## Phase 2 — Entra Parity Expansion (Weeks 4–5)
 
@@ -156,9 +162,8 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Implement persistent inventory backend and lifecycle event recording.
-2. Add `Update-F4keH0undDecoy` for description/groups/SPN redesign workflows.
-3. Extend Entra remove/update logic to close parity gap.
-4. Add first token decoy pack (`New-F4keH0undToken`) with deterministic telemetry tags.
-5. Add coverage scoring dashboard output in `Get-F4keH0undInventory`.
-
+1. Add Entra lifecycle update/remove parity and event writes.
+2. Add first token decoy pack (`New-F4keH0undToken`) with deterministic telemetry tags.
+3. Add coverage scoring dashboard output in `Get-F4keH0undInventory`.
+4. Add versioned decoy profiles and redesign workflows (`Redesign-F4keH0undDecoy`).
+5. Add parity scoring command (`Test-F4keH0undCoverage`).

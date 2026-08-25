@@ -19,6 +19,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 11. [Post-Deployment Verification](#11-post-deployment-verification)
 12. [Bulk Cleanup](#12-bulk-cleanup)
 13. [Inventory Interface](#13-inventory-interface)
+14. [Lifecycle Management](#14-lifecycle-management)
 
 ---
 
@@ -499,14 +500,45 @@ Use the unified inventory interface to review deceptive elements, deployment loc
 ```powershell
 $cred = Get-Credential
 
-# Latest report with live AD checks
-Get-F4keH0undInventory -Server "DC01.corp.local" -Credential $cred |
+# Persistent inventory backend with live AD checks
+Get-F4keH0undInventory -Source Events -Server "DC01.corp.local" -Credential $cred |
     Format-Table Identity, DecoyType, Platform, Status, Location, DeployedAt -AutoSize
 
-# Historical inventory across all reports (recorded state)
-Get-F4keH0undInventory -AllReports -SkipLiveStatus |
+# Full lifecycle history including removed decoys
+Get-F4keH0undInventory -Source Events -IncludeRemoved -PreferSnapshot -SkipLiveStatus |
+    Sort-Object LastUpdated -Descending |
+    Select-Object -First 20
+
+# Historical inventory across report files only
+Get-F4keH0undInventory -Source Reports -AllReports -SkipLiveStatus |
     Sort-Object DeployedAt -Descending |
     Select-Object -First 20
+```
+
+---
+
+## 14. Lifecycle Management
+
+Perform full lifecycle operations on existing AD-backed decoys without redeploying.
+
+```powershell
+$cred = Get-Credential
+$dc   = "DC01.corp.local"
+
+# Update metadata and relationships
+Update-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User `
+    -Description "Legacy SQL service account" `
+    -AddGroups "DnsAdmins" `
+    -Server $dc -Credential $cred
+
+# Temporarily disable and then re-enable the decoy
+Disable-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User -Server $dc -Credential $cred
+Enable-F4keH0undDecoy  -Identity "svc_sql_legacy" -ObjectType User -Server $dc -Credential $cred
+
+# Confirm lifecycle events are persisted
+Get-F4keH0undInventory -Source Events -IncludeRemoved -SkipLiveStatus |
+    Where-Object Identity -eq "svc_sql_legacy" |
+    Format-Table Identity, LastAction, Status, LastUpdated -AutoSize
 ```
 
 ---

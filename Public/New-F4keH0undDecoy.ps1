@@ -541,6 +541,42 @@ function New-F4keH0undDecoy {
             }
             if ($createdObject) {
                 Write-Host "[SUCCESS] Successfully deployed decoy '$($createdObject.Name)' and its relationships." -ForegroundColor Green
+
+                if (Get-Command -Name Write-F4keH0undInventoryEvent -ErrorAction SilentlyContinue) {
+                    $inventoryIdentity = if ($createdObject.SamAccountName) { $createdObject.SamAccountName } else { $createdObject.Name }
+                    $inventoryObjectType = switch ($opportunity.DecoyType) {
+                        'UnconstrainedDelegationComputer' { 'Computer' }
+                        'EntraServicePrincipalDecoy'      { 'ServicePrincipal' }
+                        'EntraGuestUserDecoy'             { 'GuestUser' }
+                        'EntraAppRegistrationDecoy'       { 'AppRegistration' }
+                        default                            { 'User' }
+                    }
+
+                    $inventoryPlatform = if ($PSCmdlet.ParameterSetName -eq 'Azure' -or $opportunity.DecoyType -like 'Entra*') {
+                        'Entra'
+                    }
+                    else {
+                        'AD'
+                    }
+
+                    $inventoryStatus = if ($inventoryObjectType -eq 'Group') {
+                        'Present'
+                    }
+                    elseif ($createdObject.PSObject.Properties.Name -contains 'Enabled') {
+                        if ($createdObject.Enabled) { 'Enabled' } else { 'Disabled' }
+                    }
+                    else {
+                        'Recorded'
+                    }
+
+                    $inventoryMetadata = @{
+                        OpportunityId = $opportunity.ID
+                        Justification = $opportunity.Justification
+                    }
+
+                    Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $inventoryIdentity -DecoyType $opportunity.DecoyType -Platform $inventoryPlatform -ObjectType $inventoryObjectType -Strategy $opportunity.Strategy -Status $inventoryStatus -Location $createdObject.DistinguishedName -Metadata $inventoryMetadata -SourceCommand $MyInvocation.MyCommand.Name
+                }
+
                 $deployedDecoy = [PSCustomObject]@{
                     Object      = $createdObject
                     Opportunity = $opportunity

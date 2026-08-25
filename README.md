@@ -5,14 +5,14 @@
   <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="F4keH0und - Last Generation logo" width="50%">
 </p>
 
-[![CI](https://github.com/DEF-CON-Group-420/F4keH0und/actions/workflows/ci.yml/badge.svg)](https://github.com/DEF-CON-Group-420/F4keH0und/actions/workflows/ci.yml)
+[![CI](https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml/badge.svg)](https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml)
 [![PowerShell](https://img.shields.io/badge/PowerShell-7%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-1f6feb)](https://github.com/PowerShell/PowerShell)
 [![Active Directory](https://img.shields.io/badge/Active%20Directory-RSAT-0A66C2)](https://learn.microsoft.com/powershell/module/activedirectory/)
 [![Microsoft Graph](https://img.shields.io/badge/Microsoft%20Graph-Enabled-0078D4?logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/powershell/microsoftgraph/)
 [![BloodHound](https://img.shields.io/badge/BloodHound-SharpHound%20%2B%20AzureHound-8A2BE2)](https://bloodhound.specterops.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Fork me on GitHub](https://img.shields.io/badge/Fork%20me%20on-GitHub-blue?logo=github)](https://github.com/DEF-CON-Group-420/F4keH0und/fork)
+[![Fork me on GitHub](https://img.shields.io/badge/Fork%20me%20on-GitHub-blue?logo=github)](https://github.com/th3r3d/F4keH0und-LG/fork)
 
 ---
 
@@ -101,7 +101,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Identity-First Priority**: Focuses on high-detection decoys like stale admins, token-bearing identities, and privileged account lures.
 - **AD + Entra Coverage**: Supports hybrid deception analysis for on-prem AD and Microsoft Entra ID.
 - **Cross-Platform PowerShell**: Designed for Windows, macOS, and Linux when required PowerShell modules are installed.
-- **Lifecycle Controls**: `New-`, `Get-`, and `Remove-` workflows support deployment, status tracking, and cleanup.
+- **Lifecycle Controls**: `New-`, `Get-`, `Update-`, `Disable-`, `Enable-`, and `Remove-` workflows support full decoy lifecycle operations.
 - **Inventory Interface**: `Get-F4keH0undInventory` provides a consolidated view of deployed deceptive elements and status.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
 - **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
@@ -211,7 +211,7 @@ Add-F4keH0undRelationship -SourceIdentity "decoy_user_01" `
 
 ```powershell
 # Clone the repository
-git clone https://github.com/DEF-CON-Group-420/F4keH0und.git
+git clone https://github.com/th3r3d/F4keH0und-LG.git
 Set-Location ./F4keH0und
 
 # Reinstall from this source clone (cross-platform)
@@ -276,13 +276,29 @@ Remove-F4keH0undDecoy -Identity "j.harris" `
 ### Step 6 — Inventory Interface
 
 ```powershell
-# Show latest deceptive element inventory with live AD status checks
-Get-F4keH0undInventory -Server "DC01.target.local" -Credential (Get-Credential) |
+# Show inventory from persistent lifecycle backend with live AD status checks
+Get-F4keH0undInventory -Source Events -Server "DC01.target.local" -Credential (Get-Credential) |
     Format-Table Identity, DecoyType, Platform, Status, Location, DeployedAt -AutoSize
 
-# Historical view from all report files (recorded state only)
-Get-F4keH0undInventory -AllReports -SkipLiveStatus |
+# Include removed decoys from lifecycle history
+Get-F4keH0undInventory -Source Events -IncludeRemoved -PreferSnapshot -SkipLiveStatus |
+    Sort-Object LastUpdated -Descending
+
+# Historical view from report files only (recorded state)
+Get-F4keH0undInventory -Source Reports -AllReports -SkipLiveStatus |
     Sort-Object DeployedAt -Descending
+```
+
+### Step 7 — Lifecycle Operations
+
+```powershell
+# Update existing decoy metadata and group memberships
+Update-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User `
+    -Description "Legacy SQL service account" -AddGroups "DnsAdmins"
+
+# Disable / enable decoy identity state
+Disable-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User
+Enable-F4keH0undDecoy  -Identity "svc_sql_legacy" -ObjectType User
 ```
 
 ---
@@ -329,6 +345,19 @@ Defines what must never be recycled.
 | `AutoGenerateReport` | `true` | Automatically generate a report after deployment |
 | `VerboseLogging` | `false` | Enable verbose output by default |
 
+### InventorySettings
+
+Controls the persistent inventory event backend used by lifecycle commands.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `EnablePersistentInventory` | `true` | Enables event-based lifecycle inventory writes |
+| `PreferredSource` | `Auto` | Inventory read preference: `Auto`, `Events`, or `Reports` |
+| `InventoryDirectory` | `./inventory` | Base directory for persistent inventory files |
+| `EventLogFileName` | `F4keH0und_Inventory_Events.ndjson` | NDJSON event log file |
+| `SnapshotFileName` | `F4keH0und_Inventory_Snapshot.json` | Cached snapshot file for fast reads |
+| `UpdateSnapshotOnWrite` | `true` | Rebuilds snapshot after each lifecycle event |
+
 ### Example Configuration
 
 ```json
@@ -350,6 +379,12 @@ Defines what must never be recycled.
   "DeploymentSettings": {
     "ReportOutputPath": "C:\\SecOps\\F4keH0und\\reports",
     "AutoGenerateReport": true
+  },
+  "InventorySettings": {
+    "EnablePersistentInventory": true,
+    "PreferredSource": "Auto",
+    "InventoryDirectory": "./inventory",
+    "EventLogFileName": "F4keH0und_Inventory_Events.ndjson"
   }
 }
 ```

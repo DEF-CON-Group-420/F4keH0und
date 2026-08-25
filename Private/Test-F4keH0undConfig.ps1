@@ -70,8 +70,25 @@ function Test-F4keH0undConfig {
         $validationResult.Warnings += "No protected user patterns defined. This may allow recycling of critical accounts."
     }
 
+    # Validate InventorySettings
+    if ($config.PSObject.Properties.Name -contains 'InventorySettings') {
+        $preferredSource = [string]$config.InventorySettings.PreferredSource
+        if ($preferredSource -and $preferredSource -notin @('Auto', 'Events', 'Reports')) {
+            $validationResult.Errors += "InventorySettings.PreferredSource must be one of: Auto, Events, Reports"
+            $validationResult.IsValid = $false
+        }
+
+        if ($config.InventorySettings.EventLogFileName -and -not $config.InventorySettings.EventLogFileName.ToString().EndsWith('.ndjson')) {
+            $validationResult.Warnings += "InventorySettings.EventLogFileName does not end with '.ndjson'. NDJSON is recommended for event logs."
+        }
+    }
+
     # Validate paths exist or can be created
-    $pathsToCheck = @($config.DeploymentSettings.ReportOutputPath, $config.AuditSettings.AuditLogPath)
+    $pathsToCheck = @(
+        $config.DeploymentSettings.ReportOutputPath,
+        $config.AuditSettings.AuditLogPath,
+        $config.InventorySettings.InventoryDirectory
+    )
     foreach ($path in $pathsToCheck) {
         if ($path -and -not (Test-Path $path)) {
             try {

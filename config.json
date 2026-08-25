@@ -108,5 +108,14 @@
     "CacheDurationMinutes": 60,
     "ParallelDiscovery": false,
     "MaxParallelThreads": 4
+  },
+
+  "InventorySettings": {
+    "EnablePersistentInventory": true,
+    "PreferredSource": "Auto",
+    "InventoryDirectory": "./inventory",
+    "EventLogFileName": "F4keH0und_Inventory_Events.ndjson",
+    "SnapshotFileName": "F4keH0und_Inventory_Snapshot.json",
+    "UpdateSnapshotOnWrite": true
   }
 }

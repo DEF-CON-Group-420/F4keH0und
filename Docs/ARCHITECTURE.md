@@ -46,15 +46,19 @@ F4keH0und/
 ├── Public/                                 # Exported functions (user-facing API)
 │   ├── Find-F4keH0undOpportunity.ps1       # Analysis engine — parses BH data, calls recycling engine
 │   ├── New-F4keH0undDecoy.ps1              # Deployment orchestrator — calls Set-Private* helpers
-│   ├── Get-F4keH0undInventory.ps1          # Inventory interface — reads reports and verifies live status
+│   ├── Update-F4keH0undDecoy.ps1           # Lifecycle update command for decoy metadata/relationships
+│   ├── Disable-F4keH0undDecoy.ps1          # Lifecycle state command — disable decoy identities
+│   ├── Enable-F4keH0undDecoy.ps1           # Lifecycle state command — re-enable decoy identities
+│   ├── Get-F4keH0undInventory.ps1          # Inventory interface — reads persistent events/reports and verifies live status
 │   ├── Add-F4keH0undRelationship.ps1       # ACL relationship writer for ACLAttackPath decoys
-│   └── Remove-F4keH0undDecoy.ps1           # Cleanup — reverses all changes made by New-F4keH0undDecoy
+│   └── Remove-F4keH0undDecoy.ps1           # Lifecycle cleanup/removal command
 │
 └── Private/                                # Internal functions (not exported)
     ├── Find-F4keH0undRecyclableObject.ps1  # Recycling engine — staleness scoring and AD queries
     ├── Get-F4keH0undConfig.ps1             # Config reader — parses config.json with defaults
     ├── Get-F4keH0undData.ps1               # BloodHound data loader — reads and normalizes JSON
     ├── Get-F4keH0undRank.ps1               # Opportunity ranker — Critical / High / Low assignment
+    ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
     ├── Set-PrivateADDecoyUser.ps1          # Recycles a stale user into a decoy
     ├── Set-PrivateADDecoyComputer.ps1      # Recycles a stale computer into a decoy
     ├── Set-PrivateADDecoyGroup.ps1         # Recycles a stale group into a decoy
@@ -352,6 +356,24 @@ The modification workers. Each follows the same safety-then-modify pattern:
 ### Get-F4keH0undConfig (Private)
 
 Reads and merges `config.json` with built-in defaults. Every consumer calls this at the start of execution, so changing `config.json` takes effect on the next run without re-importing the module.
+
+### Manage-F4keH0undInventory (Private)
+
+Implements persistent lifecycle inventory storage and state folding:
+- Appends lifecycle events (`Deploy`, `Update`, `Disable`, `Enable`, `Remove`) to NDJSON.
+- Reconstructs current inventory state from event history.
+- Maintains an optional snapshot cache for fast inventory reads.
+
+`New-F4keH0undDecoy`, `Update-F4keH0undDecoy`, `Disable-F4keH0undDecoy`, `Enable-F4keH0undDecoy`, and `Remove-F4keH0undDecoy` all write inventory events through this backend.
+
+### Update/Disable/Enable Lifecycle Commands (Public)
+
+These commands provide CRUD-like lifecycle operations for deployed AD-backed decoys:
+- `Update-F4keH0undDecoy` modifies description, memberships, and SPNs.
+- `Disable-F4keH0undDecoy` moves decoys to disabled state without removal.
+- `Enable-F4keH0undDecoy` restores decoys to enabled state.
+
+Every command records a persistent inventory event so `Get-F4keH0undInventory -Source Events` can reflect current lifecycle state without relying only on CSV deployment reports.
 
 ### Test-F4keH0undConfig (Public/Private)
 

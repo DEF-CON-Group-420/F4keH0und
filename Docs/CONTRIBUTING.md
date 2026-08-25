@@ -4,15 +4,15 @@ Thank you for your interest in F4keH0und - Last Generation! Contributions, bug r
 
 ## Forking the Repository
 
-1. Click the **Fork** button at the top-right of the [repository page](https://github.com/DEF-CON-Group-420/F4keH0und).
+1. Click the **Fork** button at the top-right of the [repository page](https://github.com/th3r3d/F4keH0und-LG).
 2. Clone your fork locally:
    ```powershell
-   git clone https://github.com/<your-username>/F4keH0und.git
-   cd F4keH0und
+   git clone https://github.com/<your-username>/F4keH0und-LG.git
+   cd F4keH0und-LG
    ```
 3. Add the upstream remote so you can pull in future updates:
    ```powershell
-   git remote add upstream https://github.com/DEF-CON-Group-420/F4keH0und.git
+   git remote add upstream https://github.com/th3r3d/F4keH0und-LG.git
    ```
 
 ## Keeping Your Fork Up to Date

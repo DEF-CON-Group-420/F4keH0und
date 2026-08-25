@@ -98,6 +98,16 @@ function Remove-F4keH0undDecoy {
                 "Group"    { Remove-ADGroup @removeParams }
             }
 
+            if (Get-Command -Name Write-F4keH0undInventoryEvent -ErrorAction SilentlyContinue) {
+                $eventDecoyType = "$DecoyType`Decoy"
+                $eventMetadata = @{
+                    RemovedByCommand = $MyInvocation.MyCommand.Name
+                    RemovalMode      = 'Delete'
+                }
+
+                Write-F4keH0undInventoryEvent -Action 'Remove' -Identity $Identity -DecoyType $eventDecoyType -Platform 'AD' -ObjectType $DecoyType -Status 'Removed' -Location $decoyObject.DistinguishedName -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name
+            }
+
             Write-Host "[SUCCESS] Successfully removed decoy '$($decoyObject.Name)' (Type: $DecoyType)." -ForegroundColor Green
         }
         catch {

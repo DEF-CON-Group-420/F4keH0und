@@ -3,22 +3,33 @@
     Displays a consolidated inventory view of deployed deceptive elements.
 
 .DESCRIPTION
-    Reads one or more F4keH0und deployment report CSV files and builds a normalized
-    inventory containing identity, element type, deployment strategy, and current status.
+    Reads inventory from the persistent inventory backend (event log + optional snapshot)
+    and/or deployment report CSV files, then returns a normalized view containing identity,
+    decoy type, deployment strategy, current status, and deployment location.
 
-    By default, the command reads only the latest deployment report from the configured
-    ReportOutputPath and attempts live AD status verification for AD-backed elements.
+.PARAMETER Source
+    Controls where inventory is read from:
+      - Auto    : Prefer persistent inventory when available, otherwise fall back to reports.
+      - Events  : Use persistent inventory backend only.
+      - Reports : Use deployment report CSV files only.
+
+.PARAMETER IncludeRemoved
+    Events source only. Includes decoys with lifecycle state Removed.
+
+.PARAMETER PreferSnapshot
+    Events source only. When set, attempts to read the persisted snapshot first and falls
+    back to event-log replay when snapshot is unavailable.
 
 .PARAMETER ReportPath
-    Optional path to a specific deployment report CSV file.
+    Reports source only. Optional path to a specific deployment report CSV file.
 
 .PARAMETER ReportDirectory
-    Optional directory containing deployment report CSV files.
+    Reports source only. Optional directory containing deployment report CSV files.
     If not specified, uses DeploymentSettings.ReportOutputPath from config.
 
 .PARAMETER AllReports
-    If set, reads all matching report files in the target report directory.
-    Otherwise, only the most recent report is read.
+    Reports source only. If set, reads all matching report files in the target report
+    directory. Otherwise, only the most recent report is read.
 
 .PARAMETER SkipLiveStatus
     If set, skips live status checks against AD and returns recorded inventory only.
@@ -32,22 +43,31 @@
 .EXAMPLE
     Get-F4keH0undInventory
 
-    Loads the latest deployment report from the configured report path and returns
-    inventory with live AD status checks when possible.
+    Returns inventory using the preferred source (persistent backend when available).
 
 .EXAMPLE
-    Get-F4keH0undInventory -AllReports -SkipLiveStatus | Format-Table -AutoSize
+    Get-F4keH0undInventory -Source Events -IncludeRemoved -PreferSnapshot
 
-    Combines all historical reports into a single inventory and skips live lookups.
+    Returns full lifecycle state from persistent inventory, including removed elements.
 
 .EXAMPLE
-    Get-F4keH0undInventory -Server "DC01.target.local" -Credential (Get-Credential)
+    Get-F4keH0undInventory -Source Reports -AllReports -SkipLiveStatus | Format-Table -AutoSize
 
-    Verifies current AD state against a specific domain controller.
+    Combines all historical report files and skips live lookups.
 #>
 function Get-F4keH0undInventory {
     [CmdletBinding()]
     param(
+        [Parameter()]
+        [ValidateSet('Auto', 'Events', 'Reports')]
+        [string]$Source = 'Auto',
+
+        [Parameter()]
+        [switch]$IncludeRemoved,
+
+        [Parameter()]
+        [switch]$PreferSnapshot,
+
         [Parameter()]
         [string]$ReportPath,
 
@@ -67,184 +87,258 @@ function Get-F4keH0undInventory {
         [System.Management.Automation.PSCredential]$Credential
     )
 
-    $reportFiles = @()
+    $commandName = $MyInvocation.MyCommand.Name
 
-    if ($PSBoundParameters.ContainsKey('ReportPath')) {
-        if (-not (Test-Path -Path $ReportPath -PathType Leaf)) {
-            Write-Error "[$($MyInvocation.MyCommand)] - Report file not found: $ReportPath"
-            return @()
+    $ConvertReportRowsToInventory = {
+        param(
+            [Parameter(Mandatory = $true)]
+            [System.Object[]]$Rows
+        )
+
+        foreach ($reportRow in $Rows) {
+            $decoyType = [string]$reportRow.DecoyType
+            $identity = [string]$reportRow.Identity
+            $location = [string]$reportRow.DistinguishedName
+
+            $platform = 'AD'
+            $objectType = 'User'
+
+            switch -Wildcard ($decoyType) {
+                'UnconstrainedDelegationComputer' {
+                    $objectType = 'Computer'
+                    break
+                }
+                'Entra*Guest*' {
+                    $platform = 'Entra'
+                    $objectType = 'GuestUser'
+                    break
+                }
+                'Entra*ServicePrincipal*' {
+                    $platform = 'Entra'
+                    $objectType = 'ServicePrincipal'
+                    break
+                }
+                'Entra*AppRegistration*' {
+                    $platform = 'Entra'
+                    $objectType = 'AppRegistration'
+                    break
+                }
+                default {
+                    $objectType = 'User'
+                }
+            }
+
+            $deployedAt = $null
+            if ($reportRow.Timestamp) {
+                try {
+                    $deployedAt = [datetime]::Parse($reportRow.Timestamp)
+                }
+                catch {
+                    $deployedAt = $null
+                }
+            }
+
+            [PSCustomObject]@{
+                Identity        = $identity
+                DecoyType       = $decoyType
+                Strategy        = [string]$reportRow.Strategy
+                Platform        = $platform
+                ObjectType      = $objectType
+                Status          = 'Recorded'
+                Location        = $location
+                DeployedAt      = $deployedAt
+                LastUpdated     = $deployedAt
+                LastAction      = 'Deploy'
+                IsActive        = $true
+                RIDAnomalySafe  = [string]$reportRow.RIDAnomalySafe
+                EventCount      = 1
+                Metadata        = @{}
+                ReportSource    = [IO.Path]::GetFileName([string]$reportRow._ReportSource)
+                LastStatusCheck = $null
+            }
+        }
+    }
+
+    $GetReportRows = {
+        $reportFiles = @()
+
+        if ($PSBoundParameters.ContainsKey('ReportPath')) {
+            if (-not (Test-Path -Path $ReportPath -PathType Leaf)) {
+                Write-Error "[$commandName] - Report file not found: $ReportPath"
+                return @()
+            }
+
+            $reportFiles = @(Get-Item -Path $ReportPath -ErrorAction Stop)
+        }
+        else {
+            if (-not $PSBoundParameters.ContainsKey('ReportDirectory')) {
+                $deploymentConfig = Get-F4keH0undConfig -Section 'DeploymentSettings'
+                if ($deploymentConfig.ReportOutputPath) {
+                    $ReportDirectory = $deploymentConfig.ReportOutputPath
+                }
+                else {
+                    $ReportDirectory = Join-Path -Path $PWD -ChildPath 'reports'
+                }
+            }
+
+            if (-not (Test-Path -Path $ReportDirectory -PathType Container)) {
+                Write-Warning "[$commandName] - Report directory not found: $ReportDirectory"
+                return @()
+            }
+
+            $reportFiles = @(Get-ChildItem -Path $ReportDirectory -Filter 'F4keH0und*Report*.csv' -File |
+                Sort-Object -Property LastWriteTime -Descending)
+
+            if (-not $reportFiles) {
+                Write-Warning "[$commandName] - No deployment report files were found in '$ReportDirectory'."
+                return @()
+            }
+
+            if (-not $AllReports) {
+                $reportFiles = @($reportFiles | Select-Object -First 1)
+            }
         }
 
-        $reportFiles = @(Get-Item -Path $ReportPath -ErrorAction Stop)
+        $reportRows = [System.Collections.Generic.List[PSObject]]::new()
+        foreach ($reportFile in $reportFiles) {
+            try {
+                $rowsFromFile = Import-Csv -Path $reportFile.FullName -ErrorAction Stop
+                foreach ($row in $rowsFromFile) {
+                    $row | Add-Member -NotePropertyName '_ReportSource' -NotePropertyValue $reportFile.FullName -Force
+                    $reportRows.Add($row)
+                }
+            }
+            catch {
+                Write-Warning "[$commandName] - Failed to parse report '$($reportFile.FullName)': $($_.Exception.Message)"
+            }
+        }
+
+        return @($reportRows)
     }
-    else {
-        if (-not $PSBoundParameters.ContainsKey('ReportDirectory')) {
-            $deploymentConfig = Get-F4keH0undConfig -Section 'DeploymentSettings'
-            if ($deploymentConfig.ReportOutputPath) {
-                $ReportDirectory = $deploymentConfig.ReportOutputPath
+
+    $inventoryRows = @()
+    $effectiveSource = $Source
+
+    $store = Get-F4keH0undInventoryStore
+    if ($effectiveSource -eq 'Auto' -and $store.PreferredSource -in @('Events', 'Reports')) {
+        $effectiveSource = $store.PreferredSource
+    }
+
+    if ($effectiveSource -eq 'Auto') {
+        if ($store.Enabled -and (Test-Path -Path $store.EventLogPath -PathType Leaf) -and
+            ((Get-Item -Path $store.EventLogPath).Length -gt 0)) {
+            $effectiveSource = 'Events'
+        }
+        else {
+            $effectiveSource = 'Reports'
+        }
+    }
+
+    if ($effectiveSource -eq 'Events') {
+        $inventoryRows = @(Get-F4keH0undInventoryState -IncludeRemoved:$IncludeRemoved -PreferSnapshot:$PreferSnapshot)
+        if (-not $inventoryRows) {
+            if ($Source -eq 'Auto') {
+                Write-Verbose "[$($MyInvocation.MyCommand)] - No persistent inventory records found; falling back to reports."
+                $effectiveSource = 'Reports'
             }
             else {
-                $ReportDirectory = Join-Path -Path $PWD -ChildPath 'reports'
+                Write-Warning "[$($MyInvocation.MyCommand)] - No persistent inventory records were found."
+                return @()
             }
         }
+    }
 
-        if (-not (Test-Path -Path $ReportDirectory -PathType Container)) {
-            Write-Warning "[$($MyInvocation.MyCommand)] - Report directory not found: $ReportDirectory"
+    if ($effectiveSource -eq 'Reports') {
+        $reportRows = @(& $GetReportRows)
+        if (-not $reportRows) {
             return @()
         }
 
-        $reportFiles = @(Get-ChildItem -Path $ReportDirectory -Filter 'F4keH0und*Report*.csv' -File |
-            Sort-Object -Property LastWriteTime -Descending)
-
-        if (-not $reportFiles) {
-            Write-Warning "[$($MyInvocation.MyCommand)] - No deployment report files were found in '$ReportDirectory'."
+        $inventoryRows = @(& $ConvertReportRowsToInventory -Rows $reportRows)
+        if (-not $inventoryRows) {
+            Write-Warning "[$($MyInvocation.MyCommand)] - No readable deployment rows were found."
             return @()
         }
-
-        if (-not $AllReports) {
-            $reportFiles = @($reportFiles | Select-Object -First 1)
-        }
     }
 
-    $reportRows = [System.Collections.Generic.List[PSObject]]::new()
-    foreach ($reportFile in $reportFiles) {
-        try {
-            $rowsFromFile = Import-Csv -Path $reportFile.FullName -ErrorAction Stop
-            foreach ($row in $rowsFromFile) {
-                $row | Add-Member -NotePropertyName '_ReportSource' -NotePropertyValue $reportFile.FullName -Force
-                $reportRows.Add($row)
-            }
-        }
-        catch {
-            Write-Warning "[$($MyInvocation.MyCommand)] - Failed to parse report '$($reportFile.FullName)': $($_.Exception.Message)"
-        }
-    }
+    if (-not $SkipLiveStatus) {
+        $adStatusParams = @{}
+        if ($PSBoundParameters.ContainsKey('Server')) { $adStatusParams['Server'] = $Server }
+        if ($PSBoundParameters.ContainsKey('Credential')) { $adStatusParams['Credential'] = $Credential }
 
-    if ($reportRows.Count -eq 0) {
-        Write-Warning "[$($MyInvocation.MyCommand)] - No readable deployment rows were found."
-        return @()
-    }
+        $canQueryAdUsers = $null -ne (Get-Command -Name Get-ADUser -ErrorAction SilentlyContinue)
+        $canQueryAdComputers = $null -ne (Get-Command -Name Get-ADComputer -ErrorAction SilentlyContinue)
+        $canQueryAdGroups = $null -ne (Get-Command -Name Get-ADGroup -ErrorAction SilentlyContinue)
 
-    $adStatusParams = @{}
-    if ($PSBoundParameters.ContainsKey('Server')) { $adStatusParams['Server'] = $Server }
-    if ($PSBoundParameters.ContainsKey('Credential')) { $adStatusParams['Credential'] = $Credential }
-
-    $canQueryAdUsers = $null -ne (Get-Command -Name Get-ADUser -ErrorAction SilentlyContinue)
-    $canQueryAdComputers = $null -ne (Get-Command -Name Get-ADComputer -ErrorAction SilentlyContinue)
-    $canQueryAdGroups = $null -ne (Get-Command -Name Get-ADGroup -ErrorAction SilentlyContinue)
-
-    $inventoryRows = foreach ($reportRow in $reportRows) {
-        $decoyType = [string]$reportRow.DecoyType
-        $identity = [string]$reportRow.Identity
-        $location = [string]$reportRow.DistinguishedName
-
-        $platform = 'AD'
-        $objectType = 'User'
-
-        switch -Wildcard ($decoyType) {
-            'UnconstrainedDelegationComputer' {
-                $objectType = 'Computer'
-                break
-            }
-            'ACLAttackPath' {
-                $objectType = 'User'
-                break
-            }
-            'Entra*Guest*' {
-                $platform = 'Entra'
-                $objectType = 'GuestUser'
-                break
-            }
-            'Entra*ServicePrincipal*' {
-                $platform = 'Entra'
-                $objectType = 'ServicePrincipal'
-                break
-            }
-            'Entra*AppRegistration*' {
-                $platform = 'Entra'
-                $objectType = 'AppRegistration'
-                break
-            }
-            default {
-                $objectType = 'User'
-            }
-        }
-
-        $status = 'Recorded'
-
-        if (-not $SkipLiveStatus) {
-            if ($platform -eq 'AD') {
+        foreach ($row in $inventoryRows) {
+            if ($row.Platform -eq 'AD') {
                 $lookupParams = $adStatusParams.Clone()
-                $lookupParams['Identity'] = $identity
+                $lookupParams['Identity'] = $row.Identity
                 $lookupParams['ErrorAction'] = 'Stop'
 
                 try {
-                    switch ($objectType) {
+                    switch ($row.ObjectType) {
                         'User' {
                             if (-not $canQueryAdUsers) {
-                                $status = 'Unverified (AD module unavailable)'
+                                $row.Status = 'Unverified (AD module unavailable)'
                             }
                             else {
                                 $adUser = Get-ADUser @lookupParams -Properties Enabled, DistinguishedName
-                                $status = if ($adUser.Enabled) { 'Enabled' } else { 'Disabled' }
-                                $location = $adUser.DistinguishedName
+                                $row.Status = if ($adUser.Enabled) { 'Enabled' } else { 'Disabled' }
+                                $row.Location = $adUser.DistinguishedName
                             }
                         }
                         'Computer' {
                             if (-not $canQueryAdComputers) {
-                                $status = 'Unverified (AD module unavailable)'
+                                $row.Status = 'Unverified (AD module unavailable)'
                             }
                             else {
                                 $adComputer = Get-ADComputer @lookupParams -Properties Enabled, DistinguishedName
-                                $status = if ($adComputer.Enabled) { 'Enabled' } else { 'Disabled' }
-                                $location = $adComputer.DistinguishedName
+                                $row.Status = if ($adComputer.Enabled) { 'Enabled' } else { 'Disabled' }
+                                $row.Location = $adComputer.DistinguishedName
                             }
                         }
                         'Group' {
                             if (-not $canQueryAdGroups) {
-                                $status = 'Unverified (AD module unavailable)'
+                                $row.Status = 'Unverified (AD module unavailable)'
                             }
                             else {
                                 $adGroup = Get-ADGroup @lookupParams -Properties DistinguishedName
-                                $status = 'Present'
-                                $location = $adGroup.DistinguishedName
+                                $row.Status = 'Present'
+                                $row.Location = $adGroup.DistinguishedName
                             }
+                        }
+                        default {
+                            $row.Status = 'Recorded'
                         }
                     }
                 }
                 catch {
-                    $status = 'NotFound'
+                    $row.Status = 'NotFound'
                 }
             }
-            else {
-                $status = 'Recorded (Entra live check pending)'
+            elseif ($row.Platform -eq 'Entra' -and [string]::IsNullOrWhiteSpace([string]$row.Status)) {
+                $row.Status = 'Recorded (Entra live check pending)'
             }
-        }
 
-        $deployedAt = $null
-        if ($reportRow.Timestamp) {
-            try {
-                $deployedAt = [datetime]::Parse($reportRow.Timestamp)
-            }
-            catch {
-                $deployedAt = $null
-            }
-        }
-
-        [PSCustomObject]@{
-            Identity         = $identity
-            DecoyType        = $decoyType
-            Strategy         = [string]$reportRow.Strategy
-            Platform         = $platform
-            ObjectType       = $objectType
-            Status           = $status
-            Location         = $location
-            DeployedAt       = $deployedAt
-            RIDAnomalySafe   = [string]$reportRow.RIDAnomalySafe
-            ReportSource     = [IO.Path]::GetFileName([string]$reportRow._ReportSource)
-            LastStatusCheck  = Get-Date
+            $row.LastStatusCheck = Get-Date
         }
     }
 
-    return @($inventoryRows | Sort-Object -Property @{Expression = 'DeployedAt'; Descending = $true}, Identity)
+    return @($inventoryRows | Sort-Object -Property @{
+        Expression = {
+            if ($_.LastUpdated) {
+                [datetime]$_.LastUpdated
+            }
+            elseif ($_.DeployedAt) {
+                [datetime]$_.DeployedAt
+            }
+            else {
+                [datetime]::MinValue
+            }
+        }
+        Descending = $true
+    }, @{
+        Expression = { $_.Identity }
+    })
 }
