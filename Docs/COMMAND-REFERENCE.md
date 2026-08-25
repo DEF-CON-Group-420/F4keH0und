@@ -10,14 +10,16 @@ Current exported commands:
 
 1. `Find-F4keH0undOpportunity`
 2. `New-F4keH0undDecoy`
-3. `Update-F4keH0undDecoy`
-4. `Disable-F4keH0undDecoy`
-5. `Enable-F4keH0undDecoy`
-6. `Get-F4keH0undInventory`
-7. `Add-F4keH0undRelationship`
-8. `Remove-F4keH0undDecoy`
-9. `Get-F4keH0undConfig`
-10. `Test-F4keH0undConfig`
+3. `Sync-F4keH0undEntraParity`
+4. `Update-F4keH0undDecoy`
+5. `Disable-F4keH0undDecoy`
+6. `Enable-F4keH0undDecoy`
+7. `Get-F4keH0undInventory`
+8. `Add-F4keH0undRelationship`
+9. `Remove-F4keH0undDecoy`
+10. `Get-F4keH0undConfig`
+11. `Test-F4keH0undCoverage`
+12. `Test-F4keH0undConfig`
 
 ---
 
@@ -26,6 +28,7 @@ Current exported commands:
 - All exported commands support standard common parameters (`-Verbose`, `-Debug`, `-ErrorAction`, etc.).
 - The following commands support `-WhatIf`/`-Confirm` (safe simulation via `ShouldProcess`):
   - `New-F4keH0undDecoy`
+  - `Sync-F4keH0undEntraParity`
   - `Update-F4keH0undDecoy`
   - `Disable-F4keH0undDecoy`
   - `Enable-F4keH0undDecoy`
@@ -117,6 +120,50 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 
 ```powershell
 New-F4keH0undDecoy -BloodHoundPath ./BH_Data -Execute -PreferRecycling -WhatIf
+```
+
+---
+
+## `Sync-F4keH0undEntraParity`
+
+Plans or applies Entra deployments to close family-level parity gaps against AD decoys.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `AzureHoundPath` | `String` | Yes | — | Path to AzureHound data for Entra opportunity discovery. |
+| `Source` | `String` | No | `Auto` | Inventory source used for parity baseline (`Auto`, `Events`, `Reports`). |
+| `IncludeRemoved` | `Switch` | No | `false` | Includes removed entries in parity baseline. |
+| `PreferSnapshot` | `Switch` | No | `false` | Events source: prefer snapshot before event replay. |
+| `SkipLiveStatus` | `Switch` | No | `false` | Skip AD live verification during parity baseline. |
+| `Server` | `String` | No | — | Domain Controller for AD live status checks. |
+| `Credential` | `PSCredential` | No | — | Credentials for AD live status checks. |
+| `TargetParityRatio` | `Double` | No | `1.0` | Required Entra-to-AD ratio per mapped family. |
+| `MaxDeployments` | `Int32` | No | `5` | Maximum Entra deployments for one execution run. |
+| `Execute` | `Switch` | No | `false` | Applies recommended Entra deployments when set. |
+| `AuditLogPath` | `String` | No | — | Optional audit log destination for recycled Entra operations. |
+| `EntraIncludeServicePrincipals` | `Switch` | No | auto-all | Restrict discovery to service-principal opportunities. |
+| `EntraIncludeGuestUsers` | `Switch` | No | auto-all | Restrict discovery to guest-user opportunities. |
+| `EntraIncludeAppRegistrations` | `Switch` | No | auto-all | Restrict discovery to app-registration opportunities. |
+| `EntraRecyclingMinimumAgeDays` | `Int32` | No | `180` | Minimum recyclable age filter for Entra objects. |
+| `EntraRecyclingMaximumAgeDays` | `Int32` | No | `3650` | Maximum recyclable age filter for Entra objects. |
+| `EntraPreferRecycling` | `Switch` | No | `false` | Boost rank for Entra recycling opportunities. |
+| `EntraRecyclingOnly` | `Switch` | No | `false` | Limit Entra analysis to recyclable opportunities only. |
+| `PassThru` | `Switch` | No | `false` | In execute mode, returns deployed object records. |
+
+### Behavior Notes
+
+- Uses `Test-F4keH0undCoverage` to measure current family-level gaps.
+- Selects Entra opportunities that map to uncovered parity families first.
+- In `-Execute` mode, deploys with `Set-PrivateEntraDecoyPrincipal` and writes inventory `Deploy` events.
+- Returns before/after coverage state, planned opportunities, and deployment outcomes.
+
+### Example
+
+```powershell
+Sync-F4keH0undEntraParity -AzureHoundPath ./AzureHound_Data -TargetParityRatio 1.0
+Sync-F4keH0undEntraParity -AzureHoundPath ./AzureHound_Data -Execute -MaxDeployments 3 -WhatIf
 ```
 
 ---
@@ -337,6 +384,44 @@ Returns full config object or selected section object.
 
 ```powershell
 Get-F4keH0undConfig -Section InventorySettings
+```
+
+---
+
+## `Test-F4keH0undCoverage`
+
+Computes AD/Entra lifecycle coverage and parity status from current inventory.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `Source` | `String` | No | `Auto` | Inventory source: `Auto`, `Events`, `Reports`. |
+| `IncludeRemoved` | `Switch` | No | `false` | Includes removed entries in inventory-based calculations. |
+| `PreferSnapshot` | `Switch` | No | `false` | Events source: prefer snapshot before replay. |
+| `SkipLiveStatus` | `Switch` | No | `false` | Skip AD live verification during inventory read. |
+| `Server` | `String` | No | — | Domain Controller for AD live status checks. |
+| `Credential` | `PSCredential` | No | — | Credentials for AD live status checks. |
+| `TargetParityRatio` | `Double` | No | `1.0` | Required Entra-to-AD ratio for each mapped family. |
+| `BloodHoundPath` | `String` | No | — | Optional AD opportunity context path. |
+| `AzureHoundPath` | `String` | No | — | Optional Entra opportunity context path. |
+
+### Output
+
+Returns a summary object containing:
+
+- `IsParityMet`
+- `ADLifecycleCoveragePercent`
+- `EntraLifecycleCoveragePercent`
+- `EntraToADActiveRatio`
+- `FamilyStatus` (family gaps and targets)
+- `Matrix` (decoy-type capability + deployment counts)
+
+### Example
+
+```powershell
+Test-F4keH0undCoverage -Source Events -PreferSnapshot -SkipLiveStatus
+Test-F4keH0undCoverage -AzureHoundPath ./AzureHound_Data -TargetParityRatio 1.0
 ```
 
 ---

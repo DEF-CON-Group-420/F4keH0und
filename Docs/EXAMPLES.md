@@ -20,6 +20,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 12. [Bulk Cleanup](#12-bulk-cleanup)
 13. [Inventory Interface](#13-inventory-interface)
 14. [Lifecycle Management](#14-lifecycle-management)
+15. [Parity Coverage and Sync](#15-parity-coverage-and-sync)
 
 ---
 
@@ -556,6 +557,35 @@ Enable-F4keH0undDecoy  -Identity "legacy-bi-app" -Platform Entra -ObjectType Ser
 
 # Optional cleanup in Entra
 Remove-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -DecoyType ServicePrincipal -WhatIf
+```
+
+---
+
+## 15. Parity Coverage and Sync
+
+Measure AD/Entra parity and then run targeted Entra remediation planning (or execution).
+
+```powershell
+# Step 1: Baseline coverage from persistent events without AD live lookups
+$coverage = Test-F4keH0undCoverage -Source Events -PreferSnapshot -SkipLiveStatus
+
+$coverage | Select-Object IsParityMet, ADLifecycleCoveragePercent, EntraLifecycleCoveragePercent, EntraToADActiveRatio
+$coverage.FamilyStatus | Format-Table Family, ADActiveCount, EntraActiveCount, TargetEntraCount, Gap, IsMet -AutoSize
+
+# Step 2: Build Entra parity sync plan
+$plan = Sync-F4keH0undEntraParity `
+    -AzureHoundPath "C:\AzureHound_Data\" `
+    -TargetParityRatio 1.0 `
+    -MaxDeployments 3
+
+$plan.SelectedOpportunities | Format-Table OpportunityId, DecoyType, Rank, Family, IdentityHint -AutoSize
+
+# Step 3: Safe execution preview
+Sync-F4keH0undEntraParity `
+    -AzureHoundPath "C:\AzureHound_Data\" `
+    -TargetParityRatio 1.0 `
+    -MaxDeployments 3 `
+    -Execute -WhatIf
 ```
 
 ---

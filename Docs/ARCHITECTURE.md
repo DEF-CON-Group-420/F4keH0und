@@ -46,18 +46,21 @@ F4keH0und/
 ├── Public/                                 # Exported functions (user-facing API)
 │   ├── Find-F4keH0undOpportunity.ps1       # Analysis engine — parses BH data, calls recycling engine
 │   ├── New-F4keH0undDecoy.ps1              # Deployment orchestrator — calls Set-Private* helpers
+│   ├── Sync-F4keH0undEntraParity.ps1       # Entra parity remediation planner/executor
 │   ├── Update-F4keH0undDecoy.ps1           # Lifecycle update command for decoy metadata/relationships
 │   ├── Disable-F4keH0undDecoy.ps1          # Lifecycle state command — disable decoy identities
 │   ├── Enable-F4keH0undDecoy.ps1           # Lifecycle state command — re-enable decoy identities
 │   ├── Get-F4keH0undInventory.ps1          # Inventory interface — reads persistent events/reports and verifies live status
 │   ├── Add-F4keH0undRelationship.ps1       # ACL relationship writer for ACLAttackPath decoys
-│   └── Remove-F4keH0undDecoy.ps1           # Lifecycle cleanup/removal command
+│   ├── Remove-F4keH0undDecoy.ps1           # Lifecycle cleanup/removal command
+│   └── Test-F4keH0undCoverage.ps1          # AD/Entra parity scoring and coverage matrix
 │
 └── Private/                                # Internal functions (not exported)
     ├── Find-F4keH0undRecyclableObject.ps1  # Recycling engine — staleness scoring and AD queries
     ├── Find-F4keH0undRecyclableEntraObject.ps1 # Recycling engine — stale Entra object discovery
     ├── Get-F4keH0undConfig.ps1             # Config reader — parses config.json with defaults
     ├── Get-F4keH0undData.ps1               # BloodHound data loader — reads and normalizes JSON
+    ├── Get-F4keH0undParityModel.ps1        # Shared parity family/lifecycle capability model
     ├── Get-F4keH0undRank.ps1               # Opportunity ranker — Critical / High / Low assignment
     ├── Manage-F4keH0undEntraLifecycle.ps1  # Entra lifecycle helpers (resolve/state/event context)
     ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
@@ -378,6 +381,14 @@ These commands provide CRUD-like lifecycle operations for deployed AD and Entra 
 - `Remove-F4keH0undDecoy` deletes AD objects (membership-safe) and Entra objects (service principals, guest users, app registrations).
 
 Every command records a persistent inventory event so `Get-F4keH0undInventory -Source Events` can reflect current lifecycle state without relying only on CSV deployment reports.
+
+### Test-F4keH0undCoverage / Sync-F4keH0undEntraParity (Public)
+
+These Phase 2 parity commands operationalize AD-vs-Entra coverage management:
+- `Test-F4keH0undCoverage` builds a capability matrix and family-level gap report from inventory state.
+- `Sync-F4keH0undEntraParity` maps those gaps to Entra opportunities and can deploy recyclable Entra decoys to reduce drift.
+
+Both commands use `Get-F4keH0undParityModel` for deterministic family mapping and lifecycle scoring.
 
 ### Test-F4keH0undConfig (Public/Private)
 
