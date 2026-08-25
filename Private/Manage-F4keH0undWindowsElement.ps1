@@ -222,6 +222,10 @@ Write-Output "Attach debugger to `$LegacyProcess and inspect `$CriticalThread"
 PrivilegedSamAccountName: $(if ($TemplateData['PrivilegedSamAccountName']) { [string]$TemplateData['PrivilegedSamAccountName'] } else { 'svc_legacy_sync' })
 EntraUserPrincipalName: $(if ($TemplateData['EntraUserPrincipalName']) { [string]$TemplateData['EntraUserPrincipalName'] } else { 'svc-legacy-sync@contoso.onmicrosoft.com' })
 OnCallAlias: $(if ($TemplateData['OnCallAlias']) { [string]$TemplateData['OnCallAlias'] } else { 'middleware-tier3' })
+RoleTitle: $(if ($TemplateData['RoleTitle']) { [string]$TemplateData['RoleTitle'] } else { 'Identity Platform Engineer' })
+Department: $(if ($TemplateData['Department']) { [string]$TemplateData['Department'] } else { 'Legacy Integration' })
+GroupHint: $(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Tier3-Identity-Operations' })
+IdentityOwnerHint: $(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'svc-owner@contoso.com' })
 IdentityCanaryToken: $(if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-idtoken-$([guid]::NewGuid().ToString('N').Substring(0,18))" })
 
 GeneratedAtUtc: $generatedUtc
@@ -234,6 +238,10 @@ GeneratedAtUtc: $generatedUtc
                             PrivilegedSamAccountName = if ($TemplateData['PrivilegedSamAccountName']) { [string]$TemplateData['PrivilegedSamAccountName'] } else { 'svc_legacy_sync' }
                             EntraUserPrincipalName  = if ($TemplateData['EntraUserPrincipalName']) { [string]$TemplateData['EntraUserPrincipalName'] } else { 'svc-legacy-sync@contoso.onmicrosoft.com' }
                             ImmutableIdHint         = if ($TemplateData['ImmutableIdHint']) { [string]$TemplateData['ImmutableIdHint'] } else { [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((if ($TemplateData['PrivilegedSamAccountName']) { [string]$TemplateData['PrivilegedSamAccountName'] } else { 'svc_legacy_sync' }))) }
+                            RoleTitle               = if ($TemplateData['RoleTitle']) { [string]$TemplateData['RoleTitle'] } else { 'Identity Platform Engineer' }
+                            Department              = if ($TemplateData['Department']) { [string]$TemplateData['Department'] } else { 'Legacy Integration' }
+                            GroupHint               = if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Tier3-Identity-Operations' }
+                            IdentityOwnerHint       = if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'svc-owner@contoso.com' }
                             CanaryToken             = if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-idtoken-$([guid]::NewGuid().ToString('N').Substring(0,18))" }
                             GeneratedAtUtc          = $generatedUtc
                         } | ConvertTo-Json -Depth 6)

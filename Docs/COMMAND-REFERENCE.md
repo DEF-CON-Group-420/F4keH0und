@@ -95,6 +95,8 @@ When `-WindowsComputerName` is supplied, additional Windows artifact opportuniti
 
 In Entra mode, template payloads now include themed lure metadata (for example `LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`) used by downstream deployment and inventory tracking.
 
+AD opportunity templates also include low-cost identity-attribute lure fields (for example `DisplayName`, `Department`, `Title`, `Company`, `Office`, `Location`, `GroupHint`) consumed by recycle deployment workflows.
+
 ### Example
 
 ```powershell
@@ -137,8 +139,9 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 
 - Uses `Find-F4keH0undOpportunity` internally.
 - Displays opportunity list and prompts for IDs to deploy when `-Execute` is supplied.
+- Applies low-cost identity persona attributes for AD recycle paths (`DisplayName`, `Department`, `Title`, `Company`, `Office`, `Location`) including ACL user/group display hints.
 - Deploys Entra recycling opportunities (`EntraServicePrincipalDecoy`, `EntraGuestUserDecoy`, `EntraAppRegistrationDecoy`) via `Set-PrivateEntraDecoyPrincipal`.
-- For Entra decoys, forwards template lure metadata (theme, role/consent/conditional-access hints, persona fields) to deployment helpers and inventory events.
+- For Entra decoys, forwards template lure metadata (theme, role/consent/conditional-access hints, persona fields, owner/group hints) to deployment helpers and inventory events.
 - Honors rollout profile defaults (`DefaultWhatIf`, `MaxEntraDeploymentsPerRun`, high-privilege role-assignment guardrail).
 - Generates deployment report data and optional CSV handover.
 - Writes lifecycle inventory `Deploy` events to persistent backend with platform-aware identity/location fields.
@@ -436,7 +439,7 @@ Plans or applies Entra deployments to close family-level parity gaps against AD 
 - Uses `Test-F4keH0undCoverage` to measure current family-level gaps.
 - Selects Entra opportunities that map to uncovered parity families first.
 - In `-Execute` mode, deploys with `Set-PrivateEntraDecoyPrincipal` and writes inventory `Deploy` events.
-- Carries Entra lure metadata (`LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`) into deployment and event metadata.
+- Carries Entra lure metadata (`LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`, `PersonaOfficeLocation`, `IdentityOwnerHint`, `GroupHint`) into deployment and event metadata.
 - Applies rollout profile defaults for `MaxDeployments`, optional `WhatIf` default, and high-privilege role-assignment suppression.
 - Returns before/after coverage state, planned opportunities (including `LureTheme` and consent/CA hints), and deployment outcomes.
 

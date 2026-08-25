@@ -673,6 +673,18 @@ Components:
 - `scripts/New-TokenTriggerResponsePlaybook.ps1` generates incident-specific markdown playbooks from inventory context.
 - Generated playbooks can enrich findings with drift-driven redesign recommendations (`Test-F4keH0undDrift`).
 
+### 8.12 Low-Cost Identity-Attribute Lures
+
+Phase 5 adds lightweight identity-persona enrichment across AD, Entra, and Windows artifact decoys.
+
+Current behavior:
+
+- `Find-F4keH0undOpportunity` now emits identity-attributed templates (display name, department, title, company/office, location, and group/owner hints).
+- AD recycler commands (`Set-PrivateADDecoyUser`, `Set-PrivateADDecoyGroup`, `Set-PrivateADDecoyComputer`) apply optional persona attributes during recycle operations.
+- Entra lifecycle (`Set-PrivateEntraDecoyPrincipal`) supports persona office-location and owner/group hint metadata appended to notes context.
+- Windows identity token artifacts include low-cost identity-context fields (`RoleTitle`, `Department`, `GroupHint`, `IdentityOwnerHint`) in rendered decoy files.
+- Inventory events persist these template hints as metadata for downstream triage and redesign workflows.
+
 ---
 
 ## See Also

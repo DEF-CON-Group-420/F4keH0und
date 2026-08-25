@@ -29,6 +29,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 21. [Phase 5 Rollout Profiles](#21-phase-5-rollout-profiles)
 22. [Phase 5 Drift Checks](#22-phase-5-drift-checks)
 23. [Phase 5 Response Playbooks](#23-phase-5-response-playbooks)
+24. [Identity-Attribute Lure Expansion](#24-identity-attribute-lure-expansion)
 
 ---
 
@@ -906,6 +907,30 @@ Generate a severity-specific incident playbook from current inventory and drift 
 ./scripts/New-TokenTriggerResponsePlaybook.ps1 `
     -AlertSeverity Critical `
     -Identity fhlg-win-cloudapicanarytokendecoy-a1b2c3d4e5f6
+```
+
+---
+
+## 24. Identity-Attribute Lure Expansion
+
+Inspect and deploy low-cost identity-persona attributes for AD and Entra decoys.
+
+```powershell
+# Review AD opportunity templates with persona fields
+Find-F4keH0undOpportunity -BloodHoundPath "C:\BH_Data\" -PreferRecycling |
+    Where-Object { $_.DecoyType -in @('StaleAdminLure','KerberoastableUser','DNSAdminUser') } |
+    Select-Object -First 5 DecoyType, Strategy, @{Name='Template';Expression={ $_.Template }}
+
+# Review Entra opportunity templates with owner/group hints
+Find-F4keH0undOpportunity -AzureHoundPath "C:\AzureHound_Data\" -EntraPreferRecycling |
+    Where-Object { $_.DecoyType -like 'Entra*' } |
+    Select-Object -First 5 DecoyType, Rank, @{Name='IdentityOwnerHint';Expression={ $_.Template.IdentityOwnerHint }}, @{Name='GroupHint';Expression={ $_.Template.GroupHint }}
+
+# Deploy selected opportunities and persist identity-attribute metadata in inventory
+New-F4keH0undDecoy -BloodHoundPath "C:\BH_Data\" -Execute -PreferRecycling -WhatIf
+
+Get-F4keH0undInventory -Source Events -Platform AD -SkipLiveStatus |
+    Select-Object -First 10 Identity, DecoyType, Status, Metadata
 ```
 
 ---

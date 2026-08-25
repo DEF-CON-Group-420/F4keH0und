@@ -21,6 +21,11 @@ function Set-PrivateADDecoyUser {
 
         Modified attributes:
         - Description          (set to decoy description)
+        - DisplayName          (optional persona-friendly display label)
+        - Department           (optional organizational lure)
+        - Title                (optional role lure)
+        - Company              (optional business-unit lure)
+        - Office               (optional location lure)
         - AccountPassword      (reset to cryptographically random 30-char value)
         - PasswordNeverExpires (set to $true)
         - ChangePasswordAtLogon (set to $false)
@@ -38,6 +43,21 @@ function Set-PrivateADDecoyUser {
     .PARAMETER ServicePrincipalName
         Optional. If provided, adds an SPN to make the user Kerberoastable.
         Format: "MSSQLSvc/server.domain.local:1433"
+
+    .PARAMETER DisplayName
+        Optional persona display name for the recycled account.
+
+    .PARAMETER Department
+        Optional department label used for low-cost identity lure context.
+
+    .PARAMETER Title
+        Optional job-title label used for low-cost identity lure context.
+
+    .PARAMETER Company
+        Optional company/business-unit label used for identity lure context.
+
+    .PARAMETER Office
+        Optional office/location label used for identity lure context.
 
     .PARAMETER KeepDisabled
         By default, the account remains disabled after recycling. Use -KeepDisabled:$false
@@ -79,6 +99,21 @@ function Set-PrivateADDecoyUser {
         [string]$ServicePrincipalName,
 
         [Parameter()]
+        [string]$DisplayName,
+
+        [Parameter()]
+        [string]$Department,
+
+        [Parameter()]
+        [string]$Title,
+
+        [Parameter()]
+        [string]$Company,
+
+        [Parameter()]
+        [string]$Office,
+
+        [Parameter()]
         [switch]$KeepDisabled,
 
         [Parameter()]
@@ -105,7 +140,8 @@ function Set-PrivateADDecoyUser {
     $getParams = @{
         Identity   = $ExistingUser
         Properties = 'Enabled', 'whenCreated', 'MemberOf', 'SamAccountName',
-                     'DistinguishedName', 'SID', 'Description',
+                     'DistinguishedName', 'SID', 'Description', 'DisplayName',
+                     'Department', 'Title', 'Company', 'Office',
                      'ServicePrincipalNames', 'userPrincipalName', 'LastLogonDate'
         ErrorAction = 'Stop'
     }
@@ -200,6 +236,22 @@ function Set-PrivateADDecoyUser {
         ErrorAction           = 'Stop'
     }
 
+    if ($PSBoundParameters.ContainsKey('DisplayName') -and -not [string]::IsNullOrWhiteSpace($DisplayName)) {
+        $setParams['DisplayName'] = $DisplayName
+    }
+    if ($PSBoundParameters.ContainsKey('Department') -and -not [string]::IsNullOrWhiteSpace($Department)) {
+        $setParams['Department'] = $Department
+    }
+    if ($PSBoundParameters.ContainsKey('Title') -and -not [string]::IsNullOrWhiteSpace($Title)) {
+        $setParams['Title'] = $Title
+    }
+    if ($PSBoundParameters.ContainsKey('Company') -and -not [string]::IsNullOrWhiteSpace($Company)) {
+        $setParams['Company'] = $Company
+    }
+    if ($PSBoundParameters.ContainsKey('Office') -and -not [string]::IsNullOrWhiteSpace($Office)) {
+        $setParams['Office'] = $Office
+    }
+
     # Honour -KeepDisabled:$false (default keeps account disabled)
     if ($PSBoundParameters.ContainsKey('KeepDisabled') -and (-not $KeepDisabled)) {
         $setParams['Enabled'] = $true
@@ -215,6 +267,21 @@ function Set-PrivateADDecoyUser {
     Write-Verbose "[$($MyInvocation.MyCommand)] - Modifying description to: '$Description'."
     Write-Verbose "[$($MyInvocation.MyCommand)] - Resetting account password (random 30-char value)."
     Write-Verbose "[$($MyInvocation.MyCommand)] - Setting PasswordNeverExpires = `$true, ChangePasswordAtLogon = `$false."
+    if ($setParams.ContainsKey('DisplayName')) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Setting DisplayName to '$DisplayName'."
+    }
+    if ($setParams.ContainsKey('Department')) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Setting Department to '$Department'."
+    }
+    if ($setParams.ContainsKey('Title')) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Setting Title to '$Title'."
+    }
+    if ($setParams.ContainsKey('Company')) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Setting Company to '$Company'."
+    }
+    if ($setParams.ContainsKey('Office')) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Setting Office to '$Office'."
+    }
 
     try {
         Set-ADUser @setParams
@@ -254,7 +321,8 @@ function Set-PrivateADDecoyUser {
     $getFinalParams = @{
         Identity    = $user
         Properties  = 'whenCreated', 'Description', 'ServicePrincipalNames',
-                      'Enabled', 'SID', 'SamAccountName', 'DistinguishedName'
+                      'Enabled', 'SID', 'SamAccountName', 'DistinguishedName',
+                      'DisplayName', 'Department', 'Title', 'Company', 'Office'
         ErrorAction = 'Stop'
     }
     if ($PSBoundParameters.ContainsKey('Server'))     { $getFinalParams['Server']     = $Server }
@@ -280,10 +348,30 @@ function Set-PrivateADDecoyUser {
             enabled        = $user.Enabled
             lastLogon      = if ($user.LastLogonDate) { $user.LastLogonDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $null }
             description    = $user.Description
+            displayName    = $user.DisplayName
+            department     = $user.Department
+            title          = $user.Title
+            company        = $user.Company
+            office         = $user.Office
             spns           = if ($user.ServicePrincipalNames) { @($user.ServicePrincipalNames) } else { @() }
         }
         $modifications = @{
             description = "Changed to: $Description"
+        }
+        if ($setParams.ContainsKey('DisplayName')) {
+            $modifications['displayName'] = "Changed to: $DisplayName"
+        }
+        if ($setParams.ContainsKey('Department')) {
+            $modifications['department'] = "Changed to: $Department"
+        }
+        if ($setParams.ContainsKey('Title')) {
+            $modifications['title'] = "Changed to: $Title"
+        }
+        if ($setParams.ContainsKey('Company')) {
+            $modifications['company'] = "Changed to: $Company"
+        }
+        if ($setParams.ContainsKey('Office')) {
+            $modifications['office'] = "Changed to: $Office"
         }
         if ($PSBoundParameters.ContainsKey('ServicePrincipalName')) {
             $modifications['servicePrincipalName'] = "Added: $ServicePrincipalName"

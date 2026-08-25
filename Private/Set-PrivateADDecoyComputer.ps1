@@ -27,6 +27,7 @@ function Set-PrivateADDecoyComputer {
 
         Modified attributes:
         - Description          (set to decoy description)
+        - Location             (optional location lure)
         - TrustedForDelegation (optional, enables Unconstrained Delegation)
         - Enabled              (kept $false unless -KeepDisabled:$false is explicitly passed)
 
@@ -41,6 +42,9 @@ function Set-PrivateADDecoyComputer {
     .PARAMETER EnableUnconstrainedDelegation
         If specified, enables Unconstrained Delegation (TrustedForDelegation = True) on the
         computer. This makes the decoy attractive to attackers as a credential theft target.
+
+    .PARAMETER Location
+        Optional location label used for low-cost identity lure context.
 
     .PARAMETER KeepDisabled
         By default, the computer remains disabled. Use -KeepDisabled:$false to enable it
@@ -91,6 +95,9 @@ function Set-PrivateADDecoyComputer {
         [switch]$EnableUnconstrainedDelegation,
 
         [Parameter()]
+        [string]$Location,
+
+        [Parameter()]
         [switch]$KeepDisabled,
 
         [Parameter()]
@@ -118,7 +125,7 @@ function Set-PrivateADDecoyComputer {
         $getParams = @{
             Identity    = $ExistingComputer
             Properties  = 'Enabled', 'whenCreated', 'PrimaryGroupID', 'OperatingSystem',
-                          'DistinguishedName', 'SID', 'Description', 'DNSHostName',
+                          'DistinguishedName', 'SID', 'Description', 'Location', 'DNSHostName',
                           'LastLogonDate', 'TrustedForDelegation', 'Name', 'SamAccountName'
             ErrorAction = 'Stop'
         }
@@ -206,11 +213,15 @@ function Set-PrivateADDecoyComputer {
         Write-Verbose "[$($MyInvocation.MyCommand)] -   Created           : $($computer.whenCreated)"
         Write-Verbose "[$($MyInvocation.MyCommand)] -   OperatingSystem   : $($computer.OperatingSystem)"
         Write-Verbose "[$($MyInvocation.MyCommand)] -   Description       : $($computer.Description)"
+        Write-Verbose "[$($MyInvocation.MyCommand)] -   Location          : $($computer.Location)"
 
         # ------------------------------------------------------------------
         # ShouldProcess guard
         # ------------------------------------------------------------------
         $actionDescription = "Transform into decoy with description '$Description'"
+        if ($PSBoundParameters.ContainsKey('Location') -and -not [string]::IsNullOrWhiteSpace($Location)) {
+            $actionDescription += " and set Location to '$Location'"
+        }
         if ($EnableUnconstrainedDelegation) {
             $actionDescription += " and enable Unconstrained Delegation (TrustedForDelegation)"
         }
@@ -226,6 +237,10 @@ function Set-PrivateADDecoyComputer {
             Identity    = $computer
             Description = $Description
             ErrorAction = 'Stop'
+        }
+
+        if ($PSBoundParameters.ContainsKey('Location') -and -not [string]::IsNullOrWhiteSpace($Location)) {
+            $setParams['Location'] = $Location
         }
 
         if ($PSBoundParameters.ContainsKey('Server'))     { $setParams['Server']     = $Server }
@@ -247,6 +262,9 @@ function Set-PrivateADDecoyComputer {
         # Apply modifications
         # ------------------------------------------------------------------
         Write-Verbose "[$($MyInvocation.MyCommand)] - Modifying description to: '$Description'."
+        if ($setParams.ContainsKey('Location')) {
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Setting Location to '$Location'."
+        }
 
         try {
             Set-ADComputer @setParams
@@ -264,7 +282,7 @@ function Set-PrivateADDecoyComputer {
             Identity    = $computer
             Properties  = 'whenCreated', 'Description', 'TrustedForDelegation',
                           'Enabled', 'SID', 'LastLogonDate', 'OperatingSystem',
-                          'Name', 'SamAccountName', 'DistinguishedName', 'DNSHostName'
+                          'Location', 'Name', 'SamAccountName', 'DistinguishedName', 'DNSHostName'
             ErrorAction = 'Stop'
         }
         if ($PSBoundParameters.ContainsKey('Server'))     { $getFinalParams['Server']     = $Server }
@@ -295,11 +313,15 @@ function Set-PrivateADDecoyComputer {
                 whenCreated    = $computer.whenCreated.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
                 enabled        = $computer.Enabled
                 lastLogon      = if ($computer.LastLogonDate) { $computer.LastLogonDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $null }
-                operatingSystem            = $computer.OperatingSystem
+                operatingSystem = $computer.OperatingSystem
                 description    = $computer.Description
+                location       = $computer.Location
             }
             $modifications = @{
                 description = "Changed to: $Description"
+            }
+            if ($setParams.ContainsKey('Location')) {
+                $modifications['location'] = "Changed to: $Location"
             }
             if ($EnableUnconstrainedDelegation) {
                 $modifications['trustedForDelegation'] = 'Changed to: True'

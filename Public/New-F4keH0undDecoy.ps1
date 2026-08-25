@@ -262,6 +262,11 @@ function New-F4keH0undDecoy {
                         $params = @{
                             ExistingUser = $opportunity.RecyclableObject
                             Description  = $opportunity.Template.Description
+                            DisplayName  = $opportunity.Template.DisplayName
+                            Department   = $opportunity.Template.Department
+                            Title        = $opportunity.Template.Title
+                            Company      = $opportunity.Template.Company
+                            Office       = $opportunity.Template.Office
                             ErrorAction  = 'Stop'
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
@@ -321,6 +326,11 @@ function New-F4keH0undDecoy {
                         $userParams = @{
                             ExistingUser         = $opportunity.RecyclableObject
                             Description          = $opportunity.Template.Description
+                            DisplayName          = $opportunity.Template.DisplayName
+                            Department           = $opportunity.Template.Department
+                            Title                = $opportunity.Template.Title
+                            Company              = $opportunity.Template.Company
+                            Office               = $opportunity.Template.Office
                             ServicePrincipalName = $opportunity.Template.ServicePrincipalName
                             ErrorAction          = 'Stop'
                         }
@@ -376,6 +386,7 @@ function New-F4keH0undDecoy {
                         $params = @{
                             ExistingComputer              = $opportunity.RecyclableObject
                             Description                   = $opportunity.Template.Description
+                            Location                      = $opportunity.Template.Location
                             EnableUnconstrainedDelegation = $true
                             ErrorAction                   = 'Stop'
                         }
@@ -417,6 +428,11 @@ function New-F4keH0undDecoy {
                         $params = @{
                             ExistingUser = $opportunity.RecyclableObject
                             Description  = $opportunity.Template.Description
+                            DisplayName  = $opportunity.Template.DisplayName
+                            Department   = $opportunity.Template.Department
+                            Title        = $opportunity.Template.Title
+                            Company      = $opportunity.Template.Company
+                            Office       = $opportunity.Template.Office
                             ErrorAction  = 'Stop'
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $params['Credential'] = $Credential }
@@ -475,7 +491,12 @@ function New-F4keH0undDecoy {
 
                         $userParams = @{
                             ExistingUser = $opportunity.RecyclableObject.User
-                            Description  = "Temporary Helpdesk Account"
+                            Description  = if ($opportunity.Template.DecoyUserDescription) { [string]$opportunity.Template.DecoyUserDescription } else { "Temporary Helpdesk Account" }
+                            DisplayName  = $opportunity.Template.DecoyUserDisplayName
+                            Department   = $opportunity.Template.DecoyUserDepartment
+                            Title        = $opportunity.Template.DecoyUserTitle
+                            Company      = $opportunity.Template.DecoyUserCompany
+                            Office       = $opportunity.Template.DecoyUserOffice
                             ErrorAction  = 'Stop'
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $userParams['Credential'] = $Credential }
@@ -489,7 +510,8 @@ function New-F4keH0undDecoy {
 
                             $groupParams = @{
                                 ExistingGroup = $opportunity.RecyclableObject.Group
-                                Description   = "Application Administrators for Tier2"
+                                Description   = if ($opportunity.Template.DecoyGroupDescription) { [string]$opportunity.Template.DecoyGroupDescription } else { "Application Administrators for Tier2" }
+                                DisplayName   = $opportunity.Template.DecoyGroupDisplayName
                                 ErrorAction   = 'Stop'
                             }
                             if ($PSBoundParameters.ContainsKey('Credential')) { $groupParams['Credential'] = $Credential }
@@ -529,7 +551,7 @@ function New-F4keH0undDecoy {
                         $userParams = @{
                             Name           = $userName
                             SamAccountName = $userName
-                            Description    = "Temporary Helpdesk Account"
+                            Description    = if ($opportunity.Template.DecoyUserDescription) { [string]$opportunity.Template.DecoyUserDescription } else { "Temporary Helpdesk Account" }
                             ErrorAction    = 'Stop'
                         }
                         if ($PSBoundParameters.ContainsKey('Credential')) { $userParams['Credential'] = $Credential }
@@ -542,7 +564,7 @@ function New-F4keH0undDecoy {
 
                             $groupParams = @{
                                 Name        = $groupName
-                                Description = "Application Administrators for Tier2"
+                                Description = if ($opportunity.Template.DecoyGroupDescription) { [string]$opportunity.Template.DecoyGroupDescription } else { "Application Administrators for Tier2" }
                                 ErrorAction = 'Stop'
                             }
                             if ($PSBoundParameters.ContainsKey('Credential')) { $groupParams['Credential'] = $Credential }
@@ -598,7 +620,7 @@ function New-F4keH0undDecoy {
                             Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' suppresses high-privilege role assignment for this service-principal decoy."
                         }
                     }
-                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                             $entraParams[$templateKey] = [string]$templateValue
@@ -629,7 +651,7 @@ function New-F4keH0undDecoy {
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
                     }
-                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                             $entraParams[$templateKey] = [string]$templateValue
@@ -660,7 +682,7 @@ function New-F4keH0undDecoy {
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
                     }
-                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                             $entraParams[$templateKey] = [string]$templateValue
@@ -781,7 +803,7 @@ function New-F4keH0undDecoy {
                         Justification = $opportunity.Justification
                         RolloutProfile = [string]$resolvedRolloutProfile.Name
                     }
-                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint')) {
+                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint', 'DisplayName', 'Department', 'Title', 'Company', 'Office', 'Location', 'DecoyUserDisplayName', 'DecoyUserDepartment', 'DecoyUserTitle', 'DecoyUserCompany', 'DecoyUserOffice', 'DecoyGroupDisplayName')) {
                         $metadataValue = $opportunity.Template.$metadataKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
                             $inventoryMetadata[$metadataKey] = [string]$metadataValue

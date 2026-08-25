@@ -28,6 +28,7 @@ function Set-PrivateADDecoyGroup {
 
         Modified attributes:
         - Description (set to decoy description)
+        - DisplayName (optional persona display label)
         - ManagedBy   (optional, creates additional attack path edges in BloodHound)
 
     .PARAMETER ExistingGroup
@@ -42,6 +43,9 @@ function Set-PrivateADDecoyGroup {
         Optional. Distinguished Name or SamAccountName of a user/group to set as the manager.
         In BloodHound, this creates a GenericAll edge from the manager to the group,
         adding complexity to the synthetic attack path.
+
+    .PARAMETER DisplayName
+        Optional display-name label for low-cost identity lure context.
 
     .PARAMETER Credential
         Credentials for cross-domain operations.
@@ -100,6 +104,9 @@ function Set-PrivateADDecoyGroup {
         [string]$ManagedBy,
 
         [Parameter()]
+        [string]$DisplayName,
+
+        [Parameter()]
         [System.Management.Automation.PSCredential]$Credential,
 
         [Parameter()]
@@ -123,7 +130,7 @@ function Set-PrivateADDecoyGroup {
     $getParams = @{
         Identity    = $ExistingGroup
         Properties  = 'whenCreated', 'Members', 'ManagedBy', 'GroupScope',
-                      'GroupCategory', 'SID', 'Description', 'DistinguishedName',
+                      'GroupCategory', 'SID', 'Description', 'DisplayName', 'DistinguishedName',
                       'Name', 'SamAccountName'
         ErrorAction = 'Stop'
     }
@@ -266,6 +273,7 @@ function Set-PrivateADDecoyGroup {
     Write-Verbose "[$($MyInvocation.MyCommand)] -   Created           : $($group.whenCreated)"
     Write-Verbose "[$($MyInvocation.MyCommand)] -   GroupScope        : $($group.GroupScope)"
     Write-Verbose "[$($MyInvocation.MyCommand)] -   Description       : $($group.Description)"
+    Write-Verbose "[$($MyInvocation.MyCommand)] -   DisplayName       : $($group.DisplayName)"
 
     # ------------------------------------------------------------------
     # ShouldProcess guard
@@ -273,6 +281,9 @@ function Set-PrivateADDecoyGroup {
     $actionDescription = "Transform into decoy group with description '$Description'"
     if ($PSBoundParameters.ContainsKey('ManagedBy')) {
         $actionDescription += " and set ManagedBy to '$ManagedBy'"
+    }
+    if ($PSBoundParameters.ContainsKey('DisplayName') -and -not [string]::IsNullOrWhiteSpace($DisplayName)) {
+        $actionDescription += " and set DisplayName to '$DisplayName'"
     }
 
     if (-not $PSCmdlet.ShouldProcess($group.DistinguishedName, $actionDescription)) {
@@ -282,19 +293,23 @@ function Set-PrivateADDecoyGroup {
     # ------------------------------------------------------------------
     # Build Set-ADGroup parameter hashtable
     # ------------------------------------------------------------------
-    $setParams = @{
-        Identity    = $group
-        Description = $Description
-        ErrorAction = 'Stop'
-    }
+        $setParams = @{
+            Identity    = $group
+            Description = $Description
+            ErrorAction = 'Stop'
+        }
 
     if ($PSBoundParameters.ContainsKey('Server'))     { $setParams['Server']     = $Server }
     if ($PSBoundParameters.ContainsKey('Credential')) { $setParams['Credential'] = $Credential }
 
-    if ($PSBoundParameters.ContainsKey('ManagedBy')) {
-        $setParams['ManagedBy'] = $ManagedBy
-        Write-Verbose "[$($MyInvocation.MyCommand)] - Setting ManagedBy to '$ManagedBy' (creates GenericAll edge in BloodHound)."
-    }
+        if ($PSBoundParameters.ContainsKey('ManagedBy')) {
+            $setParams['ManagedBy'] = $ManagedBy
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Setting ManagedBy to '$ManagedBy' (creates GenericAll edge in BloodHound)."
+        }
+        if ($PSBoundParameters.ContainsKey('DisplayName') -and -not [string]::IsNullOrWhiteSpace($DisplayName)) {
+            $setParams['DisplayName'] = $DisplayName
+            Write-Verbose "[$($MyInvocation.MyCommand)] - Setting DisplayName to '$DisplayName'."
+        }
 
     # ------------------------------------------------------------------
     # Apply modifications
@@ -311,13 +326,14 @@ function Set-PrivateADDecoyGroup {
     # ------------------------------------------------------------------
     # Retrieve and return the updated object
     # ------------------------------------------------------------------
-    $getFinalParams = @{
-        Identity    = $group
-        Properties  = 'whenCreated', 'Description', 'Members', 'ManagedBy',
-                      'GroupScope', 'GroupCategory', 'SID', 'SamAccountName',
-                      'DistinguishedName'
-        ErrorAction = 'Stop'
-    }
+        $getFinalParams = @{
+            Identity    = $group
+            Properties  = 'whenCreated', 'Description', 'Members', 'ManagedBy',
+                          'DisplayName',
+                          'GroupScope', 'GroupCategory', 'SID', 'SamAccountName',
+                          'DistinguishedName'
+            ErrorAction = 'Stop'
+        }
     if ($PSBoundParameters.ContainsKey('Server'))     { $getFinalParams['Server']     = $Server }
     if ($PSBoundParameters.ContainsKey('Credential')) { $getFinalParams['Credential'] = $Credential }
 
@@ -344,10 +360,14 @@ function Set-PrivateADDecoyGroup {
             groupScope     = $group.GroupScope.ToString()
             groupCategory  = $group.GroupCategory.ToString()
             description    = $group.Description
+            displayName    = $group.DisplayName
             managedBy      = $group.ManagedBy
         }
         $modifications = @{
             description = "Changed to: $Description"
+        }
+        if ($setParams.ContainsKey('DisplayName')) {
+            $modifications['displayName'] = "Changed to: $DisplayName"
         }
         if ($PSBoundParameters.ContainsKey('ManagedBy')) {
             $modifications['managedBy'] = "Changed to: $ManagedBy"

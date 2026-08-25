@@ -228,6 +228,8 @@ function Find-F4keH0undOpportunity {
                 Rank                         = 'Critical'
                 Description                  = 'Legacy Privileged Automation Connector - Quarterly Access Review Pending'
                 AssignHighPrivilegeRole      = $true
+                IdentityOwnerHint            = 'Owner: svc.identity-ops@contoso.com'
+                GroupHint                    = 'GroupHint: Privileged Access Review Board'
                 RoleAssignmentHint           = 'Application Administrator assignment retained for legacy workflow support'
                 ConsentScopeBait             = 'AppRoleAssignment.ReadWrite.All Directory.Read.All'
                 ConditionalAccessBypassHint  = 'Service principal exempted from MFA for unattended scheduler host'
@@ -238,6 +240,8 @@ function Find-F4keH0undOpportunity {
                 Rank                         = 'High'
                 Description                  = 'Enterprise Workflow Connector - Consent Migration Hold'
                 AssignHighPrivilegeRole      = $false
+                IdentityOwnerHint            = 'Owner: workflow.platform@contoso.com'
+                GroupHint                    = 'GroupHint: OAuth Governance Reviewers'
                 RoleAssignmentHint           = 'Historical Global Reader assignment pending cleanup approval'
                 ConsentScopeBait             = 'offline_access Mail.ReadWrite Files.ReadWrite.All'
                 ConditionalAccessBypassHint  = 'Trusted-location bypass for legacy callback URL still present'
@@ -248,6 +252,8 @@ function Find-F4keH0undOpportunity {
                 Rank                         = 'High'
                 Description                  = 'Breakglass Integration Service - Conditional Access Exception Candidate'
                 AssignHighPrivilegeRole      = $false
+                IdentityOwnerHint            = 'Owner: breakglass-identity@contoso.com'
+                GroupHint                    = 'GroupHint: Conditional Access Exception Review'
                 RoleAssignmentHint           = 'Emergency directory-reader role eligibility still enabled'
                 ConsentScopeBait             = 'Directory.Read.All AuditLog.Read.All'
                 ConditionalAccessBypassHint  = 'Legacy workload tagged for policy bypass in report-only migration stage'
@@ -262,6 +268,9 @@ function Find-F4keH0undOpportunity {
                 Description                  = 'External Identity Program Advisor - Elevated Project Access'
                 PersonaJobTitle              = 'Identity Migration Advisor'
                 PersonaDepartment            = 'Partner Access Governance'
+                PersonaOfficeLocation        = 'Hybrid/Remote'
+                IdentityOwnerHint            = 'Owner: guest.access@contoso.com'
+                GroupHint                    = 'GroupHint: B2B External Review Board'
                 RoleAssignmentHint           = 'Guest reviewer temporarily included in privileged access review channel'
                 ConsentScopeBait             = 'Delegated admin consent review mailbox access'
                 ConditionalAccessBypassHint  = 'Guest MFA bypass approved during weekend cutover window'
@@ -273,6 +282,9 @@ function Find-F4keH0undOpportunity {
                 Description                  = 'Vendor Security Auditor - Consent Validation Workstream'
                 PersonaJobTitle              = 'Partner Security Auditor'
                 PersonaDepartment            = 'Third-Party Governance'
+                PersonaOfficeLocation        = 'Guest Remote Access Pod'
+                IdentityOwnerHint            = 'Owner: vendor.identity@contoso.com'
+                GroupHint                    = 'GroupHint: Consent Review Delegates'
                 RoleAssignmentHint           = 'Reviewer listed in role-assignment exception workbook'
                 ConsentScopeBait             = 'Consent review for Files.ReadWrite.All and Group.ReadWrite.All'
                 ConditionalAccessBypassHint  = 'Legacy partner trust policy allows unmanaged device access'
@@ -285,6 +297,8 @@ function Find-F4keH0undOpportunity {
                 LureTheme                    = 'OAuthConsentTrap'
                 Rank                         = 'High'
                 Description                  = 'Legacy HR Workflow App - Pending Consent Revalidation'
+                IdentityOwnerHint            = 'Owner: app.integration.hr@contoso.com'
+                GroupHint                    = 'GroupHint: App Governance Owners'
                 RoleAssignmentHint           = 'Directory Readers app role assignment flagged for deferred cleanup'
                 ConsentScopeBait             = 'offline_access User.Read Mail.ReadWrite Files.ReadWrite.All'
                 ConditionalAccessBypassHint  = 'Redirect URI host still whitelisted in trusted-location policy'
@@ -294,6 +308,8 @@ function Find-F4keH0undOpportunity {
                 LureTheme                    = 'ConditionalAccessPolicyExceptionApp'
                 Rank                         = 'High'
                 Description                  = 'Conditional Access Pilot Tooling - Exception Candidate'
+                IdentityOwnerHint            = 'Owner: ca-pilot@contoso.com'
+                GroupHint                    = 'GroupHint: Conditional Access Pilot Owners'
                 RoleAssignmentHint           = 'Privileged role assignment audit entry marked as temporary'
                 ConsentScopeBait             = 'Policy.ReadWrite.ConditionalAccess Directory.Read.All'
                 ConditionalAccessBypassHint  = 'Policy exclusion retained during phased workload migration'
@@ -305,6 +321,12 @@ function Find-F4keH0undOpportunity {
         if ($PSCmdlet.ParameterSetName -eq 'AD') {
             # Load configuration
             $config = Get-F4keH0undConfig
+
+            $identityDepartments = @('Finance', 'Human Resources', 'IT Operations', 'Security Operations', 'Engineering')
+            $identityTitles = @('Senior Systems Analyst', 'Infrastructure Engineer', 'Operations Administrator', 'Service Reliability Engineer')
+            $identityCompanies = @('Contoso Corporate Services', 'Contoso Shared Operations', 'Contoso Legacy Platforms')
+            $identityOffices = @('HQ-Prague', 'HQ-London', 'DC-North', 'Hybrid/Remote')
+            $computerLocations = @('Primary Datacenter Rack C12', 'Legacy Hosting Zone B', 'DR Site - Compute Pod 7', 'Regional Branch Server Room')
 
             # Apply recycling preferences from config if not specified
             if (-not $PSBoundParameters.ContainsKey('PreferRecycling')) {
@@ -454,6 +476,12 @@ function Find-F4keH0undOpportunity {
                         SamAccountName = $recyclableUser.SamAccountName
                         Name           = $recyclableUser.SamAccountName
                         Description    = "Legacy Administrator Account - $(Get-Random -InputObject @('Finance', 'HR', 'IT', 'Operations', 'Development')) Department"
+                        DisplayName    = "Legacy Admin $($recyclableUser.SamAccountName)"
+                        Department     = Get-Random -InputObject $identityDepartments
+                        Title          = Get-Random -InputObject $identityTitles
+                        Company        = Get-Random -InputObject $identityCompanies
+                        Office         = Get-Random -InputObject $identityOffices
+                        GroupHint      = if ($targetGroups.Count -gt 0) { @($targetGroups) -join ',' } else { 'NoGroupHint' }
                         GroupsToAdd    = $targetGroups
                     }
                 }
@@ -478,6 +506,12 @@ function Find-F4keH0undOpportunity {
                         SamAccountName       = $recyclableUser.SamAccountName
                         Name                 = $recyclableUser.SamAccountName
                         Description          = "Production SQL Service Account"
+                        DisplayName          = "Legacy SQL Service $($recyclableUser.SamAccountName)"
+                        Department           = 'Database Operations'
+                        Title                = 'SQL Service Owner'
+                        Company              = Get-Random -InputObject $identityCompanies
+                        Office               = Get-Random -InputObject $identityOffices
+                        GroupHint            = 'Database Tier3'
                         ServicePrincipalName = $decoySPN
                     }
                 }
@@ -498,6 +532,7 @@ function Find-F4keH0undOpportunity {
                     Template         = @{
                         Name        = $recyclableComputer.Name
                         Description = "Legacy Development Server for Production Environment"
+                        Location    = Get-Random -InputObject $computerLocations
                     }
                 }
                 $allOpportunities.Add($opportunity)
@@ -523,6 +558,12 @@ function Find-F4keH0undOpportunity {
                             SamAccountName = $dnsRecyclableUser.SamAccountName
                             Name           = $dnsRecyclableUser.SamAccountName
                             Description    = "DNS Management Service Account"
+                            DisplayName    = "DNS Legacy Service $($dnsRecyclableUser.SamAccountName)"
+                            Department     = 'Network Services'
+                            Title          = 'DNS Operations Specialist'
+                            Company        = Get-Random -InputObject $identityCompanies
+                            Office         = Get-Random -InputObject $identityOffices
+                            GroupHint      = 'DnsAdmins'
                             GroupsToAdd    = @(($dnsAdminsGroupRecycle.Name -split '@')[0])
                         }
                     }
@@ -549,6 +590,15 @@ function Find-F4keH0undOpportunity {
                     Template         = @{
                         DecoyUserSamAccountName = $aclRecyclableUser.SamAccountName
                         DecoyGroupName          = $aclRecyclableGroup.Name
+                        DecoyUserDescription    = 'Temporary Helpdesk Account'
+                        DecoyGroupDescription   = 'Application Administrators for Tier2'
+                        DecoyUserDisplayName    = "Helpdesk Temp $($aclRecyclableUser.SamAccountName)"
+                        DecoyUserDepartment     = 'Helpdesk Operations'
+                        DecoyUserTitle          = 'Tier2 Support Technician'
+                        DecoyUserCompany        = Get-Random -InputObject $identityCompanies
+                        DecoyUserOffice         = Get-Random -InputObject $identityOffices
+                        DecoyGroupDisplayName   = "Tier2 Application Admins $($aclRecyclableGroup.Name)"
+                        GroupHint               = 'Tier2-App-Admins'
                         Permission              = "WriteMembers"
                     }
                 }
@@ -599,6 +649,12 @@ function Find-F4keH0undOpportunity {
                             Name           = "$($admin.Properties.samaccountname)_backup"
                             Description    = "Legacy Admin Account for $($admin.Properties.samaccountname)"
                             SamAccountName = $admin.Properties.samaccountname
+                            DisplayName    = "Legacy Admin $($admin.Properties.samaccountname)"
+                            Department     = Get-Random -InputObject $identityDepartments
+                            Title          = Get-Random -InputObject $identityTitles
+                            Company        = Get-Random -InputObject $identityCompanies
+                            Office         = Get-Random -InputObject $identityOffices
+                            GroupHint      = if ($safeGroupsToAdd.Count -gt 0) { @($safeGroupsToAdd) -join ',' } else { 'NoGroupHint' }
                             GroupsToAdd    = $safeGroupsToAdd
                         }
                     }
@@ -619,7 +675,7 @@ function Find-F4keH0undOpportunity {
                         Strategy         = "Create"
                         RecyclableObject = $null
                         Justification    = "Creates an attractive Kerberoastable user with a common SPN format (e.g., MSSQLSvc) to detect TTP T1558.003."
-                        Template         = @{ Name = "svc_mssql_prod"; SamAccountName = "svc_mssql_prod"; Description = "Production SQL Service Account"; ServicePrincipalName = $decoySPN }
+                        Template         = @{ Name = "svc_mssql_prod"; SamAccountName = "svc_mssql_prod"; Description = "Production SQL Service Account"; DisplayName = 'Legacy SQL Service svc_mssql_prod'; Department = 'Database Operations'; Title = 'SQL Service Owner'; Company = (Get-Random -InputObject $identityCompanies); Office = (Get-Random -InputObject $identityOffices); GroupHint = 'Database Tier3'; ServicePrincipalName = $decoySPN }
                     }
                     $allOpportunities.Add($opportunity)
                 }
@@ -636,7 +692,7 @@ function Find-F4keH0undOpportunity {
                         Strategy         = "Create"
                         RecyclableObject = $null
                         Justification    = "Mimics the real server with Unconstrained Delegation '$($computer.Name)' which is a high-value target for credential theft."
-                        Template         = @{ Name = ($computer.Properties.name -split '\.')[0] + "_DEV"; Description = "Legacy Dev Server for $($computer.Properties.name)" }
+                        Template         = @{ Name = ($computer.Properties.name -split '\.')[0] + "_DEV"; Description = "Legacy Dev Server for $($computer.Properties.name)"; Location = (Get-Random -InputObject $computerLocations) }
                     }
                     $allOpportunities.Add($opportunity)
                 }
@@ -653,7 +709,7 @@ function Find-F4keH0undOpportunity {
                         Strategy         = "Create"
                         RecyclableObject = $null
                         Justification    = "Creates a decoy user and adds it to the highly privileged 'DnsAdmins' group to detect attempts at DLL loading on DNS servers."
-                        Template         = @{ Name = "svc_dns_manager"; SamAccountName = "svc_dns_manager"; Description = "DNS Management Service Account"; GroupsToAdd = @(($dnsAdminsGroup.Name -split '@')[0]) }
+                        Template         = @{ Name = "svc_dns_manager"; SamAccountName = "svc_dns_manager"; Description = "DNS Management Service Account"; DisplayName = 'DNS Legacy Service svc_dns_manager'; Department = 'Network Services'; Title = 'DNS Operations Specialist'; Company = (Get-Random -InputObject $identityCompanies); Office = (Get-Random -InputObject $identityOffices); GroupHint = 'DnsAdmins'; GroupsToAdd = @(($dnsAdminsGroup.Name -split '@')[0]) }
                     }
                     $allOpportunities.Add($opportunity)
                 }
@@ -668,7 +724,7 @@ function Find-F4keH0undOpportunity {
                     Strategy         = "Create"
                     RecyclableObject = $null
                     Justification    = "Creates a synthetic ACL attack path where a decoy user is given write access to a decoy group, luring attackers who use BloodHound to find ACL vulnerabilities."
-                    Template         = @{ DecoyUserName = "helpdesk_temp"; DecoyGroupName = "Tier2_App_Admins"; Permission = "WriteMembers" }
+                    Template         = @{ DecoyUserName = "helpdesk_temp"; DecoyGroupName = "Tier2_App_Admins"; DecoyUserDescription = 'Temporary Helpdesk Account'; DecoyGroupDescription = 'Application Administrators for Tier2'; DecoyUserDisplayName = 'Helpdesk Temp Account'; DecoyUserDepartment = 'Helpdesk Operations'; DecoyUserTitle = 'Tier2 Support Technician'; DecoyUserCompany = (Get-Random -InputObject $identityCompanies); DecoyUserOffice = (Get-Random -InputObject $identityOffices); DecoyGroupDisplayName = 'Tier2 Application Admins'; GroupHint = 'Tier2-App-Admins'; Permission = "WriteMembers" }
                 }
                 $allOpportunities.Add($opportunity)
             }
@@ -732,6 +788,10 @@ function Find-F4keH0undOpportunity {
                                     @{
                                         PrivilegedSamAccountName = 'svc_legacy_sync'
                                         EntraUserPrincipalName   = 'svc-legacy-sync@contoso.onmicrosoft.com'
+                                        RoleTitle                = 'Identity Platform Engineer'
+                                        Department               = 'Legacy Integration'
+                                        GroupHint                = 'Tier3-Identity-Operations'
+                                        IdentityOwnerHint        = 'svc-owner@contoso.com'
                                     }
                                 }
                                 'CloudApiCanaryTokenDecoy' {
@@ -861,6 +921,8 @@ function Find-F4keH0undOpportunity {
                         Description                 = [string]$themeTemplate.Description
                         AssignHighPrivilegeRole     = [bool]$themeTemplate.AssignHighPrivilegeRole
                         LureTheme                   = [string]$themeTemplate.LureTheme
+                        IdentityOwnerHint           = [string]$themeTemplate.IdentityOwnerHint
+                        GroupHint                   = [string]$themeTemplate.GroupHint
                         RoleAssignmentHint          = [string]$themeTemplate.RoleAssignmentHint
                         ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
                         ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
@@ -894,6 +956,9 @@ function Find-F4keH0undOpportunity {
                         LureTheme                   = [string]$themeTemplate.LureTheme
                         PersonaJobTitle             = [string]$themeTemplate.PersonaJobTitle
                         PersonaDepartment           = [string]$themeTemplate.PersonaDepartment
+                        PersonaOfficeLocation       = [string]$themeTemplate.PersonaOfficeLocation
+                        IdentityOwnerHint           = [string]$themeTemplate.IdentityOwnerHint
+                        GroupHint                   = [string]$themeTemplate.GroupHint
                         RoleAssignmentHint          = [string]$themeTemplate.RoleAssignmentHint
                         ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
                         ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
@@ -916,6 +981,8 @@ function Find-F4keH0undOpportunity {
                     Template         = @{
                         Description                 = [string]$themeTemplate.Description
                         LureTheme                   = [string]$themeTemplate.LureTheme
+                        IdentityOwnerHint           = [string]$themeTemplate.IdentityOwnerHint
+                        GroupHint                   = [string]$themeTemplate.GroupHint
                         RoleAssignmentHint          = [string]$themeTemplate.RoleAssignmentHint
                         ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
                         ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint

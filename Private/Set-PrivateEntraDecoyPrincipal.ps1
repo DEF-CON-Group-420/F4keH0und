@@ -18,6 +18,7 @@ function Set-PrivateEntraDecoyPrincipal {
 
         GuestUser:
         - Updates the JobTitle and Department attributes to match the decoy persona.
+        - Optionally updates OfficeLocation for additional identity realism.
         - Preserves original UPN, display name, and object ID.
 
         AppRegistration:
@@ -70,6 +71,16 @@ function Set-PrivateEntraDecoyPrincipal {
     .PARAMETER PersonaDepartment
         Optional guest-user persona department override. If omitted for guest-user decoys,
         defaults to `Legacy Integration`.
+
+    .PARAMETER PersonaOfficeLocation
+        Optional guest-user office-location override. If omitted for guest-user decoys,
+        defaults to `Hybrid/Remote`.
+
+    .PARAMETER IdentityOwnerHint
+        Optional identity owner hint appended to notes metadata where supported.
+
+    .PARAMETER GroupHint
+        Optional group/team hint appended to notes metadata where supported.
 
     .PARAMETER AuditLogPath
         Optional path to a JSON audit log file. When specified, an audit entry is appended
@@ -129,6 +140,15 @@ function Set-PrivateEntraDecoyPrincipal {
 
         [Parameter()]
         [string]$PersonaDepartment,
+
+        [Parameter()]
+        [string]$PersonaOfficeLocation,
+
+        [Parameter()]
+        [string]$IdentityOwnerHint,
+
+        [Parameter()]
+        [string]$GroupHint,
 
         [Parameter()]
         [string]$AuditLogPath
@@ -235,6 +255,12 @@ function Set-PrivateEntraDecoyPrincipal {
         if ($PSBoundParameters.ContainsKey('SecretHint') -and -not [string]::IsNullOrWhiteSpace($SecretHint)) {
             $modificationsForAudit['SecretHint'] = $SecretHint
         }
+        if ($PSBoundParameters.ContainsKey('IdentityOwnerHint') -and -not [string]::IsNullOrWhiteSpace($IdentityOwnerHint)) {
+            $modificationsForAudit['IdentityOwnerHint'] = $IdentityOwnerHint
+        }
+        if ($PSBoundParameters.ContainsKey('GroupHint') -and -not [string]::IsNullOrWhiteSpace($GroupHint)) {
+            $modificationsForAudit['GroupHint'] = $GroupHint
+        }
 
         $notesDetailLines = [System.Collections.Generic.List[string]]::new()
         if (-not [string]::IsNullOrWhiteSpace($LureTheme)) {
@@ -251,6 +277,12 @@ function Set-PrivateEntraDecoyPrincipal {
         }
         if (-not [string]::IsNullOrWhiteSpace($SecretHint)) {
             $notesDetailLines.Add("SecretHint: $SecretHint")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($IdentityOwnerHint)) {
+            $notesDetailLines.Add("IdentityOwnerHint: $IdentityOwnerHint")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($GroupHint)) {
+            $notesDetailLines.Add("GroupHint: $GroupHint")
         }
 
         $effectiveDescription = if ($notesDetailLines.Count -gt 0) {
@@ -272,6 +304,13 @@ function Set-PrivateEntraDecoyPrincipal {
         }
         else {
             'Legacy Integration'
+        }
+
+        $resolvedGuestOfficeLocation = if (-not [string]::IsNullOrWhiteSpace($PersonaOfficeLocation)) {
+            $PersonaOfficeLocation
+        }
+        else {
+            'Hybrid/Remote'
         }
 
         # ------------------------------------------------------------------
@@ -342,10 +381,12 @@ function Set-PrivateEntraDecoyPrincipal {
                     Update-MgUser -UserId $objectId `
                         -JobTitle $resolvedGuestJobTitle `
                         -Department $resolvedGuestDepartment `
+                        -OfficeLocation $resolvedGuestOfficeLocation `
                         -ErrorAction Stop
-                    Write-Verbose "[$($MyInvocation.MyCommand)] - Updated JobTitle/Department on guest user '$($RecyclableObject.DisplayName)'."
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - Updated JobTitle/Department/OfficeLocation on guest user '$($RecyclableObject.DisplayName)'."
                     $modificationsForAudit['jobTitle']   = "Changed to: $resolvedGuestJobTitle"
                     $modificationsForAudit['department']  = "Changed to: $resolvedGuestDepartment"
+                    $modificationsForAudit['officeLocation'] = "Changed to: $resolvedGuestOfficeLocation"
                 }
                 catch {
                     throw "[$($MyInvocation.MyCommand)] - Failed to update guest user '$($RecyclableObject.DisplayName)'. Error: $($_.Exception.Message)"
@@ -393,6 +434,15 @@ function Set-PrivateEntraDecoyPrincipal {
         }
         if (-not [string]::IsNullOrWhiteSpace($SecretHint)) {
             $RecyclableObject | Add-Member -NotePropertyName 'SecretHint' -NotePropertyValue $SecretHint -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($IdentityOwnerHint)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'IdentityOwnerHint' -NotePropertyValue $IdentityOwnerHint -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($GroupHint)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'GroupHint' -NotePropertyValue $GroupHint -Force
+        }
+        if ($objectType -eq 'GuestUser') {
+            $RecyclableObject | Add-Member -NotePropertyName 'PersonaOfficeLocation' -NotePropertyValue $resolvedGuestOfficeLocation -Force
         }
         $RecyclableObject | Add-Member -NotePropertyName 'RecycledAt' -NotePropertyValue ((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')) -Force
         return $RecyclableObject

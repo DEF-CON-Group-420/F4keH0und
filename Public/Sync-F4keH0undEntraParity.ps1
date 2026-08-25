@@ -284,6 +284,8 @@ function Sync-F4keH0undEntraParity {
                 LureTheme     = [string]$_.Template.LureTheme
                 ConsentScopeBait = [string]$_.Template.ConsentScopeBait
                 ConditionalAccessBypassHint = [string]$_.Template.ConditionalAccessBypassHint
+                IdentityOwnerHint = [string]$_.Template.IdentityOwnerHint
+                GroupHint = [string]$_.Template.GroupHint
             }
         }
     )
@@ -321,7 +323,7 @@ function Sync-F4keH0undEntraParity {
                         Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' suppresses high-privilege role assignment for '$($opportunity.DecoyType)'."
                     }
                 }
-                foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                     $templateValue = $opportunity.Template.$templateKey
                     if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                         $entraParams[$templateKey] = [string]$templateValue
@@ -352,7 +354,7 @@ function Sync-F4keH0undEntraParity {
                 if ($opportunity.DecoyType -eq 'EntraServicePrincipalDecoy' -and $opportunity.Template.AssignHighPrivilegeRole -and -not $resolvedRolloutProfile.AllowHighPrivilegeRoleAssignment) {
                     $eventMetadata['HighPrivilegeRoleSuppressed'] = $true
                 }
-                foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint')) {
+                foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                     $metadataValue = $opportunity.Template.$metadataKey
                     if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
                         $eventMetadata[$metadataKey] = [string]$metadataValue
