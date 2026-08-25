@@ -21,6 +21,8 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 13. [Inventory Interface](#13-inventory-interface)
 14. [Lifecycle Management](#14-lifecycle-management)
 15. [Parity Coverage and Sync](#15-parity-coverage-and-sync)
+16. [Windows Artifact Lifecycle (WinRM/PSRP)](#16-windows-artifact-lifecycle-winrmpsrp)
+17. [Windows Inventory Filtering](#17-windows-inventory-filtering)
 
 ---
 
@@ -586,6 +588,88 @@ Sync-F4keH0undEntraParity `
     -TargetParityRatio 1.0 `
     -MaxDeployments 3 `
     -Execute -WhatIf
+```
+
+---
+
+## 16. Windows Artifact Lifecycle (WinRM/PSRP)
+
+Deploy and manage Windows-only deceptive artifact elements from any `pwsh` host (macOS/Linux/Windows) over WinRM/PSRP.
+
+```powershell
+# Cross-platform control plane (run from macOS/Linux/Windows with PowerShell 7+)
+# Targets are Windows hosts only.
+$cred = Get-Credential
+
+# 1) Discover available Windows element families/types
+Get-F4keH0undElementType -Detailed |
+    Sort-Object Family, DetectionScore -Descending |
+    Format-Table TypeId, Family, CostScore, DetectionScore, TelemetryProfile -AutoSize
+
+# 2) Deploy API-hook bait artifacts (safe preview first)
+New-F4keH0undElement `
+    -ElementType ApiHookConfigDecoy `
+    -ComputerName WIN-APP-01,WIN-APP-02 `
+    -TemplateData @{ ApiBaseUrl = "https://legacy-api.internal.corp"; IntegrationName = "LegacyBillingSync" } `
+    -Tag "phase3","api" `
+    -Credential $cred `
+    -WhatIf
+
+# 3) Live deployment with pass-through results
+$deployed = New-F4keH0undElement `
+    -ElementType ApiHookConfigDecoy `
+    -ComputerName WIN-APP-01,WIN-APP-02 `
+    -TemplateData @{ ApiBaseUrl = "https://legacy-api.internal.corp"; IntegrationName = "LegacyBillingSync" } `
+    -Tag "phase3","api" `
+    -Credential $cred `
+    -PassThru
+
+$deployed | Format-Table ElementId, ComputerName, Status, BasePath -AutoSize
+
+# 4) Update, disable, re-enable, remove (full lifecycle)
+$elementId = $deployed[0].ElementId
+
+Update-F4keH0undElement -ElementId $elementId -TemplateData @{ ApiBaseUrl = "https://legacy-api2.internal.corp" } -Credential $cred
+Disable-F4keH0undElement -ElementId $elementId -Reason "maintenance" -Credential $cred
+Enable-F4keH0undElement -ElementId $elementId -Credential $cred
+Remove-F4keH0undElement -ElementId $elementId -Credential $cred -WhatIf
+```
+
+---
+
+## 17. Windows Inventory Filtering
+
+Use inventory filters to build a clear interface for deployed artifact elements, where they live, and their current lifecycle status.
+
+```powershell
+# All Windows elements, latest first
+Get-F4keH0undInventory -Source Events -Platform Windows -SkipLiveStatus |
+    Format-Table Identity, DecoyType, Status, Location, LastUpdated -AutoSize
+
+# Family-focused view: API bait currently armed
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily ApiHookBait `
+    -Status Armed `
+    -SkipLiveStatus |
+    Select-Object Identity, DecoyType, Status, @{Name='ComputerName';Expression={ $_.Metadata.ComputerName }}, Location, LastUpdated
+
+# Host-focused view: all elements on a specific server
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ComputerName WIN-APP-01 `
+    -IncludeRemoved `
+    -SkipLiveStatus |
+    Sort-Object LastUpdated -Descending
+
+# Type-focused view: service-lure artifacts only
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementType ServiceDefinitionDecoy `
+    -SkipLiveStatus
 ```
 
 ---

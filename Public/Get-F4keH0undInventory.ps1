@@ -40,6 +40,24 @@
 .PARAMETER Credential
     Optional privileged credential for AD status checks.
 
+.PARAMETER Platform
+    Optional platform filter after inventory load. Supported values: AD, Entra,
+    Windows.
+
+.PARAMETER ElementType
+    Optional decoy/element type filter using `DecoyType` values.
+
+.PARAMETER ElementFamily
+    Optional element family filter from inventory metadata (for example,
+    ServiceLure, RpcBait, ApiHookBait, RuntimeArtifact).
+
+.PARAMETER ComputerName
+    Optional host filter from inventory metadata (`ComputerName` or `TargetHost`).
+
+.PARAMETER Status
+    Optional status filter (for example, Armed, Disabled, Removed, Enabled,
+    Recorded).
+
 .EXAMPLE
     Get-F4keH0undInventory
 
@@ -54,6 +72,11 @@
     Get-F4keH0undInventory -Source Reports -AllReports -SkipLiveStatus | Format-Table -AutoSize
 
     Combines all historical report files and skips live lookups.
+
+.EXAMPLE
+    Get-F4keH0undInventory -Source Events -Platform Windows -ElementFamily ApiHookBait -Status Armed
+
+    Returns active Windows artifact elements for one family.
 #>
 function Get-F4keH0undInventory {
     [CmdletBinding()]
@@ -84,7 +107,23 @@ function Get-F4keH0undInventory {
         [string]$Server,
 
         [Parameter()]
-        [System.Management.Automation.PSCredential]$Credential
+        [System.Management.Automation.PSCredential]$Credential,
+
+        [Parameter()]
+        [ValidateSet('AD', 'Entra', 'Windows')]
+        [string]$Platform,
+
+        [Parameter()]
+        [string[]]$ElementType,
+
+        [Parameter()]
+        [string[]]$ElementFamily,
+
+        [Parameter()]
+        [string[]]$ComputerName,
+
+        [Parameter()]
+        [string[]]$Status
     )
 
     $commandName = $MyInvocation.MyCommand.Name
@@ -323,6 +362,56 @@ function Get-F4keH0undInventory {
 
             $row.LastStatusCheck = Get-Date
         }
+    }
+
+    if ($PSBoundParameters.ContainsKey('Platform')) {
+        $inventoryRows = @($inventoryRows | Where-Object { [string]$_.Platform -eq $Platform })
+    }
+
+    if ($PSBoundParameters.ContainsKey('ElementType') -and @($ElementType).Count -gt 0) {
+        $inventoryRows = @($inventoryRows | Where-Object { @($ElementType) -contains [string]$_.DecoyType })
+    }
+
+    if ($PSBoundParameters.ContainsKey('ElementFamily') -and @($ElementFamily).Count -gt 0) {
+        $inventoryRows = @(
+            $inventoryRows | Where-Object {
+                $rowMetadata = Convert-PrivateF4keH0undObjectToHashtable -InputObject $_.Metadata
+                if ($rowMetadata.ContainsKey('ElementFamily')) {
+                    @($ElementFamily) -contains [string]$rowMetadata['ElementFamily']
+                }
+                else {
+                    $false
+                }
+            }
+        )
+    }
+
+    if ($PSBoundParameters.ContainsKey('ComputerName') -and @($ComputerName).Count -gt 0) {
+        $inventoryRows = @(
+            $inventoryRows | Where-Object {
+                $rowMetadata = Convert-PrivateF4keH0undObjectToHashtable -InputObject $_.Metadata
+                $rowHost = if ($rowMetadata.ContainsKey('ComputerName')) {
+                    [string]$rowMetadata['ComputerName']
+                }
+                elseif ($rowMetadata.ContainsKey('TargetHost')) {
+                    [string]$rowMetadata['TargetHost']
+                }
+                else {
+                    $null
+                }
+
+                if ([string]::IsNullOrWhiteSpace($rowHost)) {
+                    $false
+                }
+                else {
+                    @($ComputerName) -contains $rowHost
+                }
+            }
+        )
+    }
+
+    if ($PSBoundParameters.ContainsKey('Status') -and @($Status).Count -gt 0) {
+        $inventoryRows = @($inventoryRows | Where-Object { @($Status) -contains [string]$_.Status })
     }
 
     return @($inventoryRows | Sort-Object -Property @{

@@ -83,6 +83,55 @@ function Test-F4keH0undConfig {
         }
     }
 
+    # Validate WindowsDeploymentSettings
+    if ($config.PSObject.Properties.Name -contains 'WindowsDeploymentSettings') {
+        $port = [int]$config.WindowsDeploymentSettings.Port
+        if ($port -lt 1 -or $port -gt 65535) {
+            $validationResult.Errors += "WindowsDeploymentSettings.Port must be between 1 and 65535"
+            $validationResult.IsValid = $false
+        }
+
+        $auth = [string]$config.WindowsDeploymentSettings.Authentication
+        if ($auth -and $auth -notin @('Default', 'Negotiate', 'Kerberos', 'CredSSP', 'Basic')) {
+            $validationResult.Errors += "WindowsDeploymentSettings.Authentication must be one of: Default, Negotiate, Kerberos, CredSSP, Basic"
+            $validationResult.IsValid = $false
+        }
+
+        if ([string]::IsNullOrWhiteSpace([string]$config.WindowsDeploymentSettings.ArtifactRoot)) {
+            $validationResult.Warnings += 'WindowsDeploymentSettings.ArtifactRoot is empty. Default artifact root will be used at runtime.'
+        }
+    }
+
+    # Validate TelemetrySettings
+    if ($config.PSObject.Properties.Name -contains 'TelemetrySettings') {
+        if ([string]::IsNullOrWhiteSpace([string]$config.TelemetrySettings.DefaultTelemetryProfile)) {
+            $validationResult.Warnings += 'TelemetrySettings.DefaultTelemetryProfile is empty. Runtime fallback profile will be used.'
+        }
+    }
+
+    # Validate ElementRegistrySettings
+    if ($config.PSObject.Properties.Name -contains 'ElementRegistrySettings') {
+        if ($config.ElementRegistrySettings.EnableExternalRegistry -eq $true) {
+            $registryPath = [string]$config.ElementRegistrySettings.RegistryPath
+            if ([string]::IsNullOrWhiteSpace($registryPath)) {
+                $validationResult.Warnings += 'ElementRegistrySettings.RegistryPath is empty. Built-in defaults will be used.'
+            }
+            else {
+                $resolvedRegistryPath = if ([System.IO.Path]::IsPathRooted($registryPath)) {
+                    $registryPath
+                }
+                else {
+                    $configDirectory = Split-Path -Path $ConfigPath -Parent
+                    Join-Path -Path $configDirectory -ChildPath $registryPath
+                }
+
+                if (-not (Test-Path -Path $resolvedRegistryPath -PathType Leaf)) {
+                    $validationResult.Warnings += "Element registry file '$registryPath' (resolved: '$resolvedRegistryPath') was not found locally. Built-in defaults will be used."
+                }
+            }
+        }
+    }
+
     # Validate paths exist or can be created
     $pathsToCheck = @(
         $config.DeploymentSettings.ReportOutputPath,

@@ -10,16 +10,22 @@ Current exported commands:
 
 1. `Find-F4keH0undOpportunity`
 2. `New-F4keH0undDecoy`
-3. `Sync-F4keH0undEntraParity`
-4. `Update-F4keH0undDecoy`
-5. `Disable-F4keH0undDecoy`
-6. `Enable-F4keH0undDecoy`
-7. `Get-F4keH0undInventory`
-8. `Add-F4keH0undRelationship`
-9. `Remove-F4keH0undDecoy`
-10. `Get-F4keH0undConfig`
-11. `Test-F4keH0undCoverage`
-12. `Test-F4keH0undConfig`
+3. `Get-F4keH0undElementType`
+4. `New-F4keH0undElement`
+5. `Update-F4keH0undElement`
+6. `Disable-F4keH0undElement`
+7. `Enable-F4keH0undElement`
+8. `Remove-F4keH0undElement`
+9. `Sync-F4keH0undEntraParity`
+10. `Update-F4keH0undDecoy`
+11. `Disable-F4keH0undDecoy`
+12. `Enable-F4keH0undDecoy`
+13. `Get-F4keH0undInventory`
+14. `Add-F4keH0undRelationship`
+15. `Remove-F4keH0undDecoy`
+16. `Get-F4keH0undConfig`
+17. `Test-F4keH0undCoverage`
+18. `Test-F4keH0undConfig`
 
 ---
 
@@ -28,6 +34,11 @@ Current exported commands:
 - All exported commands support standard common parameters (`-Verbose`, `-Debug`, `-ErrorAction`, etc.).
 - The following commands support `-WhatIf`/`-Confirm` (safe simulation via `ShouldProcess`):
   - `New-F4keH0undDecoy`
+  - `New-F4keH0undElement`
+  - `Update-F4keH0undElement`
+  - `Disable-F4keH0undElement`
+  - `Enable-F4keH0undElement`
+  - `Remove-F4keH0undElement`
   - `Sync-F4keH0undEntraParity`
   - `Update-F4keH0undDecoy`
   - `Disable-F4keH0undDecoy`
@@ -120,6 +131,170 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 
 ```powershell
 New-F4keH0undDecoy -BloodHoundPath ./BH_Data -Execute -PreferRecycling -WhatIf
+```
+
+---
+
+## `Get-F4keH0undElementType`
+
+Lists supported Windows-only artifact element families/types from the element registry.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `Family` | `String` | No | — | Optional family filter (`ServiceLure`, `RpcBait`, `ApiHookBait`, `RuntimeArtifact`). |
+| `Platform` | `String` | No | `Windows` | Platform filter (Phase 3 supports `Windows` only). |
+| `Detailed` | `Switch` | No | `false` | Returns full registry metadata fields. |
+
+### Example
+
+```powershell
+Get-F4keH0undElementType
+Get-F4keH0undElementType -Family ApiHookBait -Detailed
+```
+
+---
+
+## `New-F4keH0undElement`
+
+Deploys Windows artifact deception elements to target hosts over WinRM/PSRP.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `ElementType` | `String` | Yes | — | Element type (`ServiceDefinitionDecoy`, `RpcEndpointDecoy`, `ApiHookConfigDecoy`, `ProcessThreadArtifactDecoy`). |
+| `ComputerName` | `String[]` | Yes | — | Windows hosts to deploy to. |
+| `Name` | `String` | No | generated | Logical element name used for artifact rendering. |
+| `TemplateData` | `IDictionary` | No | `{}` | Template fields for artifact content rendering. |
+| `ArtifactRoot` | `String` | No | from config | Remote root folder for element artifacts. |
+| `Tag` | `String[]` | No | — | Metadata tags stored in inventory events. |
+| `Credential` | `PSCredential` | No | — | WinRM credential. |
+| `Port` | `Int32` | No | from config | WinRM port (e.g., 5985/5986). |
+| `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
+| `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `ThrottleLimit` | `Int32` | No | from config | Reserved for future parallelized execution workflows. |
+| `AuditLogPath` | `String` | No | — | Optional audit metadata field. |
+| `PassThru` | `Switch` | No | `false` | Returns deployed element records. |
+
+### Behavior Notes
+
+- Windows-only artifact deployment model (no AD/Entra object creation).
+- Uses WinRM/PSRP channel and writes inventory `Deploy` events with `Platform=Windows`.
+- Default deployment mode is artifact-only (no active listener binaries).
+
+### Example
+
+```powershell
+New-F4keH0undElement -ElementType ApiHookConfigDecoy -ComputerName WIN-APP-01 -WhatIf
+```
+
+---
+
+## `Update-F4keH0undElement`
+
+Updates previously deployed Windows artifact elements by `ElementId`.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `ElementId` | `String[]` | Yes | — | Existing element IDs to update. |
+| `TemplateData` | `IDictionary` | No | merged | Template overrides merged with existing metadata template data. |
+| `Name` | `String` | No | existing | Optional replacement element name. |
+| `Tag` | `String[]` | No | existing | Optional replacement tags. |
+| `ComputerName` | `String[]` | No | from inventory | Optional host override(s). |
+| `Credential` | `PSCredential` | No | — | WinRM credential. |
+| `Port` | `Int32` | No | from config | WinRM port override. |
+| `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
+| `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `ThrottleLimit` | `Int32` | No | from config | Reserved for future parallelized execution workflows. |
+| `PassThru` | `Switch` | No | `false` | Returns updated element records. |
+
+### Behavior Notes
+
+- Resolves host/metadata from inventory state when not explicitly provided.
+- Re-renders artifacts and writes inventory `Update` events.
+
+### Example
+
+```powershell
+Update-F4keH0undElement -ElementId fhlg-win-apihookconfigdecoy-1234567890ab -TemplateData @{ ApiBaseUrl = 'https://legacy-api2.internal.corp' }
+```
+
+---
+
+## `Disable-F4keH0undElement`
+
+Disables deployed Windows artifact elements (soft lifecycle state transition).
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `ElementId` | `String[]` | Yes | — | Existing element IDs to disable. |
+| `Reason` | `String` | No | — | Optional disable reason stored in metadata. |
+| `ComputerName` | `String[]` | No | from inventory | Optional host override(s). |
+| `Credential` | `PSCredential` | No | — | WinRM credential. |
+| `Port` | `Int32` | No | from config | WinRM port override. |
+| `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
+| `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `PassThru` | `Switch` | No | `false` | Returns updated element records. |
+
+### Example
+
+```powershell
+Disable-F4keH0undElement -ElementId fhlg-win-rpcendpointdecoy-abcdef123456 -Reason 'Maintenance window'
+```
+
+---
+
+## `Enable-F4keH0undElement`
+
+Re-enables deployed Windows artifact elements to armed state.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `ElementId` | `String[]` | Yes | — | Existing element IDs to enable. |
+| `ComputerName` | `String[]` | No | from inventory | Optional host override(s). |
+| `Credential` | `PSCredential` | No | — | WinRM credential. |
+| `Port` | `Int32` | No | from config | WinRM port override. |
+| `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
+| `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `PassThru` | `Switch` | No | `false` | Returns updated element records. |
+
+### Example
+
+```powershell
+Enable-F4keH0undElement -ElementId fhlg-win-rpcendpointdecoy-abcdef123456
+```
+
+---
+
+## `Remove-F4keH0undElement`
+
+Removes deployed Windows artifact elements from target hosts.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `ElementId` | `String[]` | Yes | — | Existing element IDs to remove. |
+| `ComputerName` | `String[]` | No | from inventory | Optional host override(s). |
+| `PurgeTelemetryMap` | `Switch` | No | `false` | Records intent to purge telemetry mapping metadata. |
+| `Credential` | `PSCredential` | No | — | WinRM credential. |
+| `Port` | `Int32` | No | from config | WinRM port override. |
+| `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
+| `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `PassThru` | `Switch` | No | `false` | Returns removal records. |
+
+### Example
+
+```powershell
+Remove-F4keH0undElement -ElementId fhlg-win-servicedefinitiondecoy-1234abcd5678 -WhatIf
 ```
 
 ---
@@ -289,6 +464,11 @@ Builds consolidated deceptive-element inventory from persistent lifecycle backen
 | `SkipLiveStatus` | `Switch` | No | `false` | Skip AD live verification and return recorded lifecycle/report state. |
 | `Server` | `String` | No | — | Domain Controller for live AD status checks. |
 | `Credential` | `PSCredential` | No | — | Credentials for live AD status checks. |
+| `Platform` | `String` | No | — | Post-load platform filter: `AD`, `Entra`, or `Windows`. |
+| `ElementType` | `String[]` | No | — | Post-load filter by `DecoyType` values. |
+| `ElementFamily` | `String[]` | No | — | Post-load filter by metadata family (for example `ServiceLure`, `ApiHookBait`). |
+| `ComputerName` | `String[]` | No | — | Post-load filter by metadata host (`ComputerName` or `TargetHost`). |
+| `Status` | `String[]` | No | — | Post-load filter by lifecycle or recorded status value. |
 
 ### Behavior Notes
 
@@ -297,11 +477,13 @@ Builds consolidated deceptive-element inventory from persistent lifecycle backen
   2. Otherwise uses events if event log exists and has content.
   3. Falls back to reports.
 - Returns normalized fields including `Identity`, `DecoyType`, `Platform`, `ObjectType`, `Status`, `LastAction`, `LastUpdated`, `Location`.
+- Platform/element/host/status filters are applied after source normalization.
 
 ### Example
 
 ```powershell
 Get-F4keH0undInventory -Source Events -IncludeRemoved -PreferSnapshot -SkipLiveStatus
+Get-F4keH0undInventory -Source Events -Platform Windows -ElementFamily ApiHookBait -Status Armed
 ```
 
 ---
@@ -374,7 +556,7 @@ Loads effective runtime configuration from `config.json` (with fallback defaults
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `ConfigPath` | `String` | No | module `config.json` | Optional path to alternate config file. |
-| `Section` | `String` | No | full config | Returns only one section when specified. Allowed values: `RecyclingPreferences`, `SafetyFilters`, `DeploymentSettings`, `RankingWeights`, `AuditSettings`, `AdvancedOptions`, `InventorySettings`. |
+| `Section` | `String` | No | full config | Returns only one section when specified. Allowed values: `RecyclingPreferences`, `SafetyFilters`, `DeploymentSettings`, `RankingWeights`, `AuditSettings`, `AdvancedOptions`, `InventorySettings`, `WindowsDeploymentSettings`, `TelemetrySettings`, `ElementRegistrySettings`. |
 
 ### Output
 

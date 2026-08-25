@@ -128,6 +128,14 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - Plugin-based element type registry
 - New decoy type templates for each family
 
+**Current implementation status:**
+- ✅ Windows element-type registry (`element-types.windows.json`) with service, RPC, API-hook, and runtime artifact families
+- ✅ Lifecycle command surface (`Get/New/Update/Disable/Enable/Remove-F4keH0undElement`)
+- ✅ WinRM/PSRP execution path with artifact-only remote deployment model
+- ✅ Inventory integration for Windows platform entries and post-load filters (`Platform`, `ElementType`, `ElementFamily`, `ComputerName`, `Status`)
+- ✅ Config model expansion (`WindowsDeploymentSettings`, `TelemetrySettings`, `ElementRegistrySettings`)
+- ⏳ Remaining: opportunity-ranking integration for Windows element-family recommendations
+
 ## Phase 4 — Token & Identity Priority (Weeks 8–9)
 
 - Build identity/token deception pack:
@@ -169,8 +177,8 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Start Phase 3 plugin registry for new element families.
-2. Add fake service definition decoy type templates.
-3. Add fake RPC endpoint metadata/artifact templates.
-4. Add API hook bait config templates.
-5. Add thread/process metadata lure templates and inventory status integration.
+1. Complete Phase 3 ranking integration so opportunities include Windows element-family recommendations.
+2. Start Phase 4 token/identity pack with low-cost text/config canary artifacts first.
+3. Add token-trigger correlation fields to inventory status model.
+4. Extend Entra lure templates (consent/role-assignment/conditional-access themed variants).
+5. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.

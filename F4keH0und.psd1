@@ -4,10 +4,10 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-RootModule = 'F4keH0und.psm1' # CHANGED
+RootModule = 'F4keH0und.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.7.0'
+ModuleVersion = '2.8.0'
 
 # ID used to uniquely identify this module
 GUID = 'd2b0e6f3-8d3c-4e8f-8c6a-1e9f4c3a2b1d'
@@ -26,18 +26,24 @@ Description = 'F4keH0und - Last Generation: A PowerShell framework to analyze Bl
 
 # Functions to export from this module, for best performance, do not use wildcards.
 FunctionsToExport = @(
-    'Find-F4keH0undOpportunity',   # CHANGED
-    'New-F4keH0undDecoy',          # CHANGED
-    'Sync-F4keH0undEntraParity',   # CHANGED
-    'Update-F4keH0undDecoy',       # CHANGED
-    'Disable-F4keH0undDecoy',      # CHANGED
-    'Enable-F4keH0undDecoy',       # CHANGED
-    'Add-F4keH0undRelationship',   # CHANGED
-    'Remove-F4keH0undDecoy',       # CHANGED
-    'Get-F4keH0undInventory',      # CHANGED
-    'Get-F4keH0undConfig',         # CHANGED
-    'Test-F4keH0undCoverage',      # CHANGED
-    'Test-F4keH0undConfig'         # CHANGED
+    'Find-F4keH0undOpportunity',
+    'New-F4keH0undDecoy',
+    'Get-F4keH0undElementType',
+    'New-F4keH0undElement',
+    'Update-F4keH0undElement',
+    'Disable-F4keH0undElement',
+    'Enable-F4keH0undElement',
+    'Remove-F4keH0undElement',
+    'Sync-F4keH0undEntraParity',
+    'Update-F4keH0undDecoy',
+    'Disable-F4keH0undDecoy',
+    'Enable-F4keH0undDecoy',
+    'Add-F4keH0undRelationship',
+    'Remove-F4keH0undDecoy',
+    'Get-F4keH0undInventory',
+    'Get-F4keH0undConfig',
+    'Test-F4keH0undCoverage',
+    'Test-F4keH0undConfig'
 )
 
 # Cmdlets to export from this module

@@ -1,0 +1,50 @@
+{
+  "Version": "1.0",
+  "Platform": "Windows",
+  "Types": [
+    {
+      "TypeId": "ServiceDefinitionDecoy",
+      "Family": "ServiceLure",
+      "Platforms": ["Windows"],
+      "Capabilities": ["Deploy", "Update", "Disable", "Enable", "Remove"],
+      "RiskLevel": "Low",
+      "CostScore": 2,
+      "DetectionScore": 8,
+      "TelemetryProfile": "Windows-Artifact-Baseline",
+      "Description": "Deploys fake legacy service definitions and operational runbook artifacts."
+    },
+    {
+      "TypeId": "RpcEndpointDecoy",
+      "Family": "RpcBait",
+      "Platforms": ["Windows"],
+      "Capabilities": ["Deploy", "Update", "Disable", "Enable", "Remove"],
+      "RiskLevel": "Low",
+      "CostScore": 2,
+      "DetectionScore": 7,
+      "TelemetryProfile": "Windows-Artifact-Baseline",
+      "Description": "Deploys fake RPC endpoint metadata and client connection profiles."
+    },
+    {
+      "TypeId": "ApiHookConfigDecoy",
+      "Family": "ApiHookBait",
+      "Platforms": ["Windows"],
+      "Capabilities": ["Deploy", "Update", "Disable", "Enable", "Remove"],
+      "RiskLevel": "Low",
+      "CostScore": 1,
+      "DetectionScore": 9,
+      "TelemetryProfile": "Windows-Artifact-Baseline",
+      "Description": "Deploys fake integration configs, webhook references, and canary tokens."
+    },
+    {
+      "TypeId": "ProcessThreadArtifactDecoy",
+      "Family": "RuntimeArtifact",
+      "Platforms": ["Windows"],
+      "Capabilities": ["Deploy", "Update", "Disable", "Enable", "Remove"],
+      "RiskLevel": "Low",
+      "CostScore": 1,
+      "DetectionScore": 6,
+      "TelemetryProfile": "Windows-Artifact-Baseline",
+      "Description": "Deploys fake process/thread troubleshooting artifacts and notes."
+    }
+  ]
+}

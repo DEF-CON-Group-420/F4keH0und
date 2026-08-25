@@ -38,5 +38,29 @@
     "EventLogFileName": "F4keH0und_Inventory_Events.ndjson",
     "SnapshotFileName": "F4keH0und_Inventory_Snapshot.json",
     "UpdateSnapshotOnWrite": true
+  },
+
+  "WindowsDeploymentSettings": {
+    "_comment": "Windows-only artifact deployment settings used by New/Update/Disable/Enable/Remove-F4keH0undElement",
+    "ArtifactRoot": "C:\\ProgramData\\F4keH0und-LG\\Elements",
+    "Port": 5985,
+    "UseSSL": false,
+    "Authentication": "Negotiate",
+    "ThrottleLimit": 10
+  },
+
+  "TelemetrySettings": {
+    "_comment": "Primary telemetry profile and source hints for artifact elements",
+    "DefaultTelemetryProfile": "Windows-Artifact-Baseline",
+    "PrimarySources": [
+      "Sysmon",
+      "WindowsSecurity"
+    ]
+  },
+
+  "ElementRegistrySettings": {
+    "_comment": "External element type registry. If missing, built-in defaults are used.",
+    "EnableExternalRegistry": true,
+    "RegistryPath": "./element-types.windows.json"
   }
 }

@@ -16,6 +16,7 @@ This document describes the internal architecture of F4keH0und - Last Generation
 5. [Key Components](#5-key-components)
 6. [Design Decisions](#6-design-decisions)
 7. [Extension Points](#7-extension-points)
+8. [Windows Artifact Plane (Phase 3)](#8-windows-artifact-plane-phase-3)
 
 ---
 
@@ -46,6 +47,12 @@ F4keH0und/
 ├── Public/                                 # Exported functions (user-facing API)
 │   ├── Find-F4keH0undOpportunity.ps1       # Analysis engine — parses BH data, calls recycling engine
 │   ├── New-F4keH0undDecoy.ps1              # Deployment orchestrator — calls Set-Private* helpers
+│   ├── Get-F4keH0undElementType.ps1        # Lists Windows artifact element families/types from registry
+│   ├── New-F4keH0undElement.ps1            # Windows artifact deployment command (WinRM/PSRP)
+│   ├── Update-F4keH0undElement.ps1         # Windows artifact lifecycle update command
+│   ├── Disable-F4keH0undElement.ps1        # Windows artifact lifecycle disable command
+│   ├── Enable-F4keH0undElement.ps1         # Windows artifact lifecycle enable command
+│   ├── Remove-F4keH0undElement.ps1         # Windows artifact lifecycle remove command
 │   ├── Sync-F4keH0undEntraParity.ps1       # Entra parity remediation planner/executor
 │   ├── Update-F4keH0undDecoy.ps1           # Lifecycle update command for decoy metadata/relationships
 │   ├── Disable-F4keH0undDecoy.ps1          # Lifecycle state command — disable decoy identities
@@ -60,10 +67,12 @@ F4keH0und/
     ├── Find-F4keH0undRecyclableEntraObject.ps1 # Recycling engine — stale Entra object discovery
     ├── Get-F4keH0undConfig.ps1             # Config reader — parses config.json with defaults
     ├── Get-F4keH0undData.ps1               # BloodHound data loader — reads and normalizes JSON
+    ├── Get-F4keH0undElementTypeRegistry.ps1 # Loads/validates Windows element-type registry
     ├── Get-F4keH0undParityModel.ps1        # Shared parity family/lifecycle capability model
     ├── Get-F4keH0undRank.ps1               # Opportunity ranker — Critical / High / Low assignment
     ├── Manage-F4keH0undEntraLifecycle.ps1  # Entra lifecycle helpers (resolve/state/event context)
     ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
+    ├── Manage-F4keH0undWindowsElement.ps1  # Windows artifact deployment + lifecycle execution plane
     ├── Set-PrivateADDecoyUser.ps1          # Recycles a stale user into a decoy
     ├── Set-PrivateADDecoyComputer.ps1      # Recycles a stale computer into a decoy
     ├── Set-PrivateADDecoyGroup.ps1         # Recycles a stale group into a decoy
@@ -492,6 +501,70 @@ To add a new hard exclusion rule:
 1. Add the filter's configuration key to the `SafetyFilters` section of `config.json` and `config.example.json`.
 2. In `Find-F4keH0undRecyclableObject.ps1`, read the new key from `$safetyConfig` and add a new `Where-Object` filter step in the filter pipeline.
 3. Add validation for the new key in `Test-F4keH0undConfig.ps1`.
+
+---
+
+## 8. Windows Artifact Plane (Phase 3)
+
+Phase 3 introduces a dedicated Windows-only artifact execution plane while preserving a cross-platform operator experience (`pwsh` on macOS/Linux/Windows).
+
+### 8.1 Operating Model
+
+- **Control plane:** cross-platform PowerShell module execution.
+- **Target plane:** Windows hosts only.
+- **Deployment channel:** WinRM/PSRP first.
+- **Default behavior:** artifact-only (no active listener services).
+- **Telemetry baseline:** Sysmon + Windows Security logs.
+
+### 8.2 Element Type Registry
+
+- External registry file: `element-types.windows.json`.
+- Runtime loader: `Private/Get-F4keH0undElementTypeRegistry.ps1`.
+- Public discovery command: `Get-F4keH0undElementType`.
+- Supported initial families:
+  - `ServiceLure` (`ServiceDefinitionDecoy`)
+  - `RpcBait` (`RpcEndpointDecoy`)
+  - `ApiHookBait` (`ApiHookConfigDecoy`)
+  - `RuntimeArtifact` (`ProcessThreadArtifactDecoy`)
+
+### 8.3 Lifecycle Command Surface
+
+Windows artifact lifecycle is fully represented with dedicated commands:
+
+- `New-F4keH0undElement`
+- `Update-F4keH0undElement`
+- `Disable-F4keH0undElement`
+- `Enable-F4keH0undElement`
+- `Remove-F4keH0undElement`
+
+Internally, lifecycle actions route through `Invoke-PrivateF4keH0undWindowsElementLifecycle`, which:
+
+1. Resolves type + metadata context.
+2. Renders artifacts from template data.
+3. Executes remote writes via WinRM/PSRP.
+4. Emits persistent inventory events with `Platform = Windows`.
+
+### 8.4 Configuration Additions
+
+Phase 3 extends configuration with:
+
+- `WindowsDeploymentSettings` — WinRM defaults, artifact root, throttle settings.
+- `TelemetrySettings` — default telemetry profile + source hints.
+- `ElementRegistrySettings` — registry path + fallback behavior.
+
+These are present in both `config.json` and `config.example.json`, validated by `Test-F4keH0undConfig`, and consumed by lifecycle commands.
+
+### 8.5 Inventory Integration
+
+`Get-F4keH0undInventory` now supports cross-platform inventory filters that work for AD, Entra, and Windows elements:
+
+- `-Platform`
+- `-ElementType`
+- `-ElementFamily`
+- `-ComputerName`
+- `-Status`
+
+This forms the first implementation of the requested unified interface for where deceptive elements are deployed and what lifecycle state they are in.
 
 ---
 

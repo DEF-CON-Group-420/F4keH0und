@@ -34,7 +34,7 @@ function Get-F4keH0undConfig {
         [string]$ConfigPath,
 
         [Parameter()]
-        [ValidateSet('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'RankingWeights', 'AuditSettings', 'AdvancedOptions', 'InventorySettings')]
+        [ValidateSet('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'RankingWeights', 'AuditSettings', 'AdvancedOptions', 'InventorySettings', 'WindowsDeploymentSettings', 'TelemetrySettings', 'ElementRegistrySettings')]
         [string]$Section
     )
 
@@ -60,7 +60,7 @@ function Get-F4keH0undConfig {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Configuration loaded successfully"
 
         # Validate required sections exist
-        $requiredSections = @('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'InventorySettings')
+        $requiredSections = @('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'InventorySettings', 'WindowsDeploymentSettings', 'TelemetrySettings', 'ElementRegistrySettings')
         foreach ($reqSection in $requiredSections) {
             if (-not $config.PSObject.Properties.Name.Contains($reqSection)) {
                 Write-Warning "[$($MyInvocation.MyCommand)] - Missing required section '$reqSection'. Using defaults for this section."
@@ -186,6 +186,24 @@ function Get-F4keH0undDefaultConfig {
             EventLogFileName          = 'F4keH0und_Inventory_Events.ndjson'
             SnapshotFileName          = 'F4keH0und_Inventory_Snapshot.json'
             UpdateSnapshotOnWrite     = $true
+        }
+
+        WindowsDeploymentSettings = [PSCustomObject]@{
+            ArtifactRoot   = 'C:\ProgramData\F4keH0und-LG\Elements'
+            Port           = 5985
+            UseSSL         = $false
+            Authentication = 'Negotiate'
+            ThrottleLimit  = 10
+        }
+
+        TelemetrySettings = [PSCustomObject]@{
+            DefaultTelemetryProfile = 'Windows-Artifact-Baseline'
+            PrimarySources          = @('Sysmon', 'WindowsSecurity')
+        }
+
+        ElementRegistrySettings = [PSCustomObject]@{
+            EnableExternalRegistry = $true
+            RegistryPath           = './element-types.windows.json'
         }
     }
 

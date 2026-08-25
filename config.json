@@ -117,5 +117,26 @@
     "EventLogFileName": "F4keH0und_Inventory_Events.ndjson",
     "SnapshotFileName": "F4keH0und_Inventory_Snapshot.json",
     "UpdateSnapshotOnWrite": true
+  },
+
+  "WindowsDeploymentSettings": {
+    "ArtifactRoot": "C:\\ProgramData\\F4keH0und-LG\\Elements",
+    "Port": 5985,
+    "UseSSL": false,
+    "Authentication": "Negotiate",
+    "ThrottleLimit": 10
+  },
+
+  "TelemetrySettings": {
+    "DefaultTelemetryProfile": "Windows-Artifact-Baseline",
+    "PrimarySources": [
+      "Sysmon",
+      "WindowsSecurity"
+    ]
+  },
+
+  "ElementRegistrySettings": {
+    "EnableExternalRegistry": true,
+    "RegistryPath": "./element-types.windows.json"
   }
 }
