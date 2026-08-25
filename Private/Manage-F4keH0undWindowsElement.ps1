@@ -212,6 +212,88 @@ Write-Output "Attach debugger to `$LegacyProcess and inspect `$CriticalThread"
             )
         }
 
+        'IdentityBreadcrumbTokenDecoy' {
+            return @(
+                [PSCustomObject]@{
+                    RelativePath = "identity/$safeName-identity-map.decoy.txt"
+                    Content      = @"
+[$ElementName] Legacy Identity Mapping Notes
+
+PrivilegedSamAccountName: $(if ($TemplateData['PrivilegedSamAccountName']) { [string]$TemplateData['PrivilegedSamAccountName'] } else { 'svc_legacy_sync' })
+EntraUserPrincipalName: $(if ($TemplateData['EntraUserPrincipalName']) { [string]$TemplateData['EntraUserPrincipalName'] } else { 'svc-legacy-sync@contoso.onmicrosoft.com' })
+OnCallAlias: $(if ($TemplateData['OnCallAlias']) { [string]$TemplateData['OnCallAlias'] } else { 'middleware-tier3' })
+IdentityCanaryToken: $(if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-idtoken-$([guid]::NewGuid().ToString('N').Substring(0,18))" })
+
+GeneratedAtUtc: $generatedUtc
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "identity/$safeName-entra-link.decoy.json"
+                    Content      = (@{
+                            Name                    = $ElementName
+                            PrivilegedSamAccountName = if ($TemplateData['PrivilegedSamAccountName']) { [string]$TemplateData['PrivilegedSamAccountName'] } else { 'svc_legacy_sync' }
+                            EntraUserPrincipalName  = if ($TemplateData['EntraUserPrincipalName']) { [string]$TemplateData['EntraUserPrincipalName'] } else { 'svc-legacy-sync@contoso.onmicrosoft.com' }
+                            ImmutableIdHint         = if ($TemplateData['ImmutableIdHint']) { [string]$TemplateData['ImmutableIdHint'] } else { [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((if ($TemplateData['PrivilegedSamAccountName']) { [string]$TemplateData['PrivilegedSamAccountName'] } else { 'svc_legacy_sync' }))) }
+                            CanaryToken             = if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-idtoken-$([guid]::NewGuid().ToString('N').Substring(0,18))" }
+                            GeneratedAtUtc          = $generatedUtc
+                        } | ConvertTo-Json -Depth 6)
+                }
+            )
+        }
+
+        'CloudApiCanaryTokenDecoy' {
+            return @(
+                [PSCustomObject]@{
+                    RelativePath = "tokens/$safeName-oauth-cache.decoy.json"
+                    Content      = (@{
+                            Name            = $ElementName
+                            TenantId        = if ($TemplateData['TenantId']) { [string]$TemplateData['TenantId'] } else { '11111111-2222-3333-4444-555555555555' }
+                            ClientId        = if ($TemplateData['ClientId']) { [string]$TemplateData['ClientId'] } else { 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }
+                            Scope           = if ($TemplateData['Scope']) { [string]$TemplateData['Scope'] } else { 'https://graph.microsoft.com/.default' }
+                            RefreshToken    = if ($TemplateData['RefreshToken']) { [string]$TemplateData['RefreshToken'] } else { "fhlg-refresh-$([guid]::NewGuid().ToString('N'))" }
+                            AccessTokenHint = if ($TemplateData['AccessTokenHint']) { [string]$TemplateData['AccessTokenHint'] } else { "eyJhbGciOiJIUzI1NiIsImtpZCI6ImZo...$([guid]::NewGuid().ToString('N').Substring(0,12))" }
+                            GeneratedAtUtc  = $generatedUtc
+                        } | ConvertTo-Json -Depth 6)
+                }
+                [PSCustomObject]@{
+                    RelativePath = "tokens/$safeName-cloud.env.decoy"
+                    Content      = @"
+AZURE_TENANT_ID=$(if ($TemplateData['TenantId']) { [string]$TemplateData['TenantId'] } else { '11111111-2222-3333-4444-555555555555' })
+AZURE_CLIENT_ID=$(if ($TemplateData['ClientId']) { [string]$TemplateData['ClientId'] } else { 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' })
+AZURE_SCOPE=$(if ($TemplateData['Scope']) { [string]$TemplateData['Scope'] } else { 'https://graph.microsoft.com/.default' })
+AZURE_REFRESH_TOKEN=$(if ($TemplateData['RefreshToken']) { [string]$TemplateData['RefreshToken'] } else { "fhlg-refresh-$([guid]::NewGuid().ToString('N'))" })
+CANARY_TOKEN=$(if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-cloudtoken-$([guid]::NewGuid().ToString('N').Substring(0,20))" })
+GENERATED_UTC=$generatedUtc
+"@
+                }
+            )
+        }
+
+        'CredentialFileTokenDecoy' {
+            return @(
+                [PSCustomObject]@{
+                    RelativePath = "creds/$safeName-legacy-credentials.decoy.txt"
+                    Content      = @"
+[$ElementName] Legacy Service Credential Notes
+
+ServiceAccount: $(if ($TemplateData['ServiceAccount']) { [string]$TemplateData['ServiceAccount'] } else { 'corp\\svc_legacy_backup' })
+PasswordHint: $(if ($TemplateData['PasswordHint']) { [string]$TemplateData['PasswordHint'] } else { 'Winter2023!_RotateAfterCutover' })
+VaultPath: $(if ($TemplateData['VaultPath']) { [string]$TemplateData['VaultPath'] } else { 'C:\\Ops\\VaultExports\\legacy-sync.txt' })
+CanaryToken: $(if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-credtoken-$([guid]::NewGuid().ToString('N').Substring(0,20))" })
+
+GeneratedAtUtc: $generatedUtc
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "creds/$safeName-vault-export.decoy.csv"
+                    Content      = @"
+System,Username,Secret,CanaryToken,UpdatedUtc
+LegacySQL,$(if ($TemplateData['ServiceAccount']) { [string]$TemplateData['ServiceAccount'] } else { 'corp\\svc_legacy_backup' }),$(if ($TemplateData['PasswordHint']) { [string]$TemplateData['PasswordHint'] } else { 'Winter2023!_RotateAfterCutover' }),$(if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-credtoken-$([guid]::NewGuid().ToString('N').Substring(0,20))" }),$generatedUtc
+"@
+                }
+            )
+        }
+
         default {
             throw "Unsupported ElementType '$ElementType'."
         }

@@ -1,0 +1,144 @@
+<#
+.SYNOPSIS
+    Deploys identity/token-focused Windows deception artifacts.
+
+.DESCRIPTION
+    Wrapper command that prioritizes low-cost, high-efficiency token and identity
+    bait by mapping token profiles to Windows artifact element types and deploying
+    them through `New-F4keH0undElement` over WinRM/PSRP.
+
+.PARAMETER TokenType
+    Token profile to deploy. Supported values:
+    - IdentityBreadcrumb : fake privileged identity breadcrumbs and canary IDs
+    - CloudApiCanary     : fake OAuth/API token material and cloud env hints
+    - CredentialFile     : fake credential notes and vault-export bait
+
+.PARAMETER ComputerName
+    One or more Windows hosts targeted over WinRM/PSRP.
+
+.PARAMETER Name
+    Optional logical token package name used for artifact rendering.
+
+.PARAMETER TemplateData
+    Optional template dictionary for token payload fields.
+
+.PARAMETER Tag
+    Optional custom tags merged with default token tags.
+
+.PARAMETER Credential
+    Optional credential for WinRM remoting.
+
+.PARAMETER Port
+    WinRM port override.
+
+.PARAMETER UseSSL
+    Use WinRM over HTTPS.
+
+.PARAMETER Authentication
+    WinRM authentication method.
+
+.PARAMETER PassThru
+    Returns deployed element records from `New-F4keH0undElement`.
+
+.EXAMPLE
+    New-F4keH0undToken -TokenType IdentityBreadcrumb -ComputerName WIN-APP-01 -WhatIf
+
+.EXAMPLE
+    New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
+#>
+function New-F4keH0undToken {
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [OutputType([System.Object], [System.Object[]])]
+    param(
+        [Parameter()]
+        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile')]
+        [string]$TokenType = 'IdentityBreadcrumb',
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$ComputerName,
+
+        [Parameter()]
+        [string]$Name,
+
+        [Parameter()]
+        [System.Collections.IDictionary]$TemplateData,
+
+        [Parameter()]
+        [string[]]$Tag,
+
+        [Parameter()]
+        [System.Management.Automation.PSCredential]$Credential,
+
+        [Parameter()]
+        [int]$Port,
+
+        [Parameter()]
+        [switch]$UseSSL,
+
+        [Parameter()]
+        [ValidateSet('Default', 'Negotiate', 'Kerberos', 'CredSSP', 'Basic')]
+        [string]$Authentication,
+
+        [Parameter()]
+        [switch]$PassThru
+    )
+
+    $tokenTypeMap = @{
+        IdentityBreadcrumb = 'IdentityBreadcrumbTokenDecoy'
+        CloudApiCanary     = 'CloudApiCanaryTokenDecoy'
+        CredentialFile     = 'CredentialFileTokenDecoy'
+    }
+
+    $elementType = [string]$tokenTypeMap[$TokenType]
+    if ([string]::IsNullOrWhiteSpace($elementType)) {
+        Write-Error "[ERROR] Unsupported TokenType '$TokenType'."
+        return
+    }
+
+    $templateTable = Convert-PrivateF4keH0undTemplateDataToHashtable -TemplateData $TemplateData
+    if (-not $templateTable.ContainsKey('CanaryToken')) {
+        $templateTable['CanaryToken'] = "fhlg-$($TokenType.ToLowerInvariant())-$([guid]::NewGuid().ToString('N').Substring(0,18))"
+    }
+
+    $resolvedTags = [System.Collections.Generic.List[string]]::new()
+    foreach ($defaultTag in @('token', 'identity', 'phase4', "profile:$TokenType")) {
+        if (-not [string]::IsNullOrWhiteSpace($defaultTag) -and -not $resolvedTags.Contains($defaultTag)) {
+            $resolvedTags.Add($defaultTag)
+        }
+    }
+    foreach ($customTag in @($Tag)) {
+        $tagValue = [string]$customTag
+        if (-not [string]::IsNullOrWhiteSpace($tagValue) -and -not $resolvedTags.Contains($tagValue)) {
+            $resolvedTags.Add($tagValue)
+        }
+    }
+
+    $invokeParams = @{
+        ElementType  = $elementType
+        ComputerName = @($ComputerName)
+        TemplateData = $templateTable
+        Tag          = @($resolvedTags)
+    }
+
+    if ($PSBoundParameters.ContainsKey('Name')) { $invokeParams['Name'] = $Name }
+    if ($PSBoundParameters.ContainsKey('Credential')) { $invokeParams['Credential'] = $Credential }
+    if ($PSBoundParameters.ContainsKey('Port')) { $invokeParams['Port'] = $Port }
+    if ($PSBoundParameters.ContainsKey('UseSSL')) { $invokeParams['UseSSL'] = $UseSSL }
+    if ($PSBoundParameters.ContainsKey('Authentication')) { $invokeParams['Authentication'] = $Authentication }
+    if ($PassThru) { $invokeParams['PassThru'] = $true }
+
+    $targetSummary = (@($ComputerName | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }) -join ', ')
+    if ($PSCmdlet.ShouldProcess($targetSummary, "Deploy token profile '$TokenType' as '$elementType'")) {
+        return New-F4keH0undElement @invokeParams
+    }
+
+    return [PSCustomObject]@{
+        RequestedCount = @($ComputerName).Count
+        DeployedCount  = 0
+        TokenType      = $TokenType
+        ElementType    = $elementType
+        Platform       = 'Windows'
+        Targets        = @($ComputerName)
+    }
+}
+

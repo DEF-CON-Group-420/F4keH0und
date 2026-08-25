@@ -44,6 +44,12 @@
 .PARAMETER Credential
     Allows you to provide credentials for the recyclable-object discovery AD queries.
     Required for cross-domain operations.
+.PARAMETER WindowsComputerName
+    AD mode only. Explicit Windows host list used to generate Windows artifact
+    opportunity recommendations (deployed with New-F4keH0undElement).
+.PARAMETER MaxWindowsElementOpportunities
+    AD mode only. Maximum number of ranked Windows artifact opportunities returned
+    when -WindowsComputerName is provided. Default: 8.
 .PARAMETER EntraIncludeServicePrincipals
     Azure mode only. When specified, discovers disabled service principals as recycling candidates.
 .PARAMETER EntraIncludeGuestUsers
@@ -80,6 +86,9 @@
     PS C:\> Find-F4keH0undOpportunity -BloodHoundPath C:\BH_Data\ -PreferRecycling -Server "DC01.target.local" -Credential $cred
     Cross-domain recycling opportunity discovery.
 .EXAMPLE
+    PS C:\> Find-F4keH0undOpportunity -BloodHoundPath C:\BH_Data\ -WindowsComputerName WIN-APP-01,WIN-APP-02
+    Adds ranked Windows artifact opportunities for the explicit host list.
+.EXAMPLE
     PS C:\> Find-F4keH0undOpportunity -AzureHoundPath C:\AzureHound_Data\ -EntraIncludeServicePrincipals -EntraPreferRecycling -Verbose
     Discover Entra ID recycling opportunities for disabled service principals.
 .EXAMPLE
@@ -90,7 +99,7 @@
     Returns a list of custom PowerShell objects, where each object represents a single deception opportunity.
 .NOTES
     Author: m3c4n1sm0
-    Version: 3.1
+    Version: 3.2
     This function performs a read-only analysis and does not make any changes to your environment.
 .LINK
     Get-Help New-F4keH0undDecoy
@@ -131,6 +140,13 @@ function Find-F4keH0undOpportunity {
         [Parameter(ParameterSetName = 'AD')]
         [System.Management.Automation.PSCredential]$Credential,
 
+        [Parameter(ParameterSetName = 'AD')]
+        [string[]]$WindowsComputerName,
+
+        [Parameter(ParameterSetName = 'AD')]
+        [ValidateRange(1, 50)]
+        [int]$MaxWindowsElementOpportunities = 8,
+
         [Parameter(ParameterSetName = 'Azure')]
         [switch]$EntraIncludeServicePrincipals,
 
@@ -162,6 +178,45 @@ function Find-F4keH0undOpportunity {
             "Medium"   = 2
             "Low"      = 3
         }
+        $strategySortOrder = @{
+            'Recycle'  = 0
+            'Artifact' = 1
+            'Create'   = 2
+        }
+
+        $GetWindowsElementOpportunityRank = {
+            param(
+                [Parameter(Mandatory = $true)]
+                [psobject]$TypeDefinition
+            )
+
+            $detectionScore = [int]$TypeDefinition.DetectionScore
+            $costScore = [int]$TypeDefinition.CostScore
+
+            $riskPenalty = switch ([string]$TypeDefinition.RiskLevel) {
+                'High'   { 3 }
+                'Medium' { 1 }
+                default  { 0 }
+            }
+
+            $priorityScore = ($detectionScore * 2) - $costScore - $riskPenalty
+            if ([string]$TypeDefinition.Family -match 'Identity|Token|Credential') {
+                $priorityScore += 3
+            }
+
+            if ($priorityScore -ge 18) {
+                return 'Critical'
+            }
+            elseif ($priorityScore -ge 14) {
+                return 'High'
+            }
+            elseif ($priorityScore -ge 10) {
+                return 'Medium'
+            }
+
+            return 'Low'
+        }
+
         $recyclableUsers = @()
         $recyclableComputers = @()
         $recyclableGroups = @()
@@ -541,6 +596,119 @@ function Find-F4keH0undOpportunity {
             else {
                 Write-Verbose "[$($MyInvocation.MyCommand)] - Skipping creation-based opportunities (-RecyclingOnly specified)."
             }
+
+            # ------------------------------------------------------------------
+            # Phase 3 - Windows Artifact Opportunity Ranking (Explicit Hosts)
+            # ------------------------------------------------------------------
+            if ($PSBoundParameters.ContainsKey('WindowsComputerName')) {
+                $targetWindowsHosts = @(
+                    $WindowsComputerName |
+                        ForEach-Object { [string]$_ } |
+                        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                        Sort-Object -Unique
+                )
+
+                if ($targetWindowsHosts.Count -eq 0) {
+                    Write-Warning "[$($MyInvocation.MyCommand)] - -WindowsComputerName was provided, but no valid hosts were supplied."
+                }
+                else {
+                    $registry = Get-PrivateF4keH0undElementTypeRegistry
+                    $windowsTypeDefinitions = @(
+                        $registry.Types |
+                            Where-Object { @($_.Platforms) -contains 'Windows' }
+                    )
+
+                    if ($windowsTypeDefinitions.Count -eq 0) {
+                        Write-Warning "[$($MyInvocation.MyCommand)] - No Windows element types are available in the element registry."
+                    }
+                    else {
+                        $rankedWindowsTypes = @(
+                            $windowsTypeDefinitions |
+                                ForEach-Object {
+                                    $typeDefinition = $_
+                                    $computedRank = & $GetWindowsElementOpportunityRank -TypeDefinition $typeDefinition
+                                    $familyPriority = if ([string]$typeDefinition.Family -match 'Identity|Token|Credential') { 0 } else { 1 }
+
+                                    [PSCustomObject]@{
+                                        TypeDefinition = $typeDefinition
+                                        Rank           = $computedRank
+                                        RankValue      = if ($rankOrder.ContainsKey($computedRank)) { $rankOrder[$computedRank] } else { 9 }
+                                        FamilyPriority = $familyPriority
+                                        DetectionScore = [int]$typeDefinition.DetectionScore
+                                        CostScore      = [int]$typeDefinition.CostScore
+                                    }
+                                } |
+                                Sort-Object -Property FamilyPriority, RankValue, @{ Expression = 'DetectionScore'; Descending = $true }, @{ Expression = 'CostScore'; Descending = $false }
+                        )
+
+                        foreach ($rankedType in ($rankedWindowsTypes | Select-Object -First $MaxWindowsElementOpportunities)) {
+                            $typeDefinition = $rankedType.TypeDefinition
+                            $typeId = [string]$typeDefinition.TypeId
+                            $family = [string]$typeDefinition.Family
+                            $detectionScore = [int]$typeDefinition.DetectionScore
+                            $costScore = [int]$typeDefinition.CostScore
+
+                            $templateData = switch ($typeId) {
+                                'IdentityBreadcrumbTokenDecoy' {
+                                    @{
+                                        PrivilegedSamAccountName = 'svc_legacy_sync'
+                                        EntraUserPrincipalName   = 'svc-legacy-sync@contoso.onmicrosoft.com'
+                                    }
+                                }
+                                'CloudApiCanaryTokenDecoy' {
+                                    @{
+                                        TenantId = '11111111-2222-3333-4444-555555555555'
+                                        ClientId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+                                    }
+                                }
+                                'CredentialFileTokenDecoy' {
+                                    @{
+                                        ServiceAccount = 'corp\svc_legacy_backup'
+                                    }
+                                }
+                                'ApiHookConfigDecoy' {
+                                    @{
+                                        ApiBaseUrl      = 'https://legacy-api.internal.corp'
+                                        IntegrationName = 'LegacyBillingSync'
+                                    }
+                                }
+                                'ServiceDefinitionDecoy' {
+                                    @{
+                                        ServiceAccount = 'corp\svc_legacy'
+                                    }
+                                }
+                                default {
+                                    @{}
+                                }
+                            }
+
+                            $opportunity = [PSCustomObject]@{
+                                ID               = $opportunityId++
+                                Rank             = [string]$rankedType.Rank
+                                DecoyType        = $typeId
+                                Strategy         = 'Artifact'
+                                RecyclableObject = $null
+                                Platform         = 'Windows'
+                                ElementFamily    = $family
+                                Justification    = "Windows element '$typeId' in family '$family' delivers low acquisition cost ($costScore) and high detection value ($detectionScore) across $($targetWindowsHosts.Count) explicit host(s)."
+                                Template         = @{
+                                    ElementType        = $typeId
+                                    ComputerName       = @($targetWindowsHosts)
+                                    Tag                = @('windows', 'artifact', $family, 'opportunity')
+                                    TemplateData       = $templateData
+                                    DeploymentChannel  = 'WinRM/PSRP'
+                                    TargetingStrategy  = 'ExplicitHostList'
+                                    RecommendedCommand = 'New-F4keH0undElement'
+                                }
+                            }
+
+                            $allOpportunities.Add($opportunity)
+                        }
+
+                        Write-Verbose "[$($MyInvocation.MyCommand)] - Added $(($rankedWindowsTypes | Select-Object -First $MaxWindowsElementOpportunities).Count) ranked Windows artifact opportunities for $($targetWindowsHosts.Count) explicit host(s)."
+                    }
+                }
+            }
         }
         elseif ($PSCmdlet.ParameterSetName -eq 'Azure') {
             $data = Get-F4keH0undData -Path $AzureHoundPath -DataType 'Azure' -ErrorAction SilentlyContinue
@@ -712,16 +880,34 @@ function Find-F4keH0undOpportunity {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable groups found   : $($recyclableGroups.Count)"
         Write-Verbose "[$($MyInvocation.MyCommand)] - Recyclable Entra objects  : $($recyclableEntraObjects.Count)"
         $recycleCount = ($allOpportunities | Where-Object { $_.Strategy -eq 'Recycle' }).Count
+        $artifactCount = ($allOpportunities | Where-Object { $_.Strategy -eq 'Artifact' }).Count
         $createCount  = ($allOpportunities | Where-Object { $_.Strategy -eq 'Create' }).Count
         Write-Verbose "[$($MyInvocation.MyCommand)] - Total recycling opportunities: $recycleCount"
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Total artifact opportunities : $artifactCount"
         Write-Verbose "[$($MyInvocation.MyCommand)] - Total creation opportunities : $createCount"
         Write-Verbose "[$($MyInvocation.MyCommand)] - ======================================="
         Write-Verbose "[$($MyInvocation.MyCommand)] - Analysis complete. Found $($allOpportunities.Count) opportunities."
 
         $allOpportunities | Sort-Object @{
-            Expression = { if ($_.Strategy -eq 'Recycle') { 0 } else { 1 } }
+            Expression = {
+                $strategy = [string]$_.Strategy
+                if ($strategySortOrder.ContainsKey($strategy)) {
+                    $strategySortOrder[$strategy]
+                }
+                else {
+                    9
+                }
+            }
         }, @{
-            Expression = { $rankOrder[$_.Rank] }
+            Expression = {
+                $rank = [string]$_.Rank
+                if ($rankOrder.ContainsKey($rank)) {
+                    $rankOrder[$rank]
+                }
+                else {
+                    9
+                }
+            }
         }, @{
             Expression = {
                 if ($_.RecyclableObject -and

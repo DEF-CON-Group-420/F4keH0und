@@ -28,6 +28,27 @@ function Get-F4keH0undRank {
         "PrivilegedEntraSP" {
             return "Critical"
         }
+        "IdentityBreadcrumbTokenDecoy" {
+            return "Critical"
+        }
+        "CloudApiCanaryTokenDecoy" {
+            return "Critical"
+        }
+        "CredentialFileTokenDecoy" {
+            return "High"
+        }
+        "ApiHookConfigDecoy" {
+            return "High"
+        }
+        "ServiceDefinitionDecoy" {
+            return "Medium"
+        }
+        "RpcEndpointDecoy" {
+            return "Medium"
+        }
+        "ProcessThreadArtifactDecoy" {
+            return "Low"
+        }
         default {
             return "Low"
         }

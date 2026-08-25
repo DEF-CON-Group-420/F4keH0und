@@ -12,20 +12,21 @@ Current exported commands:
 2. `New-F4keH0undDecoy`
 3. `Get-F4keH0undElementType`
 4. `New-F4keH0undElement`
-5. `Update-F4keH0undElement`
-6. `Disable-F4keH0undElement`
-7. `Enable-F4keH0undElement`
-8. `Remove-F4keH0undElement`
-9. `Sync-F4keH0undEntraParity`
-10. `Update-F4keH0undDecoy`
-11. `Disable-F4keH0undDecoy`
-12. `Enable-F4keH0undDecoy`
-13. `Get-F4keH0undInventory`
-14. `Add-F4keH0undRelationship`
-15. `Remove-F4keH0undDecoy`
-16. `Get-F4keH0undConfig`
-17. `Test-F4keH0undCoverage`
-18. `Test-F4keH0undConfig`
+5. `New-F4keH0undToken`
+6. `Update-F4keH0undElement`
+7. `Disable-F4keH0undElement`
+8. `Enable-F4keH0undElement`
+9. `Remove-F4keH0undElement`
+10. `Sync-F4keH0undEntraParity`
+11. `Update-F4keH0undDecoy`
+12. `Disable-F4keH0undDecoy`
+13. `Enable-F4keH0undDecoy`
+14. `Get-F4keH0undInventory`
+15. `Add-F4keH0undRelationship`
+16. `Remove-F4keH0undDecoy`
+17. `Get-F4keH0undConfig`
+18. `Test-F4keH0undCoverage`
+19. `Test-F4keH0undConfig`
 
 ---
 
@@ -35,6 +36,7 @@ Current exported commands:
 - The following commands support `-WhatIf`/`-Confirm` (safe simulation via `ShouldProcess`):
   - `New-F4keH0undDecoy`
   - `New-F4keH0undElement`
+  - `New-F4keH0undToken`
   - `Update-F4keH0undElement`
   - `Disable-F4keH0undElement`
   - `Enable-F4keH0undElement`
@@ -72,6 +74,8 @@ Analyzes BloodHound/AzureHound data and returns ranked deception opportunities.
 | `ExcludeOUs` | `String[]` | No | from config | Excludes OUs from AD recycling candidate search. |
 | `Server` | `String` | No | — | Domain Controller for AD lookups. |
 | `Credential` | `PSCredential` | No | — | Credentials for AD lookups. |
+| `WindowsComputerName` | `String[]` | No | — | AD mode: explicit Windows host list for artifact opportunity ranking. |
+| `MaxWindowsElementOpportunities` | `Int32` | No | `8` | AD mode: cap on returned Windows artifact opportunities. |
 | `EntraIncludeServicePrincipals` | `Switch` | No | auto-all | Include disabled service principals in Entra scan. |
 | `EntraIncludeGuestUsers` | `Switch` | No | auto-all | Include inactive guest users in Entra scan. |
 | `EntraIncludeAppRegistrations` | `Switch` | No | auto-all | Include unused app registrations in Entra scan. |
@@ -84,10 +88,13 @@ Analyzes BloodHound/AzureHound data and returns ranked deception opportunities.
 
 Returns a collection of opportunity objects with fields such as `ID`, `Rank`, `DecoyType`, `Strategy`, `Justification`, and `Template`.
 
+When `-WindowsComputerName` is supplied, additional Windows artifact opportunities are included with `Strategy = Artifact` and template hints for `New-F4keH0undElement`.
+
 ### Example
 
 ```powershell
 Find-F4keH0undOpportunity -BloodHoundPath ./BH_Data -PreferRecycling -Verbose
+Find-F4keH0undOpportunity -BloodHoundPath ./BH_Data -WindowsComputerName WIN-APP-01,WIN-APP-02 -MaxWindowsElementOpportunities 6
 ```
 
 ---
@@ -143,7 +150,7 @@ Lists supported Windows-only artifact element families/types from the element re
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
-| `Family` | `String` | No | — | Optional family filter (`ServiceLure`, `RpcBait`, `ApiHookBait`, `RuntimeArtifact`). |
+| `Family` | `String` | No | — | Optional family filter (`ServiceLure`, `RpcBait`, `ApiHookBait`, `RuntimeArtifact`, `IdentityTokenBait`, `CloudTokenBait`, `CredentialBait`). |
 | `Platform` | `String` | No | `Windows` | Platform filter (Phase 3 supports `Windows` only). |
 | `Detailed` | `Switch` | No | `false` | Returns full registry metadata fields. |
 
@@ -164,7 +171,7 @@ Deploys Windows artifact deception elements to target hosts over WinRM/PSRP.
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
-| `ElementType` | `String` | Yes | — | Element type (`ServiceDefinitionDecoy`, `RpcEndpointDecoy`, `ApiHookConfigDecoy`, `ProcessThreadArtifactDecoy`). |
+| `ElementType` | `String` | Yes | — | Element type (`ServiceDefinitionDecoy`, `RpcEndpointDecoy`, `ApiHookConfigDecoy`, `ProcessThreadArtifactDecoy`, `IdentityBreadcrumbTokenDecoy`, `CloudApiCanaryTokenDecoy`, `CredentialFileTokenDecoy`). |
 | `ComputerName` | `String[]` | Yes | — | Windows hosts to deploy to. |
 | `Name` | `String` | No | generated | Logical element name used for artifact rendering. |
 | `TemplateData` | `IDictionary` | No | `{}` | Template fields for artifact content rendering. |
@@ -188,6 +195,43 @@ Deploys Windows artifact deception elements to target hosts over WinRM/PSRP.
 
 ```powershell
 New-F4keH0undElement -ElementType ApiHookConfigDecoy -ComputerName WIN-APP-01 -WhatIf
+```
+
+---
+
+## `New-F4keH0undToken`
+
+Deploys identity/token-prioritized Windows bait artifacts using low-cost profiles.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `TokenType` | `String` | No | `IdentityBreadcrumb` | Token profile: `IdentityBreadcrumb`, `CloudApiCanary`, `CredentialFile`. |
+| `ComputerName` | `String[]` | Yes | — | Windows target hosts. |
+| `Name` | `String` | No | generated | Logical package name for rendered artifacts. |
+| `TemplateData` | `IDictionary` | No | `{}` | Optional token payload template fields. |
+| `Tag` | `String[]` | No | defaults + custom | Additional metadata tags merged with token defaults. |
+| `Credential` | `PSCredential` | No | — | WinRM credential. |
+| `Port` | `Int32` | No | from config | WinRM port override. |
+| `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
+| `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `PassThru` | `Switch` | No | `false` | Returns deployed element records. |
+
+### Behavior Notes
+
+- Maps token profiles to Windows element types:
+  - `IdentityBreadcrumb` → `IdentityBreadcrumbTokenDecoy`
+  - `CloudApiCanary` → `CloudApiCanaryTokenDecoy`
+  - `CredentialFile` → `CredentialFileTokenDecoy`
+- Auto-generates a canary token value when none is supplied.
+- Uses `New-F4keH0undElement` under the hood and preserves lifecycle coverage.
+
+### Example
+
+```powershell
+New-F4keH0undToken -TokenType IdentityBreadcrumb -ComputerName WIN-APP-01 -WhatIf
+New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
 ```
 
 ---

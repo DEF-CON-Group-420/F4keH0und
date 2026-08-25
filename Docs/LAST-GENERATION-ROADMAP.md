@@ -134,7 +134,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ WinRM/PSRP execution path with artifact-only remote deployment model
 - ✅ Inventory integration for Windows platform entries and post-load filters (`Platform`, `ElementType`, `ElementFamily`, `ComputerName`, `Status`)
 - ✅ Config model expansion (`WindowsDeploymentSettings`, `TelemetrySettings`, `ElementRegistrySettings`)
-- ⏳ Remaining: opportunity-ranking integration for Windows element-family recommendations
+- ✅ Opportunity-ranking integration for Windows element-family recommendations via `Find-F4keH0undOpportunity -WindowsComputerName`
 
 ## Phase 4 — Token & Identity Priority (Weeks 8–9)
 
@@ -148,6 +148,13 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - `New-F4keH0undToken`
 - Token trigger correlation in inventory status
 - High-confidence alert scoring for identity/token interactions
+
+**Current implementation status:**
+- ✅ Token-priority command surface (`New-F4keH0undToken`)
+- ✅ New token-focused Windows element families (`IdentityTokenBait`, `CloudTokenBait`, `CredentialBait`)
+- ✅ Token/identity artifact templates added to Windows deployment plane
+- ✅ Ranking priority boost for identity/token/credential families in Windows artifact opportunities
+- ⏳ Remaining: token-trigger correlation fields and alert-scoring model in persistent inventory
 
 ## Phase 5 — Hardening & Operations (Week 10)
 
@@ -177,8 +184,8 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Complete Phase 3 ranking integration so opportunities include Windows element-family recommendations.
-2. Start Phase 4 token/identity pack with low-cost text/config canary artifacts first.
-3. Add token-trigger correlation fields to inventory status model.
-4. Extend Entra lure templates (consent/role-assignment/conditional-access themed variants).
-5. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
+1. Add token-trigger correlation fields to inventory status model.
+2. Implement high-confidence alert scoring for token/identity interactions.
+3. Extend Entra lure templates (consent/role-assignment/conditional-access themed variants).
+4. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
+5. Add lightweight drift checks for stale artifact/token templates.

@@ -23,6 +23,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 15. [Parity Coverage and Sync](#15-parity-coverage-and-sync)
 16. [Windows Artifact Lifecycle (WinRM/PSRP)](#16-windows-artifact-lifecycle-winrmpsrp)
 17. [Windows Inventory Filtering](#17-windows-inventory-filtering)
+18. [Token-Priority Workflow (Phase 4)](#18-token-priority-workflow-phase-4)
 
 ---
 
@@ -670,6 +671,55 @@ Get-F4keH0undInventory `
     -Platform Windows `
     -ElementType ServiceDefinitionDecoy `
     -SkipLiveStatus
+```
+
+---
+
+## 18. Token-Priority Workflow (Phase 4)
+
+Use ranked Windows opportunities for explicit hosts, then deploy identity/token bait with the dedicated token command.
+
+```powershell
+$bhPath = "C:\BH_Data"
+$targets = @("WIN-APP-01", "WIN-APP-02")
+
+# 1) Include Windows artifact opportunities in analysis
+$opportunities = Find-F4keH0undOpportunity `
+    -BloodHoundPath $bhPath `
+    -WindowsComputerName $targets `
+    -MaxWindowsElementOpportunities 6
+
+$opportunities |
+    Where-Object Strategy -eq "Artifact" |
+    Select-Object ID, Rank, DecoyType, ElementFamily, Justification |
+    Format-Table -AutoSize
+
+# 2) Deploy identity breadcrumb token bait
+New-F4keH0undToken `
+    -TokenType IdentityBreadcrumb `
+    -ComputerName $targets `
+    -TemplateData @{ PrivilegedSamAccountName = "svc_legacy_sync"; EntraUserPrincipalName = "svc-legacy-sync@contoso.onmicrosoft.com" } `
+    -Tag "identity","priority" `
+    -WhatIf
+
+# 3) Deploy cloud API canary token bait
+$tokenDeploy = New-F4keH0undToken `
+    -TokenType CloudApiCanary `
+    -ComputerName $targets `
+    -Tag "cloud","token" `
+    -Credential (Get-Credential) `
+    -PassThru
+
+$tokenDeploy | Format-Table ElementId, ElementType, ComputerName, Status, BasePath -AutoSize
+
+# 4) Validate token families in inventory interface
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily IdentityTokenBait,CloudTokenBait,CredentialBait `
+    -SkipLiveStatus |
+    Sort-Object LastUpdated -Descending |
+    Format-Table Identity, DecoyType, Status, @{Name='Computer';Expression={ $_.Metadata.ComputerName }}, LastUpdated -AutoSize
 ```
 
 ---

@@ -49,6 +49,7 @@ F4keH0und/
 │   ├── New-F4keH0undDecoy.ps1              # Deployment orchestrator — calls Set-Private* helpers
 │   ├── Get-F4keH0undElementType.ps1        # Lists Windows artifact element families/types from registry
 │   ├── New-F4keH0undElement.ps1            # Windows artifact deployment command (WinRM/PSRP)
+│   ├── New-F4keH0undToken.ps1              # Token-priority wrapper for identity/cloud credential bait profiles
 │   ├── Update-F4keH0undElement.ps1         # Windows artifact lifecycle update command
 │   ├── Disable-F4keH0undElement.ps1        # Windows artifact lifecycle disable command
 │   ├── Enable-F4keH0undElement.ps1         # Windows artifact lifecycle enable command
@@ -526,12 +527,16 @@ Phase 3 introduces a dedicated Windows-only artifact execution plane while prese
   - `RpcBait` (`RpcEndpointDecoy`)
   - `ApiHookBait` (`ApiHookConfigDecoy`)
   - `RuntimeArtifact` (`ProcessThreadArtifactDecoy`)
+  - `IdentityTokenBait` (`IdentityBreadcrumbTokenDecoy`)
+  - `CloudTokenBait` (`CloudApiCanaryTokenDecoy`)
+  - `CredentialBait` (`CredentialFileTokenDecoy`)
 
 ### 8.3 Lifecycle Command Surface
 
 Windows artifact lifecycle is fully represented with dedicated commands:
 
 - `New-F4keH0undElement`
+- `New-F4keH0undToken`
 - `Update-F4keH0undElement`
 - `Disable-F4keH0undElement`
 - `Enable-F4keH0undElement`
@@ -565,6 +570,16 @@ These are present in both `config.json` and `config.example.json`, validated by 
 - `-Status`
 
 This forms the first implementation of the requested unified interface for where deceptive elements are deployed and what lifecycle state they are in.
+
+### 8.6 Opportunity-Ranking Integration
+
+`Find-F4keH0undOpportunity` in AD mode now accepts explicit Windows targets (`-WindowsComputerName`) and appends ranked Windows artifact opportunities (`Strategy = Artifact`) to the returned queue.
+
+- Ranking combines `DetectionScore`, `CostScore`, and `RiskLevel` from the element registry.
+- Identity/token/credential families receive additional prioritization weight.
+- Returned opportunities include deployment hints (`RecommendedCommand = New-F4keH0undElement`) and explicit host targeting metadata.
+
+This closes the Phase 3 ranking-integration gap and creates a direct bridge into Phase 4 token-priority operations.
 
 ---
 

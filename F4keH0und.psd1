@@ -7,7 +7,7 @@
 RootModule = 'F4keH0und.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.8.0'
+ModuleVersion = '2.9.0'
 
 # ID used to uniquely identify this module
 GUID = 'd2b0e6f3-8d3c-4e8f-8c6a-1e9f4c3a2b1d'
@@ -22,7 +22,7 @@ CompanyName = 'DCG420'
 Copyright = '(c) 2025 m3c4n1sm0. All rights reserved.'
 
 # Description of the functionality provided by this module.
-Description = 'F4keH0und - Last Generation: A PowerShell framework to analyze BloodHound data, recommend deception opportunities, and manage deceptive elements in AD and Entra ID.'
+Description = 'F4keH0und - Last Generation: A PowerShell framework to analyze BloodHound data, recommend deception opportunities, and manage deceptive elements across AD, Entra ID, and Windows artifact planes.'
 
 # Functions to export from this module, for best performance, do not use wildcards.
 FunctionsToExport = @(
@@ -30,6 +30,7 @@ FunctionsToExport = @(
     'New-F4keH0undDecoy',
     'Get-F4keH0undElementType',
     'New-F4keH0undElement',
+    'New-F4keH0undToken',
     'Update-F4keH0undElement',
     'Disable-F4keH0undElement',
     'Enable-F4keH0undElement',

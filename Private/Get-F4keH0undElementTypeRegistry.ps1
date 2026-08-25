@@ -70,6 +70,39 @@ function Get-PrivateF4keH0undDefaultElementTypeRegistry {
             TelemetryProfile = 'Windows-Artifact-Baseline'
             Description     = 'Deploys fake process/thread troubleshooting artifacts and notes.'
         }
+        [PSCustomObject]@{
+            TypeId          = 'IdentityBreadcrumbTokenDecoy'
+            Family          = 'IdentityTokenBait'
+            Platforms       = @('Windows')
+            Capabilities    = @('Deploy', 'Update', 'Disable', 'Enable', 'Remove')
+            RiskLevel       = 'Low'
+            CostScore       = 1
+            DetectionScore  = 10
+            TelemetryProfile = 'Windows-Identity-Token'
+            Description     = 'Deploys fake identity breadcrumbs and privileged account references with embedded canary token strings.'
+        }
+        [PSCustomObject]@{
+            TypeId          = 'CloudApiCanaryTokenDecoy'
+            Family          = 'CloudTokenBait'
+            Platforms       = @('Windows')
+            Capabilities    = @('Deploy', 'Update', 'Disable', 'Enable', 'Remove')
+            RiskLevel       = 'Low'
+            CostScore       = 1
+            DetectionScore  = 10
+            TelemetryProfile = 'Windows-Identity-Token'
+            Description     = 'Deploys fake OAuth/API token material and cloud endpoint references for high-confidence misuse detection.'
+        }
+        [PSCustomObject]@{
+            TypeId          = 'CredentialFileTokenDecoy'
+            Family          = 'CredentialBait'
+            Platforms       = @('Windows')
+            Capabilities    = @('Deploy', 'Update', 'Disable', 'Enable', 'Remove')
+            RiskLevel       = 'Low'
+            CostScore       = 1
+            DetectionScore  = 9
+            TelemetryProfile = 'Windows-Identity-Token'
+            Description     = 'Deploys fake credential note files and runbook snippets with canary usernames/password tokens.'
+        }
     )
 
     return [PSCustomObject]@{
