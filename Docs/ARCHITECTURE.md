@@ -460,6 +460,6 @@ To add a new hard exclusion rule:
 
 ## See Also
 
-- [README.md](README.md) — Overview, quick start, and feature reference
+- [README.md](../README.md) — Overview, quick start, and feature reference
 - [EXAMPLES.md](EXAMPLES.md) — Complete deployment scenarios
 - [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute

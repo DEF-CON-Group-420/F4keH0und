@@ -513,6 +513,6 @@ Get-F4keH0undInventory -AllReports -SkipLiveStatus |
 
 ## See Also
 
-- [README.md](README.md) — Overview, quick start, and feature reference
+- [README.md](../README.md) — Overview, quick start, and feature reference
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Module internals and extension points
 - [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute

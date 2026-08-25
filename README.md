@@ -91,7 +91,7 @@ The recycled object keeps its original RID (`1104`) and `whenCreated` timestamp,
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-For a detailed module structure, data-flow diagrams, and design decisions see [ARCHITECTURE.md](ARCHITECTURE.md).
+For a detailed module structure, data-flow diagrams, and design decisions see [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md).
 
 ---
 
@@ -117,7 +117,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [A
 - **Lifecycle completeness**: Extend command surface for create, inspect, update, redesign, disable, and remove workflows.
 - **Identity and token priority**: Lead with low-cost/high-detection elements like identity decoys, fake credentials, and token bait.
 
-For execution details and phased delivery, see [LAST-GENERATION-ROADMAP.md](LAST-GENERATION-ROADMAP.md).
+For execution details and phased delivery, see [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md).
 
 ---
 
@@ -452,13 +452,13 @@ The module is designed to be extended with new decoy types. Follow this 4-step p
 3. **Add Ranking Logic**: Edit `Private\Get-F4keH0undRank.ps1` — add a new `case` to the `switch` statement for your `DecoyType`.
 4. **Add Deployment Logic**: Edit `Public\New-F4keH0undDecoy.ps1` — add a new `case` to its `switch` statement, creating a private helper function (e.g., `Private\Set-PrivateADDecoyMyType.ps1`) to handle the AD write.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for a full walkthrough of all extension points.
+See [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) for a full walkthrough of all extension points.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on forking the repository, setting up your environment, and submitting pull requests.
+Contributions are welcome! See [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) for instructions on forking the repository, setting up your environment, and submitting pull requests.
 
 ---
 
@@ -550,13 +550,16 @@ that location and re-run `Import-Module F4keH0und -Force`.
 
 ## 📚 Documentation
 
+All project docs (except this root `README.md`) live in `Docs/`, and every code/behavior change must include corresponding documentation updates.
+
 | Document | Description |
 |----------|-------------|
 | [README.md](README.md) | This file — overview, quick start, feature reference |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
-| [EXAMPLES.md](EXAMPLES.md) | 10+ complete deployment scenarios with annotated commands |
-| [LAST-GENERATION-ROADMAP.md](LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |
+| [Docs/README.md](Docs/README.md) | Documentation index and documentation maintenance policy |
+| [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
+| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 10+ complete deployment scenarios with annotated commands |
+| [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
+| [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |
 
 ---
 
