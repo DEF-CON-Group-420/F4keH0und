@@ -564,6 +564,12 @@ function New-F4keH0undDecoy {
                         ErrorAction      = 'Stop'
                     }
                     if ($opportunity.Template.AssignHighPrivilegeRole) { $entraParams['AssignHighPrivilegeRole'] = $true }
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                        $templateValue = $opportunity.Template.$templateKey
+                        if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
+                            $entraParams[$templateKey] = [string]$templateValue
+                        }
+                    }
                     if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $entraParams['AuditLogPath'] = $AuditLogPath }
 
                     $createdObject = Set-PrivateEntraDecoyPrincipal @entraParams
@@ -589,6 +595,12 @@ function New-F4keH0undDecoy {
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
                     }
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                        $templateValue = $opportunity.Template.$templateKey
+                        if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
+                            $entraParams[$templateKey] = [string]$templateValue
+                        }
+                    }
                     if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $entraParams['AuditLogPath'] = $AuditLogPath }
 
                     $createdObject = Set-PrivateEntraDecoyPrincipal @entraParams
@@ -613,6 +625,12 @@ function New-F4keH0undDecoy {
                         RecyclableObject = $opportunity.RecyclableObject
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
+                    }
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                        $templateValue = $opportunity.Template.$templateKey
+                        if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
+                            $entraParams[$templateKey] = [string]$templateValue
+                        }
                     }
                     if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $entraParams['AuditLogPath'] = $AuditLogPath }
 
@@ -727,6 +745,12 @@ function New-F4keH0undDecoy {
                     $inventoryMetadata = @{
                         OpportunityId = $opportunity.ID
                         Justification = $opportunity.Justification
+                    }
+                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint')) {
+                        $metadataValue = $opportunity.Template.$metadataKey
+                        if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
+                            $inventoryMetadata[$metadataKey] = [string]$metadataValue
+                        }
                     }
 
                     Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $inventoryIdentity -DecoyType $opportunity.DecoyType -Platform $inventoryPlatform -ObjectType $inventoryObjectType -Strategy $opportunity.Strategy -Status $inventoryStatus -Location $inventoryLocation -Metadata $inventoryMetadata -SourceCommand $MyInvocation.MyCommand.Name

@@ -585,6 +585,15 @@ $plan = Sync-F4keH0undEntraParity `
 
 $plan.SelectedOpportunities | Format-Table OpportunityId, DecoyType, Rank, Family, IdentityHint -AutoSize
 
+# Inspect Entra lure metadata before execution
+$plan.SelectedOpportunities |
+    Where-Object { $_.DecoyType -like 'Entra*' } |
+    Select-Object OpportunityId, DecoyType, Rank,
+        @{Name='LureTheme';Expression={ $_.LureTheme }},
+        @{Name='Consent';Expression={ $_.ConsentScopeBait }},
+        @{Name='CABypass';Expression={ $_.ConditionalAccessBypassHint }} |
+    Format-Table -AutoSize
+
 # Step 3: Safe execution preview
 Sync-F4keH0undEntraParity `
     -AzureHoundPath "C:\AzureHound_Data\" `

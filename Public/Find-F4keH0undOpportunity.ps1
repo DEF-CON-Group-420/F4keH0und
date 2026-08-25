@@ -221,6 +221,85 @@ function Find-F4keH0undOpportunity {
         $recyclableComputers = @()
         $recyclableGroups = @()
         $recyclableEntraObjects = @()
+
+        $entraServicePrincipalLureTemplates = @(
+            [PSCustomObject]@{
+                LureTheme                    = 'RoleAssignmentLure'
+                Rank                         = 'Critical'
+                Description                  = 'Legacy Privileged Automation Connector - Quarterly Access Review Pending'
+                AssignHighPrivilegeRole      = $true
+                RoleAssignmentHint           = 'Application Administrator assignment retained for legacy workflow support'
+                ConsentScopeBait             = 'AppRoleAssignment.ReadWrite.All Directory.Read.All'
+                ConditionalAccessBypassHint  = 'Service principal exempted from MFA for unattended scheduler host'
+                SecretHint                   = 'Client secret rotation exception documented in 2023 migration runbook'
+            }
+            [PSCustomObject]@{
+                LureTheme                    = 'OAuthConsentTrap'
+                Rank                         = 'High'
+                Description                  = 'Enterprise Workflow Connector - Consent Migration Hold'
+                AssignHighPrivilegeRole      = $false
+                RoleAssignmentHint           = 'Historical Global Reader assignment pending cleanup approval'
+                ConsentScopeBait             = 'offline_access Mail.ReadWrite Files.ReadWrite.All'
+                ConditionalAccessBypassHint  = 'Trusted-location bypass for legacy callback URL still present'
+                SecretHint                   = 'Certificate rollover handoff notes reference reusable bearer secret'
+            }
+            [PSCustomObject]@{
+                LureTheme                    = 'ConditionalAccessBypassBait'
+                Rank                         = 'High'
+                Description                  = 'Breakglass Integration Service - Conditional Access Exception Candidate'
+                AssignHighPrivilegeRole      = $false
+                RoleAssignmentHint           = 'Emergency directory-reader role eligibility still enabled'
+                ConsentScopeBait             = 'Directory.Read.All AuditLog.Read.All'
+                ConditionalAccessBypassHint  = 'Legacy workload tagged for policy bypass in report-only migration stage'
+                SecretHint                   = 'Automation certificate thumbprint archived in plaintext runbook export'
+            }
+        )
+
+        $entraGuestUserLureTemplates = @(
+            [PSCustomObject]@{
+                LureTheme                    = 'ConditionalAccessBypassGuest'
+                Rank                         = 'High'
+                Description                  = 'External Identity Program Advisor - Elevated Project Access'
+                PersonaJobTitle              = 'Identity Migration Advisor'
+                PersonaDepartment            = 'Partner Access Governance'
+                RoleAssignmentHint           = 'Guest reviewer temporarily included in privileged access review channel'
+                ConsentScopeBait             = 'Delegated admin consent review mailbox access'
+                ConditionalAccessBypassHint  = 'Guest MFA bypass approved during weekend cutover window'
+                SecretHint                   = 'Invitation redemption reminder references emergency bypass process'
+            }
+            [PSCustomObject]@{
+                LureTheme                    = 'OAuthConsentReviewerGuest'
+                Rank                         = 'Medium'
+                Description                  = 'Vendor Security Auditor - Consent Validation Workstream'
+                PersonaJobTitle              = 'Partner Security Auditor'
+                PersonaDepartment            = 'Third-Party Governance'
+                RoleAssignmentHint           = 'Reviewer listed in role-assignment exception workbook'
+                ConsentScopeBait             = 'Consent review for Files.ReadWrite.All and Group.ReadWrite.All'
+                ConditionalAccessBypassHint  = 'Legacy partner trust policy allows unmanaged device access'
+                SecretHint                   = 'Guest onboarding checklist references reusable OTP recovery code'
+            }
+        )
+
+        $entraAppRegistrationLureTemplates = @(
+            [PSCustomObject]@{
+                LureTheme                    = 'OAuthConsentTrap'
+                Rank                         = 'High'
+                Description                  = 'Legacy HR Workflow App - Pending Consent Revalidation'
+                RoleAssignmentHint           = 'Directory Readers app role assignment flagged for deferred cleanup'
+                ConsentScopeBait             = 'offline_access User.Read Mail.ReadWrite Files.ReadWrite.All'
+                ConditionalAccessBypassHint  = 'Redirect URI host still whitelisted in trusted-location policy'
+                SecretHint                   = 'Runbook note references long-lived client secret for backfill jobs'
+            }
+            [PSCustomObject]@{
+                LureTheme                    = 'ConditionalAccessPolicyExceptionApp'
+                Rank                         = 'High'
+                Description                  = 'Conditional Access Pilot Tooling - Exception Candidate'
+                RoleAssignmentHint           = 'Privileged role assignment audit entry marked as temporary'
+                ConsentScopeBait             = 'Policy.ReadWrite.ConditionalAccess Directory.Read.All'
+                ConditionalAccessBypassHint  = 'Policy exclusion retained during phased workload migration'
+                SecretHint                   = 'Certificate thumbprint reuse noted in migration worksheet'
+            }
+        )
     }
     process {
         if ($PSCmdlet.ParameterSetName -eq 'AD') {
@@ -763,18 +842,29 @@ function Find-F4keH0undOpportunity {
             # ------------------------------------------------------------------
             Write-Verbose "[$($MyInvocation.MyCommand)] - Phase 2 (Entra): Generating Entra recycling opportunities..."
 
+            $servicePrincipalThemeCursor = 0
+            $guestThemeCursor = 0
+            $appThemeCursor = 0
+
             foreach ($entraObj in ($recyclableEntraObjects | Where-Object { $_.ObjectType -eq 'ServicePrincipal' } | Select-Object -First 5)) {
                 $lastSignInStr = if ($entraObj.LastSignInDateTime) { $entraObj.LastSignInDateTime.ToString('yyyy-MM-dd') } else { 'Never' }
+                $themeTemplate = $entraServicePrincipalLureTemplates[$servicePrincipalThemeCursor % $entraServicePrincipalLureTemplates.Count]
+                $servicePrincipalThemeCursor++
                 $opportunity = [PSCustomObject]@{
                     ID               = $opportunityId++
-                    Rank             = 'High'
+                    Rank             = [string]$themeTemplate.Rank
                     DecoyType        = 'EntraServicePrincipalDecoy'
                     Strategy         = 'Recycle'
                     RecyclableObject = $entraObj
-                    Justification    = "Recycles legitimately old disabled service principal '$($entraObj.DisplayName)' (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), last credential: $lastSignInStr, staleness: $($entraObj.StalenessScore)%) to simulate a forgotten cloud workload and detect OAuth credential-stuffing attempts."
+                    Justification    = "Recycles legitimately old disabled service principal '$($entraObj.DisplayName)' (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), last credential: $lastSignInStr, staleness: $($entraObj.StalenessScore)%) using '$($themeTemplate.LureTheme)' theme to attract role-assignment, conditional-access bypass, and OAuth consent reconnaissance."
                     Template         = @{
-                        Description           = "Legacy BI Analytics Connector - Enterprise Reporting"
-                        AssignHighPrivilegeRole = $false
+                        Description                 = [string]$themeTemplate.Description
+                        AssignHighPrivilegeRole     = [bool]$themeTemplate.AssignHighPrivilegeRole
+                        LureTheme                   = [string]$themeTemplate.LureTheme
+                        RoleAssignmentHint          = [string]$themeTemplate.RoleAssignmentHint
+                        ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
+                        ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
+                        SecretHint                  = [string]$themeTemplate.SecretHint
                     }
                 }
                 $allOpportunities.Add($opportunity)
@@ -783,6 +873,8 @@ function Find-F4keH0undOpportunity {
             foreach ($entraObj in ($recyclableEntraObjects | Where-Object { $_.ObjectType -eq 'GuestUser' } | Select-Object -First 3)) {
                 $opportunityShell = [PSCustomObject]@{ DecoyType = "EntraGuestUserDecoy" }
                 $lastSignInStr = if ($entraObj.LastSignInDateTime) { $entraObj.LastSignInDateTime.ToString('yyyy-MM-dd') } else { 'Never' }
+                $themeTemplate = $entraGuestUserLureTemplates[$guestThemeCursor % $entraGuestUserLureTemplates.Count]
+                $guestThemeCursor++
 
                 # Hybrid identity mapping: note if this cloud object has an on-prem twin
                 $hybridNote = ''
@@ -792,28 +884,42 @@ function Find-F4keH0undOpportunity {
 
                 $opportunity = [PSCustomObject]@{
                     ID               = $opportunityId++
-                    Rank             = 'Medium'
+                    Rank             = [string]$themeTemplate.Rank
                     DecoyType        = 'EntraGuestUserDecoy'
                     Strategy         = 'Recycle'
                     RecyclableObject = $entraObj
-                    Justification    = "Recycles inactive guest user '$($entraObj.DisplayName)'$hybridNote (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), last sign-in: $lastSignInStr, staleness: $($entraObj.StalenessScore)%) to detect lateral movement from external identities."
+                    Justification    = "Recycles inactive guest user '$($entraObj.DisplayName)'$hybridNote (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), last sign-in: $lastSignInStr, staleness: $($entraObj.StalenessScore)%) using '$($themeTemplate.LureTheme)' theme to attract external-lateral movement and consent-review abuse."
                     Template         = @{
-                        Description = "Partner Integration Account - Vendor Access"
+                        Description                 = [string]$themeTemplate.Description
+                        LureTheme                   = [string]$themeTemplate.LureTheme
+                        PersonaJobTitle             = [string]$themeTemplate.PersonaJobTitle
+                        PersonaDepartment           = [string]$themeTemplate.PersonaDepartment
+                        RoleAssignmentHint          = [string]$themeTemplate.RoleAssignmentHint
+                        ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
+                        ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
+                        SecretHint                  = [string]$themeTemplate.SecretHint
                     }
                 }
                 $allOpportunities.Add($opportunity)
             }
 
             foreach ($entraObj in ($recyclableEntraObjects | Where-Object { $_.ObjectType -eq 'AppRegistration' } | Select-Object -First 3)) {
+                $themeTemplate = $entraAppRegistrationLureTemplates[$appThemeCursor % $entraAppRegistrationLureTemplates.Count]
+                $appThemeCursor++
                 $opportunity = [PSCustomObject]@{
                     ID               = $opportunityId++
-                    Rank             = 'Medium'
+                    Rank             = [string]$themeTemplate.Rank
                     DecoyType        = 'EntraAppRegistrationDecoy'
                     Strategy         = 'Recycle'
                     RecyclableObject = $entraObj
-                    Justification    = "Recycles unused app registration '$($entraObj.DisplayName)' (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), staleness: $($entraObj.StalenessScore)%) to detect OAuth consent-grant hunting and app enumeration."
+                    Justification    = "Recycles unused app registration '$($entraObj.DisplayName)' (created $($entraObj.CreatedDateTime.ToString('yyyy-MM-dd')), staleness: $($entraObj.StalenessScore)%) using '$($themeTemplate.LureTheme)' theme to detect OAuth consent-grant hunting and conditional-access policy reconnaissance."
                     Template         = @{
-                        Description = "Legacy Enterprise SSO - Internal HR Portal"
+                        Description                 = [string]$themeTemplate.Description
+                        LureTheme                   = [string]$themeTemplate.LureTheme
+                        RoleAssignmentHint          = [string]$themeTemplate.RoleAssignmentHint
+                        ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
+                        ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
+                        SecretHint                  = [string]$themeTemplate.SecretHint
                     }
                 }
                 $allOpportunities.Add($opportunity)

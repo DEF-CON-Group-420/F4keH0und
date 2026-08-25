@@ -256,6 +256,9 @@ function Sync-F4keH0undEntraParity {
                 Family        = ($parityModel.DecoyTypes | Where-Object { $_.DecoyType -eq $selectedDecoyType } | Select-Object -First 1).Family
                 IdentityHint  = if ($_.RecyclableObject.DisplayName) { $_.RecyclableObject.DisplayName } else { $_.RecyclableObject.ObjectId }
                 Justification = $_.Justification
+                LureTheme     = [string]$_.Template.LureTheme
+                ConsentScopeBait = [string]$_.Template.ConsentScopeBait
+                ConditionalAccessBypassHint = [string]$_.Template.ConditionalAccessBypassHint
             }
         }
     )
@@ -288,6 +291,12 @@ function Sync-F4keH0undEntraParity {
                 if ($opportunity.DecoyType -eq 'EntraServicePrincipalDecoy' -and $opportunity.Template.AssignHighPrivilegeRole) {
                     $entraParams['AssignHighPrivilegeRole'] = $true
                 }
+                foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
+                    $templateValue = $opportunity.Template.$templateKey
+                    if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
+                        $entraParams[$templateKey] = [string]$templateValue
+                    }
+                }
                 if ($PSBoundParameters.ContainsKey('AuditLogPath')) {
                     $entraParams['AuditLogPath'] = $AuditLogPath
                 }
@@ -308,6 +317,12 @@ function Sync-F4keH0undEntraParity {
                     OpportunityId = $opportunity.ID
                     Justification = $opportunity.Justification
                     SyncCommand   = $MyInvocation.MyCommand.Name
+                }
+                foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint')) {
+                    $metadataValue = $opportunity.Template.$metadataKey
+                    if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
+                        $eventMetadata[$metadataKey] = [string]$metadataValue
+                    }
                 }
 
                 Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $eventContext.Identity -DecoyType $opportunity.DecoyType -Platform 'Entra' -ObjectType $objectType -Strategy $opportunity.Strategy -Status $eventContext.Status -Location $eventContext.Location -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name

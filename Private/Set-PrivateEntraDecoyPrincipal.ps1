@@ -46,6 +46,31 @@ function Set-PrivateEntraDecoyPrincipal {
         target. WARNING: This will make the principal able to manage app registrations.
         Use only in lab or tightly controlled environments.
 
+    .PARAMETER LureTheme
+        Optional theme label (for example RoleAssignmentLure, OAuthConsentTrap,
+        ConditionalAccessBypassBait). Stored in metadata and appended to notes-based
+        descriptions where supported.
+
+    .PARAMETER RoleAssignmentHint
+        Optional role-assignment lure text appended to notes metadata where supported.
+
+    .PARAMETER ConsentScopeBait
+        Optional OAuth consent lure text appended to notes metadata where supported.
+
+    .PARAMETER ConditionalAccessBypassHint
+        Optional conditional-access hint text appended to notes metadata where supported.
+
+    .PARAMETER SecretHint
+        Optional stale-secret/certificate lure hint appended to notes metadata where supported.
+
+    .PARAMETER PersonaJobTitle
+        Optional guest-user persona job title override. If omitted for guest-user decoys,
+        `Description` is used as `JobTitle`.
+
+    .PARAMETER PersonaDepartment
+        Optional guest-user persona department override. If omitted for guest-user decoys,
+        defaults to `Legacy Integration`.
+
     .PARAMETER AuditLogPath
         Optional path to a JSON audit log file. When specified, an audit entry is appended
         after successful modification.
@@ -83,6 +108,27 @@ function Set-PrivateEntraDecoyPrincipal {
 
         [Parameter()]
         [switch]$AssignHighPrivilegeRole,
+
+        [Parameter()]
+        [string]$LureTheme,
+
+        [Parameter()]
+        [string]$RoleAssignmentHint,
+
+        [Parameter()]
+        [string]$ConsentScopeBait,
+
+        [Parameter()]
+        [string]$ConditionalAccessBypassHint,
+
+        [Parameter()]
+        [string]$SecretHint,
+
+        [Parameter()]
+        [string]$PersonaJobTitle,
+
+        [Parameter()]
+        [string]$PersonaDepartment,
 
         [Parameter()]
         [string]$AuditLogPath
@@ -174,10 +220,67 @@ function Set-PrivateEntraDecoyPrincipal {
             description = "Changed to: $Description"
         }
 
+        if ($PSBoundParameters.ContainsKey('LureTheme') -and -not [string]::IsNullOrWhiteSpace($LureTheme)) {
+            $modificationsForAudit['LureTheme'] = $LureTheme
+        }
+        if ($PSBoundParameters.ContainsKey('RoleAssignmentHint') -and -not [string]::IsNullOrWhiteSpace($RoleAssignmentHint)) {
+            $modificationsForAudit['RoleAssignmentHint'] = $RoleAssignmentHint
+        }
+        if ($PSBoundParameters.ContainsKey('ConsentScopeBait') -and -not [string]::IsNullOrWhiteSpace($ConsentScopeBait)) {
+            $modificationsForAudit['ConsentScopeBait'] = $ConsentScopeBait
+        }
+        if ($PSBoundParameters.ContainsKey('ConditionalAccessBypassHint') -and -not [string]::IsNullOrWhiteSpace($ConditionalAccessBypassHint)) {
+            $modificationsForAudit['ConditionalAccessBypassHint'] = $ConditionalAccessBypassHint
+        }
+        if ($PSBoundParameters.ContainsKey('SecretHint') -and -not [string]::IsNullOrWhiteSpace($SecretHint)) {
+            $modificationsForAudit['SecretHint'] = $SecretHint
+        }
+
+        $notesDetailLines = [System.Collections.Generic.List[string]]::new()
+        if (-not [string]::IsNullOrWhiteSpace($LureTheme)) {
+            $notesDetailLines.Add("Theme: $LureTheme")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($RoleAssignmentHint)) {
+            $notesDetailLines.Add("RoleAssignmentHint: $RoleAssignmentHint")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ConsentScopeBait)) {
+            $notesDetailLines.Add("ConsentScopeBait: $ConsentScopeBait")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ConditionalAccessBypassHint)) {
+            $notesDetailLines.Add("ConditionalAccessBypassHint: $ConditionalAccessBypassHint")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($SecretHint)) {
+            $notesDetailLines.Add("SecretHint: $SecretHint")
+        }
+
+        $effectiveDescription = if ($notesDetailLines.Count -gt 0) {
+            "$Description`n$($notesDetailLines -join "`n")"
+        }
+        else {
+            $Description
+        }
+
+        $resolvedGuestJobTitle = if (-not [string]::IsNullOrWhiteSpace($PersonaJobTitle)) {
+            $PersonaJobTitle
+        }
+        else {
+            $Description
+        }
+
+        $resolvedGuestDepartment = if (-not [string]::IsNullOrWhiteSpace($PersonaDepartment)) {
+            $PersonaDepartment
+        }
+        else {
+            'Legacy Integration'
+        }
+
         # ------------------------------------------------------------------
         # ShouldProcess guard
         # ------------------------------------------------------------------
         $actionDescription = "Transform into Entra ID decoy with description '$Description'"
+        if (-not [string]::IsNullOrWhiteSpace($LureTheme)) {
+            $actionDescription += " (theme: $LureTheme)"
+        }
         if ($AssignHighPrivilegeRole) {
             $actionDescription += " and assign Application Administrator role"
         }
@@ -194,7 +297,7 @@ function Set-PrivateEntraDecoyPrincipal {
             'ServicePrincipal' {
                 try {
                     Update-MgServicePrincipal -ServicePrincipalId $objectId `
-                        -Notes $Description -ErrorAction Stop
+                        -Notes $effectiveDescription -ErrorAction Stop
                     Write-Verbose "[$($MyInvocation.MyCommand)] - Updated Notes on service principal '$($RecyclableObject.DisplayName)'."
                 }
                 catch {
@@ -237,12 +340,12 @@ function Set-PrivateEntraDecoyPrincipal {
             'GuestUser' {
                 try {
                     Update-MgUser -UserId $objectId `
-                        -JobTitle $Description `
-                        -Department "Legacy Integration" `
+                        -JobTitle $resolvedGuestJobTitle `
+                        -Department $resolvedGuestDepartment `
                         -ErrorAction Stop
                     Write-Verbose "[$($MyInvocation.MyCommand)] - Updated JobTitle/Department on guest user '$($RecyclableObject.DisplayName)'."
-                    $modificationsForAudit['jobTitle']   = "Changed to: $Description"
-                    $modificationsForAudit['department']  = "Changed to: Legacy Integration"
+                    $modificationsForAudit['jobTitle']   = "Changed to: $resolvedGuestJobTitle"
+                    $modificationsForAudit['department']  = "Changed to: $resolvedGuestDepartment"
                 }
                 catch {
                     throw "[$($MyInvocation.MyCommand)] - Failed to update guest user '$($RecyclableObject.DisplayName)'. Error: $($_.Exception.Message)"
@@ -252,7 +355,7 @@ function Set-PrivateEntraDecoyPrincipal {
             'AppRegistration' {
                 try {
                     Update-MgApplication -ApplicationId $objectId `
-                        -Notes $Description -ErrorAction Stop
+                        -Notes $effectiveDescription -ErrorAction Stop
                     Write-Verbose "[$($MyInvocation.MyCommand)] - Updated Notes on app registration '$($RecyclableObject.DisplayName)'."
                 }
                 catch {
@@ -279,6 +382,18 @@ function Set-PrivateEntraDecoyPrincipal {
         # Return the input object (enriched with modification metadata) so the caller
         # can track what was recycled.
         $RecyclableObject | Add-Member -NotePropertyName 'DecoyDescription' -NotePropertyValue $Description -Force
+        if (-not [string]::IsNullOrWhiteSpace($LureTheme)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'LureTheme' -NotePropertyValue $LureTheme -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ConsentScopeBait)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'ConsentScopeBait' -NotePropertyValue $ConsentScopeBait -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ConditionalAccessBypassHint)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'ConditionalAccessBypassHint' -NotePropertyValue $ConditionalAccessBypassHint -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($SecretHint)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'SecretHint' -NotePropertyValue $SecretHint -Force
+        }
         $RecyclableObject | Add-Member -NotePropertyName 'RecycledAt' -NotePropertyValue ((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')) -Force
         return $RecyclableObject
     }

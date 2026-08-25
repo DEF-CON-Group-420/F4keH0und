@@ -113,7 +113,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Entra lifecycle parity in `Update/Disable/Enable/Remove-F4keH0undDecoy`
 - ✅ Entra lifecycle events written to persistent inventory with canonical identity/location mapping
 - ✅ Parity scoring command surface (`Test-F4keH0undCoverage`, `Sync-F4keH0undEntraParity`)
-- ⏳ Remaining: broaden Entra lure templates (role-assignment, consent, conditional-access themed variants)
+- ✅ Broadened Entra lure templates with role-assignment, OAuth consent, conditional-access bypass, and stale-credential themed metadata
 
 ## Phase 3 — New Element Families (Weeks 6–7)
 
@@ -168,6 +168,12 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - Production readiness checklist
 - CI validation and doc/test refresh
 
+**Current implementation status:**
+- ⏳ Rollout profiles (`Lab`, `Pilot`, `Production`) not implemented yet
+- ⏳ Drift detection + redesign suggestions pending
+- ⏳ Response playbook templates pending
+- ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
+
 ---
 
 ## 5) Low-Cost / High-Efficiency Feature Backlog (Prioritized)
@@ -186,7 +192,6 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Extend Entra lure templates (consent/role-assignment/conditional-access themed variants).
-2. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
-3. Add lightweight drift checks for stale artifact/token templates.
-4. Add response playbook templates for `High/Critical` token trigger severities.
+1. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
+2. Add lightweight drift checks for stale artifact/token templates.
+3. Add response playbook templates for `High/Critical` token trigger severities.

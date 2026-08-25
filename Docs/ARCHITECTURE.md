@@ -401,6 +401,15 @@ These Phase 2 parity commands operationalize AD-vs-Entra coverage management:
 - `Test-F4keH0undCoverage` builds a capability matrix and family-level gap report from inventory state.
 - `Sync-F4keH0undEntraParity` maps those gaps to Entra opportunities and can deploy recyclable Entra decoys to reduce drift.
 
+Entra opportunity templates now include themed lure metadata for:
+
+- role-assignment reconnaissance bait,
+- OAuth consent scope traps,
+- conditional-access bypass hinting,
+- stale secret/certificate lure context.
+
+This metadata is carried through deployment planning and inventory event metadata to keep analyst triage context close to each deployed Entra decoy.
+
 Both commands use `Get-F4keH0undParityModel` for deterministic family mapping and lifecycle scoring.
 
 ### Test-F4keH0undConfig (Public/Private)
