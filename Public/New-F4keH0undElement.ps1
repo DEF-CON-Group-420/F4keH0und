@@ -40,6 +40,10 @@
 .PARAMETER ThrottleLimit
     Reserved for parallelized deployment workflows.
 
+.PARAMETER RolloutProfile
+    Optional rollout profile (`Lab`, `Pilot`, `Production`) used to apply
+    Phase 5 deployment defaults.
+
 .PARAMETER AuditLogPath
     Optional audit log destination persisted in metadata.
 
@@ -91,6 +95,10 @@ function New-F4keH0undElement {
         [int]$ThrottleLimit,
 
         [Parameter()]
+        [ValidateSet('Lab', 'Pilot', 'Production')]
+        [string]$RolloutProfile,
+
+        [Parameter()]
         [string]$AuditLogPath,
 
         [Parameter()]
@@ -104,10 +112,22 @@ function New-F4keH0undElement {
     }
 
     $defaults = Get-PrivateF4keH0undWindowsDeploymentDefaults
+    $resolvedRolloutProfile = if ($PSBoundParameters.ContainsKey('RolloutProfile')) {
+        Get-PrivateF4keH0undRolloutProfile -Name $RolloutProfile
+    }
+    else {
+        Get-PrivateF4keH0undRolloutProfile
+    }
+
+    if ($resolvedRolloutProfile.DefaultWhatIf -and -not $PSBoundParameters.ContainsKey('WhatIf')) {
+        $WhatIfPreference = $true
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' enables WhatIf-by-default."
+    }
+
     if (-not $PSBoundParameters.ContainsKey('ArtifactRoot')) { $ArtifactRoot = $defaults.ArtifactRoot }
     if (-not $PSBoundParameters.ContainsKey('Port')) { $Port = $defaults.Port }
     if (-not $PSBoundParameters.ContainsKey('Authentication')) { $Authentication = $defaults.Authentication }
-    if (-not $PSBoundParameters.ContainsKey('ThrottleLimit')) { $ThrottleLimit = $defaults.ThrottleLimit }
+    if (-not $PSBoundParameters.ContainsKey('ThrottleLimit')) { $ThrottleLimit = [int]$resolvedRolloutProfile.WindowsThrottleLimit }
 
     $useSslValue = if ($PSBoundParameters.ContainsKey('UseSSL')) { [bool]$UseSSL } else { [bool]$defaults.UseSSL }
     $templateTable = Convert-PrivateF4keH0undTemplateDataToHashtable -TemplateData $TemplateData
@@ -178,6 +198,7 @@ function New-F4keH0undElement {
                 TelemetryProfile  = $telemetryProfile
                 ArtifactRoot      = $ArtifactRoot
                 ThrottleLimit     = $ThrottleLimit
+                RolloutProfile    = [string]$resolvedRolloutProfile.Name
                 AuditLogPath      = $AuditLogPath
             }
 
@@ -197,6 +218,7 @@ function New-F4keH0undElement {
         DeployedCount  = $deployed.Count
         ElementType    = $ElementType
         Platform       = 'Windows'
+        RolloutProfile = [string]$resolvedRolloutProfile.Name
         Targets        = @($ComputerName)
     }
 }

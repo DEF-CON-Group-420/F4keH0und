@@ -103,6 +103,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Cross-Platform PowerShell**: Designed for Windows, macOS, and Linux when required PowerShell modules are installed.
 - **Lifecycle Controls**: `New-`, `Get-`, `Update-`, `Disable-`, `Enable-`, and `Remove-` workflows support full decoy lifecycle operations.
 - **Inventory Interface**: `Get-F4keH0undInventory` provides a consolidated view of deployed deceptive elements and status.
+- **Phase 5 Drift Ops**: `Test-F4keH0undDrift` flags stale token/artifact templates and suggests redesign commands.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
 - **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
 - **Automated Reporting**: Generates CSV handover reports for SecOps and purple-team operations.
@@ -358,6 +359,18 @@ Controls the persistent inventory event backend used by lifecycle commands.
 | `SnapshotFileName` | `F4keH0und_Inventory_Snapshot.json` | Cached snapshot file for fast reads |
 | `UpdateSnapshotOnWrite` | `true` | Rebuilds snapshot after each lifecycle event |
 
+### RolloutProfiles
+
+Phase 5 operational guardrails for staged deployment (`Lab` → `Pilot` → `Production`).
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `DefaultProfile` | `Pilot` | Profile used when commands omit `-RolloutProfile` |
+| `Profiles.Lab.DefaultWhatIf` | `true` | Makes Lab mode dry-run by default unless explicitly overridden |
+| `Profiles.<Name>.WindowsThrottleLimit` | varies | Default throttle for Windows artifact deployment commands |
+| `Profiles.<Name>.MaxEntraDeploymentsPerRun` | varies | Default cap for Entra parity deployment runs |
+| `Profiles.<Name>.AllowHighPrivilegeRoleAssignment` | varies | Controls whether service-principal high-priv role assignment is allowed |
+
 ### Example Configuration
 
 ```json
@@ -385,6 +398,29 @@ Controls the persistent inventory event backend used by lifecycle commands.
     "PreferredSource": "Auto",
     "InventoryDirectory": "./inventory",
     "EventLogFileName": "F4keH0und_Inventory_Events.ndjson"
+  },
+  "RolloutProfiles": {
+    "DefaultProfile": "Pilot",
+    "Profiles": {
+      "Lab": {
+        "DefaultWhatIf": true,
+        "WindowsThrottleLimit": 3,
+        "MaxEntraDeploymentsPerRun": 2,
+        "AllowHighPrivilegeRoleAssignment": true
+      },
+      "Pilot": {
+        "DefaultWhatIf": false,
+        "WindowsThrottleLimit": 8,
+        "MaxEntraDeploymentsPerRun": 5,
+        "AllowHighPrivilegeRoleAssignment": false
+      },
+      "Production": {
+        "DefaultWhatIf": false,
+        "WindowsThrottleLimit": 15,
+        "MaxEntraDeploymentsPerRun": 10,
+        "AllowHighPrivilegeRoleAssignment": false
+      }
+    }
   }
 }
 ```
@@ -593,7 +629,7 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/README.md](Docs/README.md) | Documentation index and documentation maintenance policy |
 | [Docs/COMMAND-REFERENCE.md](Docs/COMMAND-REFERENCE.md) | Detailed command reference for every exported command, including parameters and behavior |
 | [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
-| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 20 complete deployment scenarios with annotated commands |
+| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 22 complete deployment scenarios with annotated commands |
 | [Docs/TELEMETRY-CONNECTORS.md](Docs/TELEMETRY-CONNECTORS.md) | SIEM/SOAR connector preset catalog and payload mapping guide |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
 | [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |

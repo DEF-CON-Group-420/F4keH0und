@@ -63,5 +63,30 @@
     "_comment": "External element type registry. If missing, built-in defaults are used.",
     "EnableExternalRegistry": true,
     "RegistryPath": "./element-types.windows.json"
+  },
+
+  "RolloutProfiles": {
+    "_comment": "Phase 5 rollout controls. Commands can use these profiles for safer defaults.",
+    "DefaultProfile": "Pilot",
+    "Profiles": {
+      "Lab": {
+        "DefaultWhatIf": true,
+        "WindowsThrottleLimit": 3,
+        "MaxEntraDeploymentsPerRun": 2,
+        "AllowHighPrivilegeRoleAssignment": true
+      },
+      "Pilot": {
+        "DefaultWhatIf": false,
+        "WindowsThrottleLimit": 8,
+        "MaxEntraDeploymentsPerRun": 5,
+        "AllowHighPrivilegeRoleAssignment": false
+      },
+      "Production": {
+        "DefaultWhatIf": false,
+        "WindowsThrottleLimit": 15,
+        "MaxEntraDeploymentsPerRun": 10,
+        "AllowHighPrivilegeRoleAssignment": false
+      }
+    }
   }
 }

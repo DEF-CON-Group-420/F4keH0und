@@ -38,6 +38,10 @@
     a structured audit entry (timestamp, operation, original object state, modifications made)
     to this file in NDJSON format. The file is created on first use; each run appends to it.
     Compatible with the PostgreSQL schema defined in Write-F4keH0undAuditLog.
+
+.PARAMETER RolloutProfile
+    Optional rollout profile (`Lab`, `Pilot`, `Production`) used to apply
+    Phase 5 deployment defaults.
 .EXAMPLE
     PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -Server "DC01.target.local" -Credential (Get-Credential) -WhatIf
 
@@ -113,6 +117,10 @@ function New-F4keH0undDecoy {
         [string]$DecoySuffix,
 
         [Parameter()]
+        [ValidateSet('Lab', 'Pilot', 'Production')]
+        [string]$RolloutProfile,
+
+        [Parameter()]
         [string]$AuditLogPath
     )
 
@@ -141,6 +149,17 @@ function New-F4keH0undDecoy {
 
     # Load configuration
     $deployConfig = Get-F4keH0undConfig -Section 'DeploymentSettings'
+    $resolvedRolloutProfile = if ($PSBoundParameters.ContainsKey('RolloutProfile')) {
+        Get-PrivateF4keH0undRolloutProfile -Name $RolloutProfile
+    }
+    else {
+        Get-PrivateF4keH0undRolloutProfile
+    }
+
+    if ($resolvedRolloutProfile.DefaultWhatIf -and -not $PSBoundParameters.ContainsKey('WhatIf')) {
+        $WhatIfPreference = $true
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' enables WhatIf-by-default."
+    }
 
     # Apply deployment settings from config if not specified
     if (-not $PSBoundParameters.ContainsKey('DecoyPrefix') -and $deployConfig.DefaultDecoyPrefix) {
@@ -221,12 +240,19 @@ function New-F4keH0undDecoy {
 
     # Section 3: Create - Loop and process selected decoys
     $deployedDecoys = [System.Collections.Generic.List[PSObject]]::new()
+    $entraDeploymentsThisRun = 0
     foreach ($opportunity in $selectedOpportunities) {
+        if ($PSCmdlet.ParameterSetName -eq 'Azure' -and [string]$opportunity.DecoyType -like 'Entra*' -and $entraDeploymentsThisRun -ge [int]$resolvedRolloutProfile.MaxEntraDeploymentsPerRun) {
+            Write-Warning "[WARNING] Rollout profile '$($resolvedRolloutProfile.Name)' caps Entra deployments at $($resolvedRolloutProfile.MaxEntraDeploymentsPerRun) per run. Remaining selected opportunities are skipped."
+            break
+        }
+
         $target = "$($opportunity.DecoyType) [$($opportunity.Strategy)]"
         $action = "Deploy Decoy"
 
         if ($PSCmdlet.ShouldProcess($target, $action)) {
             $createdObject = $null
+            $highPrivilegeRoleSuppressed = $false
             Write-Verbose "[$($MyInvocation.MyCommand)] - Processing Opportunity ID $($opportunity.ID) - $($opportunity.DecoyType) [$($opportunity.Strategy)]"
             switch ($opportunity.DecoyType) {
                 "StaleAdminLure" {
@@ -563,7 +589,15 @@ function New-F4keH0undDecoy {
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
                     }
-                    if ($opportunity.Template.AssignHighPrivilegeRole) { $entraParams['AssignHighPrivilegeRole'] = $true }
+                    if ($opportunity.Template.AssignHighPrivilegeRole) {
+                        if ($resolvedRolloutProfile.AllowHighPrivilegeRoleAssignment) {
+                            $entraParams['AssignHighPrivilegeRole'] = $true
+                        }
+                        else {
+                            $highPrivilegeRoleSuppressed = $true
+                            Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' suppresses high-privilege role assignment for this service-principal decoy."
+                        }
+                    }
                     foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
@@ -745,12 +779,16 @@ function New-F4keH0undDecoy {
                     $inventoryMetadata = @{
                         OpportunityId = $opportunity.ID
                         Justification = $opportunity.Justification
+                        RolloutProfile = [string]$resolvedRolloutProfile.Name
                     }
                     foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint')) {
                         $metadataValue = $opportunity.Template.$metadataKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
                             $inventoryMetadata[$metadataKey] = [string]$metadataValue
                         }
+                    }
+                    if ($highPrivilegeRoleSuppressed) {
+                        $inventoryMetadata['HighPrivilegeRoleSuppressed'] = $true
                     }
 
                     Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $inventoryIdentity -DecoyType $opportunity.DecoyType -Platform $inventoryPlatform -ObjectType $inventoryObjectType -Strategy $opportunity.Strategy -Status $inventoryStatus -Location $inventoryLocation -Metadata $inventoryMetadata -SourceCommand $MyInvocation.MyCommand.Name
@@ -762,6 +800,10 @@ function New-F4keH0undDecoy {
                     Groups      = @()
                 }
                 $deployedDecoys.Add($deployedDecoy)
+
+                if ($PSCmdlet.ParameterSetName -eq 'Azure' -and [string]$opportunity.DecoyType -like 'Entra*') {
+                    $entraDeploymentsThisRun++
+                }
             } else {
                 Write-Warning "[FAILURE] Failed to deploy decoy for Opportunity ID $($opportunity.ID)."
             }

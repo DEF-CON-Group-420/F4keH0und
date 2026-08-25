@@ -7,7 +7,7 @@
 RootModule = 'F4keH0und.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.11.0'
+ModuleVersion = '2.13.0'
 
 # ID used to uniquely identify this module
 GUID = 'd2b0e6f3-8d3c-4e8f-8c6a-1e9f4c3a2b1d'
@@ -44,6 +44,7 @@ FunctionsToExport = @(
     'Remove-F4keH0undDecoy',
     'Get-F4keH0undInventory',
     'Get-F4keH0undConfig',
+    'Test-F4keH0undDrift',
     'Test-F4keH0undCoverage',
     'Test-F4keH0undConfig'
 )

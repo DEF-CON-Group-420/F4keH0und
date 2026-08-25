@@ -147,6 +147,47 @@ function Test-F4keH0undConfig {
         }
     }
 
+    # Validate RolloutProfiles
+    if ($config.PSObject.Properties.Name -contains 'RolloutProfiles') {
+        $defaultProfile = [string]$config.RolloutProfiles.DefaultProfile
+        if ([string]::IsNullOrWhiteSpace($defaultProfile) -or $defaultProfile -notin @('Lab', 'Pilot', 'Production')) {
+            $validationResult.Errors += "RolloutProfiles.DefaultProfile must be one of: Lab, Pilot, Production"
+            $validationResult.IsValid = $false
+        }
+
+        $profiles = $config.RolloutProfiles.Profiles
+        if ($null -eq $profiles) {
+            $validationResult.Errors += 'RolloutProfiles.Profiles is missing. Expected profile definitions for Lab, Pilot, and Production.'
+            $validationResult.IsValid = $false
+        }
+        else {
+            foreach ($profileName in @('Lab', 'Pilot', 'Production')) {
+                if (-not ($profiles.PSObject.Properties.Name -contains $profileName)) {
+                    $validationResult.Warnings += "Rollout profile '$profileName' is missing. Built-in defaults will be used."
+                    continue
+                }
+
+                $profileSettings = $profiles.$profileName
+
+                if ($profileSettings.PSObject.Properties.Name -contains 'WindowsThrottleLimit') {
+                    $windowsThrottle = [int]$profileSettings.WindowsThrottleLimit
+                    if ($windowsThrottle -lt 1 -or $windowsThrottle -gt 128) {
+                        $validationResult.Errors += "RolloutProfiles.Profiles.$profileName.WindowsThrottleLimit must be between 1 and 128"
+                        $validationResult.IsValid = $false
+                    }
+                }
+
+                if ($profileSettings.PSObject.Properties.Name -contains 'MaxEntraDeploymentsPerRun') {
+                    $maxEntraDeployments = [int]$profileSettings.MaxEntraDeploymentsPerRun
+                    if ($maxEntraDeployments -lt 1 -or $maxEntraDeployments -gt 250) {
+                        $validationResult.Errors += "RolloutProfiles.Profiles.$profileName.MaxEntraDeploymentsPerRun must be between 1 and 250"
+                        $validationResult.IsValid = $false
+                    }
+                }
+            }
+        }
+    }
+
     # Validate paths exist or can be created
     $pathsToCheck = @(
         $config.DeploymentSettings.ReportOutputPath,

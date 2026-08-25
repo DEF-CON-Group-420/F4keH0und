@@ -34,7 +34,7 @@ function Get-F4keH0undConfig {
         [string]$ConfigPath,
 
         [Parameter()]
-        [ValidateSet('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'RankingWeights', 'AuditSettings', 'AdvancedOptions', 'InventorySettings', 'WindowsDeploymentSettings', 'TelemetrySettings', 'ElementRegistrySettings')]
+        [ValidateSet('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'RankingWeights', 'AuditSettings', 'AdvancedOptions', 'InventorySettings', 'WindowsDeploymentSettings', 'TelemetrySettings', 'ElementRegistrySettings', 'RolloutProfiles')]
         [string]$Section
     )
 
@@ -60,7 +60,7 @@ function Get-F4keH0undConfig {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Configuration loaded successfully"
 
         # Validate required sections exist
-        $requiredSections = @('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'InventorySettings', 'WindowsDeploymentSettings', 'TelemetrySettings', 'ElementRegistrySettings')
+        $requiredSections = @('RecyclingPreferences', 'SafetyFilters', 'DeploymentSettings', 'InventorySettings', 'WindowsDeploymentSettings', 'TelemetrySettings', 'ElementRegistrySettings', 'RolloutProfiles')
         foreach ($reqSection in $requiredSections) {
             if (-not $config.PSObject.Properties.Name.Contains($reqSection)) {
                 Write-Warning "[$($MyInvocation.MyCommand)] - Missing required section '$reqSection'. Using defaults for this section."
@@ -205,6 +205,30 @@ function Get-F4keH0undDefaultConfig {
         ElementRegistrySettings = [PSCustomObject]@{
             EnableExternalRegistry = $true
             RegistryPath           = './element-types.windows.json'
+        }
+
+        RolloutProfiles = [PSCustomObject]@{
+            DefaultProfile = 'Pilot'
+            Profiles       = [PSCustomObject]@{
+                Lab = [PSCustomObject]@{
+                    DefaultWhatIf                    = $true
+                    WindowsThrottleLimit             = 3
+                    MaxEntraDeploymentsPerRun        = 2
+                    AllowHighPrivilegeRoleAssignment = $true
+                }
+                Pilot = [PSCustomObject]@{
+                    DefaultWhatIf                    = $false
+                    WindowsThrottleLimit             = 8
+                    MaxEntraDeploymentsPerRun        = 5
+                    AllowHighPrivilegeRoleAssignment = $false
+                }
+                Production = [PSCustomObject]@{
+                    DefaultWhatIf                    = $false
+                    WindowsThrottleLimit             = 15
+                    MaxEntraDeploymentsPerRun        = 10
+                    AllowHighPrivilegeRoleAssignment = $false
+                }
+            }
         }
     }
 

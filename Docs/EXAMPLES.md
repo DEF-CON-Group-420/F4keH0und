@@ -26,6 +26,8 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 18. [Token-Priority Workflow (Phase 4)](#18-token-priority-workflow-phase-4)
 19. [Token Trigger Correlation & Alert Scoring](#19-token-trigger-correlation--alert-scoring)
 20. [Telemetry Connector Presets (SIEM/SOAR)](#20-telemetry-connector-presets-siemsoar)
+21. [Phase 5 Rollout Profiles](#21-phase-5-rollout-profiles)
+22. [Phase 5 Drift Checks](#22-phase-5-drift-checks)
 
 ---
 
@@ -821,6 +823,65 @@ Get-F4keH0undInventory `
     -SkipLiveStatus |
     Sort-Object AlertScore -Descending |
     Select-Object Identity, DecoyType, Platform, LastTriggerSource, AlertScore, AlertSeverity
+```
+
+---
+
+## 21. Phase 5 Rollout Profiles
+
+Use `Lab`, `Pilot`, and `Production` rollout profiles to apply safer defaults for deployment throttle, Entra deployment caps, and role-assignment guardrails.
+
+```powershell
+# Inspect configured rollout profile defaults
+Get-F4keH0undConfig -Section RolloutProfiles | Format-List
+
+# Windows artifact deployment using Lab profile (WhatIf-by-default unless explicitly overridden)
+New-F4keH0undElement `
+    -ElementType ApiHookConfigDecoy `
+    -ComputerName WIN-APP-01,WIN-APP-02 `
+    -RolloutProfile Lab `
+    -TemplateData @{ ApiBaseUrl = "https://legacy-api.internal.corp" }
+
+# Token deployment with Production profile defaults
+New-F4keH0undToken `
+    -TokenType CloudApiCanary `
+    -ComputerName WIN-API-01 `
+    -RolloutProfile Production `
+    -PassThru
+
+# Entra parity sync with Pilot profile guardrails
+Sync-F4keH0undEntraParity `
+    -AzureHoundPath "C:\AzureHound_Data\" `
+    -RolloutProfile Pilot `
+    -Execute `
+    -WhatIf
+```
+
+---
+
+## 22. Phase 5 Drift Checks
+
+Run lightweight stale-template drift analysis and get redesign guidance before regular refresh windows.
+
+```powershell
+# Fast drift summary (lightweight mode skips live AD checks by default)
+$drift = Test-F4keH0undDrift -Source Events -PreferSnapshot
+$drift | Format-List TotalEvaluated, DriftedCount, DriftSeverityCounts
+
+# Review highest-priority redesign candidates
+$drift.Findings |
+    Where-Object Drifted |
+    Sort-Object DriftScore -Descending |
+    Select-Object -First 10 Identity, Platform, DecoyType, DriftSeverity, DriftScore, RecommendedAction
+
+# Windows token-focused rotation list
+Test-F4keH0undDrift `
+    -Platform Windows `
+    -MaxTokenAgeDays 14 `
+    -MinTriggerCountForRedesign 1 `
+    -AsList |
+    Where-Object { $_.Drifted -and $_.DecoyType -match 'Token|Credential|Identity' } |
+    Select-Object Identity, DriftReasons, SuggestedCommand
 ```
 
 ---

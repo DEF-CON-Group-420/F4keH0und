@@ -26,8 +26,9 @@ Current exported commands:
 16. `Add-F4keH0undRelationship`
 17. `Remove-F4keH0undDecoy`
 18. `Get-F4keH0undConfig`
-19. `Test-F4keH0undCoverage`
-20. `Test-F4keH0undConfig`
+19. `Test-F4keH0undDrift`
+20. `Test-F4keH0undCoverage`
+21. `Test-F4keH0undConfig`
 
 ---
 
@@ -127,6 +128,7 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 | `ExcludeOUs` | `String[]` | No | from config | OU exclusions for recycle candidate discovery. |
 | `DecoyPrefix` | `String` | No | from config | Prefix for newly created (non-recycled) object names. |
 | `DecoySuffix` | `String` | No | from config | Suffix for newly created object names. |
+| `RolloutProfile` | `String` | No | from config (`Pilot`) | Phase 5 rollout profile: `Lab`, `Pilot`, `Production`. |
 | `AuditLogPath` | `String` | No | — | NDJSON audit log destination for recycling operations. |
 | `Server` | `String` | No | — | Domain Controller for AD operations. |
 | `Credential` | `PSCredential` | No | — | Credentials for AD operations. |
@@ -137,6 +139,7 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 - Displays opportunity list and prompts for IDs to deploy when `-Execute` is supplied.
 - Deploys Entra recycling opportunities (`EntraServicePrincipalDecoy`, `EntraGuestUserDecoy`, `EntraAppRegistrationDecoy`) via `Set-PrivateEntraDecoyPrincipal`.
 - For Entra decoys, forwards template lure metadata (theme, role/consent/conditional-access hints, persona fields) to deployment helpers and inventory events.
+- Honors rollout profile defaults (`DefaultWhatIf`, `MaxEntraDeploymentsPerRun`, high-privilege role-assignment guardrail).
 - Generates deployment report data and optional CSV handover.
 - Writes lifecycle inventory `Deploy` events to persistent backend with platform-aware identity/location fields.
 
@@ -187,7 +190,8 @@ Deploys Windows artifact deception elements to target hosts over WinRM/PSRP.
 | `Port` | `Int32` | No | from config | WinRM port (e.g., 5985/5986). |
 | `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
 | `Authentication` | `String` | No | from config | WinRM authentication method. |
-| `ThrottleLimit` | `Int32` | No | from config | Reserved for future parallelized execution workflows. |
+| `ThrottleLimit` | `Int32` | No | from rollout profile / config | Reserved for future parallelized execution workflows. |
+| `RolloutProfile` | `String` | No | from config (`Pilot`) | Phase 5 rollout profile: `Lab`, `Pilot`, `Production`. |
 | `AuditLogPath` | `String` | No | — | Optional audit metadata field. |
 | `PassThru` | `Switch` | No | `false` | Returns deployed element records. |
 
@@ -196,6 +200,7 @@ Deploys Windows artifact deception elements to target hosts over WinRM/PSRP.
 - Windows-only artifact deployment model (no AD/Entra object creation).
 - Uses WinRM/PSRP channel and writes inventory `Deploy` events with `Platform=Windows`.
 - Default deployment mode is artifact-only (no active listener binaries).
+- Rollout profile can auto-enable `WhatIf` and apply profile throttle defaults.
 
 ### Example
 
@@ -222,6 +227,7 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
 | `Port` | `Int32` | No | from config | WinRM port override. |
 | `UseSSL` | `Switch` | No | from config | Uses WinRM over HTTPS. |
 | `Authentication` | `String` | No | from config | WinRM authentication method. |
+| `RolloutProfile` | `String` | No | from config (`Pilot`) | Phase 5 rollout profile forwarded to `New-F4keH0undElement`. |
 | `PassThru` | `Switch` | No | `false` | Returns deployed element records. |
 
 ### Behavior Notes
@@ -232,6 +238,7 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
   - `CredentialFile` → `CredentialFileTokenDecoy`
 - Auto-generates a canary token value when none is supplied.
 - Uses `New-F4keH0undElement` under the hood and preserves lifecycle coverage.
+- Supports rollout profile controls through the underlying element deployment command.
 
 ### Example
 
@@ -411,7 +418,8 @@ Plans or applies Entra deployments to close family-level parity gaps against AD 
 | `Server` | `String` | No | — | Domain Controller for AD live status checks. |
 | `Credential` | `PSCredential` | No | — | Credentials for AD live status checks. |
 | `TargetParityRatio` | `Double` | No | `1.0` | Required Entra-to-AD ratio per mapped family. |
-| `MaxDeployments` | `Int32` | No | `5` | Maximum Entra deployments for one execution run. |
+| `MaxDeployments` | `Int32` | No | from rollout profile / `5` | Maximum Entra deployments for one execution run. |
+| `RolloutProfile` | `String` | No | from config (`Pilot`) | Phase 5 rollout profile: `Lab`, `Pilot`, `Production`. |
 | `Execute` | `Switch` | No | `false` | Applies recommended Entra deployments when set. |
 | `AuditLogPath` | `String` | No | — | Optional audit log destination for recycled Entra operations. |
 | `EntraIncludeServicePrincipals` | `Switch` | No | auto-all | Restrict discovery to service-principal opportunities. |
@@ -429,6 +437,7 @@ Plans or applies Entra deployments to close family-level parity gaps against AD 
 - Selects Entra opportunities that map to uncovered parity families first.
 - In `-Execute` mode, deploys with `Set-PrivateEntraDecoyPrincipal` and writes inventory `Deploy` events.
 - Carries Entra lure metadata (`LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`) into deployment and event metadata.
+- Applies rollout profile defaults for `MaxDeployments`, optional `WhatIf` default, and high-privilege role-assignment suppression.
 - Returns before/after coverage state, planned opportunities (including `LureTheme` and consent/CA hints), and deployment outcomes.
 
 ### Example
@@ -658,7 +667,7 @@ Loads effective runtime configuration from `config.json` (with fallback defaults
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `ConfigPath` | `String` | No | module `config.json` | Optional path to alternate config file. |
-| `Section` | `String` | No | full config | Returns only one section when specified. Allowed values: `RecyclingPreferences`, `SafetyFilters`, `DeploymentSettings`, `RankingWeights`, `AuditSettings`, `AdvancedOptions`, `InventorySettings`, `WindowsDeploymentSettings`, `TelemetrySettings`, `ElementRegistrySettings`. |
+| `Section` | `String` | No | full config | Returns only one section when specified. Allowed values: `RecyclingPreferences`, `SafetyFilters`, `DeploymentSettings`, `RankingWeights`, `AuditSettings`, `AdvancedOptions`, `InventorySettings`, `WindowsDeploymentSettings`, `TelemetrySettings`, `ElementRegistrySettings`, `RolloutProfiles`. |
 
 ### Output
 
@@ -668,6 +677,56 @@ Returns full config object or selected section object.
 
 ```powershell
 Get-F4keH0undConfig -Section InventorySettings
+```
+
+---
+
+## `Test-F4keH0undDrift`
+
+Performs lightweight drift checks for stale artifacts/templates and returns redesign recommendations.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `Source` | `String` | No | `Auto` | Inventory source: `Auto`, `Events`, `Reports`. |
+| `IncludeRemoved` | `Switch` | No | `false` | Includes removed entries when evaluating drift. |
+| `PreferSnapshot` | `Switch` | No | `false` | Events source: prefer snapshot before replay. |
+| `SkipLiveStatus` | `Switch` | No | lightweight mode (`true` unless explicitly set) | Controls AD live verification during inventory load. |
+| `Server` | `String` | No | — | Domain Controller for optional AD live status checks. |
+| `Credential` | `PSCredential` | No | — | Credentials for optional AD live status checks. |
+| `Platform` | `String[]` | No | all | Restricts drift checks to `AD`, `Entra`, or `Windows`. |
+| `MaxArtifactAgeDays` | `Int32` | No | `45` | Max age before non-token elements are flagged stale. |
+| `MaxTokenAgeDays` | `Int32` | No | `21` | Max age before token/identity decoys are flagged stale. |
+| `MinTriggerCountForRedesign` | `Int32` | No | `1` | Trigger count threshold for redesign/rotation recommendation. |
+| `IncludeCompliant` | `Switch` | No | `false` | Includes non-drifted rows in result output. |
+| `AsList` | `Switch` | No | `false` | Returns per-element drift rows instead of summary object. |
+
+### Drift Signals
+
+- Age threshold exceeded (`MaxArtifactAgeDays` / `MaxTokenAgeDays`)
+- Trigger-driven redesign recommendations
+- Missing Windows `TemplateData` / token `CanaryToken` metadata
+- Missing Entra lure metadata (`LureTheme`)
+
+### Output
+
+By default returns summary object with:
+
+- `TotalEvaluated`, `DriftedCount`
+- `DriftSeverityCounts`
+- threshold values used
+- `Findings` (detailed per-element drift rows)
+
+With `-AsList`, returns only row-level findings (sorted by highest `DriftScore`).
+
+### Example
+
+```powershell
+Test-F4keH0undDrift -Source Events -PreferSnapshot
+
+Test-F4keH0undDrift -Platform Windows -MaxTokenAgeDays 14 -AsList |
+    Format-Table Identity, DriftSeverity, DriftScore, RecommendedAction -AutoSize
 ```
 
 ---

@@ -37,6 +37,10 @@
 .PARAMETER Authentication
     WinRM authentication method.
 
+.PARAMETER RolloutProfile
+    Optional rollout profile (`Lab`, `Pilot`, `Production`) forwarded to
+    `New-F4keH0undElement`.
+
 .PARAMETER PassThru
     Returns deployed element records from `New-F4keH0undElement`.
 
@@ -80,8 +84,24 @@ function New-F4keH0undToken {
         [string]$Authentication,
 
         [Parameter()]
+        [ValidateSet('Lab', 'Pilot', 'Production')]
+        [string]$RolloutProfile,
+
+        [Parameter()]
         [switch]$PassThru
     )
+
+    $resolvedRolloutProfile = if ($PSBoundParameters.ContainsKey('RolloutProfile')) {
+        Get-PrivateF4keH0undRolloutProfile -Name $RolloutProfile
+    }
+    else {
+        Get-PrivateF4keH0undRolloutProfile
+    }
+
+    if ($resolvedRolloutProfile.DefaultWhatIf -and -not $PSBoundParameters.ContainsKey('WhatIf')) {
+        $WhatIfPreference = $true
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' enables WhatIf-by-default."
+    }
 
     $tokenTypeMap = @{
         IdentityBreadcrumb = 'IdentityBreadcrumbTokenDecoy'
@@ -125,6 +145,7 @@ function New-F4keH0undToken {
     if ($PSBoundParameters.ContainsKey('Port')) { $invokeParams['Port'] = $Port }
     if ($PSBoundParameters.ContainsKey('UseSSL')) { $invokeParams['UseSSL'] = $UseSSL }
     if ($PSBoundParameters.ContainsKey('Authentication')) { $invokeParams['Authentication'] = $Authentication }
+    if ($PSBoundParameters.ContainsKey('RolloutProfile')) { $invokeParams['RolloutProfile'] = $RolloutProfile }
     if ($PassThru) { $invokeParams['PassThru'] = $true }
 
     $targetSummary = (@($ComputerName | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }) -join ', ')
@@ -138,7 +159,7 @@ function New-F4keH0undToken {
         TokenType      = $TokenType
         ElementType    = $elementType
         Platform       = 'Windows'
+        RolloutProfile = [string]$resolvedRolloutProfile.Name
         Targets        = @($ComputerName)
     }
 }
-

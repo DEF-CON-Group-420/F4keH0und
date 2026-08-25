@@ -38,6 +38,10 @@
 .PARAMETER MaxDeployments
     Maximum number of Entra decoys to deploy in one run when `-Execute` is used.
 
+.PARAMETER RolloutProfile
+    Optional rollout profile (`Lab`, `Pilot`, `Production`) used to apply
+    Phase 5 deployment defaults.
+
 .PARAMETER Execute
     Applies the recommended Entra parity deployments.
 
@@ -109,6 +113,10 @@ function Sync-F4keH0undEntraParity {
         [int]$MaxDeployments = 5,
 
         [Parameter()]
+        [ValidateSet('Lab', 'Pilot', 'Production')]
+        [string]$RolloutProfile,
+
+        [Parameter()]
         [switch]$Execute,
 
         [Parameter()]
@@ -138,6 +146,22 @@ function Sync-F4keH0undEntraParity {
         [Parameter()]
         [switch]$PassThru
     )
+
+    $resolvedRolloutProfile = if ($PSBoundParameters.ContainsKey('RolloutProfile')) {
+        Get-PrivateF4keH0undRolloutProfile -Name $RolloutProfile
+    }
+    else {
+        Get-PrivateF4keH0undRolloutProfile
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('MaxDeployments')) {
+        $MaxDeployments = [int]$resolvedRolloutProfile.MaxEntraDeploymentsPerRun
+    }
+
+    if ($resolvedRolloutProfile.DefaultWhatIf -and -not $PSBoundParameters.ContainsKey('WhatIf')) {
+        $WhatIfPreference = $true
+        Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' enables WhatIf-by-default."
+    }
 
     $coverageParams = @{
         Source            = $Source
@@ -256,6 +280,7 @@ function Sync-F4keH0undEntraParity {
                 Family        = ($parityModel.DecoyTypes | Where-Object { $_.DecoyType -eq $selectedDecoyType } | Select-Object -First 1).Family
                 IdentityHint  = if ($_.RecyclableObject.DisplayName) { $_.RecyclableObject.DisplayName } else { $_.RecyclableObject.ObjectId }
                 Justification = $_.Justification
+                RolloutProfile = [string]$resolvedRolloutProfile.Name
                 LureTheme     = [string]$_.Template.LureTheme
                 ConsentScopeBait = [string]$_.Template.ConsentScopeBait
                 ConditionalAccessBypassHint = [string]$_.Template.ConditionalAccessBypassHint
@@ -289,7 +314,12 @@ function Sync-F4keH0undEntraParity {
                     ErrorAction      = 'Stop'
                 }
                 if ($opportunity.DecoyType -eq 'EntraServicePrincipalDecoy' -and $opportunity.Template.AssignHighPrivilegeRole) {
-                    $entraParams['AssignHighPrivilegeRole'] = $true
+                    if ($resolvedRolloutProfile.AllowHighPrivilegeRoleAssignment) {
+                        $entraParams['AssignHighPrivilegeRole'] = $true
+                    }
+                    else {
+                        Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' suppresses high-privilege role assignment for '$($opportunity.DecoyType)'."
+                    }
                 }
                 foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment')) {
                     $templateValue = $opportunity.Template.$templateKey
@@ -316,7 +346,11 @@ function Sync-F4keH0undEntraParity {
                 $eventMetadata = @{
                     OpportunityId = $opportunity.ID
                     Justification = $opportunity.Justification
+                    RolloutProfile = [string]$resolvedRolloutProfile.Name
                     SyncCommand   = $MyInvocation.MyCommand.Name
+                }
+                if ($opportunity.DecoyType -eq 'EntraServicePrincipalDecoy' -and $opportunity.Template.AssignHighPrivilegeRole -and -not $resolvedRolloutProfile.AllowHighPrivilegeRoleAssignment) {
+                    $eventMetadata['HighPrivilegeRoleSuppressed'] = $true
                 }
                 foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint')) {
                     $metadataValue = $opportunity.Template.$metadataKey
@@ -355,6 +389,7 @@ function Sync-F4keH0undEntraParity {
         Execute               = [bool]$Execute
         TargetParityRatio     = $TargetParityRatio
         MaxDeployments        = $MaxDeployments
+        RolloutProfile        = [string]$resolvedRolloutProfile.Name
         CoverageBefore        = $coverageBefore
         CoverageAfter         = $coverageAfter
         GapFamilies           = @($gapFamilies)

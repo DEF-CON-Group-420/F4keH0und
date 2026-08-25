@@ -169,8 +169,8 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - CI validation and doc/test refresh
 
 **Current implementation status:**
-- ⏳ Rollout profiles (`Lab`, `Pilot`, `Production`) not implemented yet
-- ⏳ Drift detection + redesign suggestions pending
+- ✅ Rollout profiles (`Lab`, `Pilot`, `Production`) implemented in config + command integration (`New-F4keH0undElement`, `New-F4keH0undToken`, `New-F4keH0undDecoy`, `Sync-F4keH0undEntraParity`)
+- ✅ Drift detection + redesign suggestions implemented (`Test-F4keH0undDrift`)
 - ⏳ Response playbook templates pending
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 
@@ -192,6 +192,4 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
-2. Add lightweight drift checks for stale artifact/token templates.
-3. Add response playbook templates for `High/Critical` token trigger severities.
+1. Add response playbook templates for `High/Critical` token trigger severities.

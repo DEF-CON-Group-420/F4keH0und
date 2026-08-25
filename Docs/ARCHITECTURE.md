@@ -63,15 +63,17 @@ F4keH0und/
 │   ├── Get-F4keH0undInventory.ps1          # Inventory interface — reads persistent events/reports and verifies live status
 │   ├── Add-F4keH0undRelationship.ps1       # ACL relationship writer for ACLAttackPath decoys
 │   ├── Remove-F4keH0undDecoy.ps1           # Lifecycle cleanup/removal command
+│   ├── Test-F4keH0undDrift.ps1             # Phase 5 drift detector + redesign recommendation engine
 │   └── Test-F4keH0undCoverage.ps1          # AD/Entra parity scoring and coverage matrix
 │
 └── Private/                                # Internal functions (not exported)
     ├── Find-F4keH0undRecyclableObject.ps1  # Recycling engine — staleness scoring and AD queries
     ├── Find-F4keH0undRecyclableEntraObject.ps1 # Recycling engine — stale Entra object discovery
     ├── Get-F4keH0undConfig.ps1             # Config reader — parses config.json with defaults
-    ├── Get-F4keH0undData.ps1               # BloodHound data loader — reads and normalizes JSON
-    ├── Get-F4keH0undElementTypeRegistry.ps1 # Loads/validates Windows element-type registry
-    ├── Get-F4keH0undParityModel.ps1        # Shared parity family/lifecycle capability model
+	    ├── Get-F4keH0undData.ps1               # BloodHound data loader — reads and normalizes JSON
+	    ├── Get-F4keH0undElementTypeRegistry.ps1 # Loads/validates Windows element-type registry
+	    ├── Get-F4keH0undRolloutProfile.ps1     # Phase 5 rollout-profile resolver and merge helper
+	    ├── Get-F4keH0undParityModel.ps1        # Shared parity family/lifecycle capability model
     ├── Get-F4keH0undRank.ps1               # Opportunity ranker — Critical / High / Low assignment
 	    ├── Manage-F4keH0undEntraLifecycle.ps1  # Entra lifecycle helpers (resolve/state/event context)
 	    ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
@@ -570,6 +572,7 @@ Phase 3 extends configuration with:
 - `TelemetrySettings` — default telemetry profile + source hints.
 - `TelemetrySettings.ConnectorPackPath` — telemetry connector preset pack path for SIEM/SOAR payload mapping.
 - `ElementRegistrySettings` — registry path + fallback behavior.
+- `RolloutProfiles` — Phase 5 rollout defaults (`Lab`, `Pilot`, `Production`) for WhatIf/throttle/deployment-cap behavior.
 
 These are present in both `config.json` and `config.example.json`, validated by `Test-F4keH0undConfig`, and consumed by lifecycle commands.
 
@@ -638,6 +641,27 @@ Connector behavior:
 2. Resolve identity/actor/host/evidence/token fields from mapped payload keys.
 3. Apply preset defaults for `TriggerType`, `TriggerSource`, `SignalCount`, and `Confidence`.
 4. Emit trigger event metadata with `ConnectorPreset` for downstream analysis.
+
+### 8.9 Phase 5 Rollout Profiles
+
+Phase 5 introduces profile-driven operational guardrails through `RolloutProfiles` config and `Get-PrivateF4keH0undRolloutProfile`.
+
+Current command integration:
+
+- `New-F4keH0undElement` and `New-F4keH0undToken` consume profile defaults for rollout throttle and optional WhatIf-by-default behavior.
+- `Sync-F4keH0undEntraParity` consumes profile defaults for `MaxDeployments`, optional WhatIf-by-default, and role-assignment suppression.
+- `New-F4keH0undDecoy` applies profile guardrails for Entra deployment count and high-privilege role-assignment handling.
+
+### 8.10 Phase 5 Drift Checks
+
+`Test-F4keH0undDrift` adds lightweight operations hardening for stale deceptive artifacts and token lures.
+
+Current behavior:
+
+- Reads inventory (`Auto`/`Events`/`Reports`) and defaults to lightweight mode (`SkipLiveStatus = true`) unless explicitly overridden.
+- Scores per-element drift using lifecycle age, trigger recurrence, alert severity, and metadata completeness checks.
+- Prioritizes identity/token families by applying stricter staleness thresholds and canary-presence checks.
+- Produces actionable redesign guidance (`RecommendedAction`, `SuggestedCommand`) for Windows, AD, and Entra element refresh workflows.
 
 ---
 
