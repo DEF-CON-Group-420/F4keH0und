@@ -103,6 +103,17 @@ function Get-PrivateF4keH0undDefaultElementTypeRegistry {
             TelemetryProfile = 'Windows-Identity-Token'
             Description     = 'Deploys fake credential note files and runbook snippets with canary usernames/password tokens.'
         }
+        [PSCustomObject]@{
+            TypeId          = 'CanaryTextTokenPackDecoy'
+            Family          = 'TokenTextBait'
+            Platforms       = @('Windows')
+            Capabilities    = @('Deploy', 'Update', 'Disable', 'Enable', 'Remove')
+            RiskLevel       = 'Low'
+            CostScore       = 1
+            DetectionScore  = 10
+            TelemetryProfile = 'Windows-Identity-Token'
+            Description     = 'Deploys low-cost script/config/docs canary text-token packs for high-confidence file-access detection.'
+        }
     )
 
     return [PSCustomObject]@{

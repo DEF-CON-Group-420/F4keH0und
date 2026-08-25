@@ -805,6 +805,13 @@ function Find-F4keH0undOpportunity {
                                         ServiceAccount = 'corp\svc_legacy_backup'
                                     }
                                 }
+                                'CanaryTextTokenPackDecoy' {
+                                    @{
+                                        RepositoryHint    = 'legacy-identity-automation'
+                                        IdentityOwnerHint = 'identity.ops@contoso.com'
+                                        GroupHint         = 'Identity-Engineering'
+                                    }
+                                }
                                 'ApiHookConfigDecoy' {
                                     @{
                                         ApiBaseUrl      = 'https://legacy-api.internal.corp'

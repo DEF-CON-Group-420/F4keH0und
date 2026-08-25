@@ -171,7 +171,12 @@ function Remove-F4keH0undElement {
                         DeploymentChannel = 'WinRM/PSRP'
                         TelemetryProfile  = $telemetryProfile
                         ArtifactRoot      = $artifactRoot
+                        ArtifactLocations = @($result.Locations)
                         PurgeTelemetryMap = [bool]$PurgeTelemetryMap
+                    }
+
+                    if ([string]$typeDefinition.Family -match 'Identity|Token|Credential') {
+                        $eventMetadata['TokenPathHints'] = @($result.Locations)
                     }
 
                     Write-F4keH0undInventoryEvent -Action 'Remove' -Identity $currentElementId -DecoyType ([string]$currentState.DecoyType) -Platform 'Windows' -ObjectType 'Element' -Status 'Removed' -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name

@@ -184,6 +184,24 @@ function Get-PrivateF4keH0undTokenCorrelationContext {
     $candidateValues = [System.Collections.Generic.List[string]]::new()
     $tokenLikePattern = '(?i)token|secret|password|key|credential'
 
+    $addCandidateValues = {
+        param(
+            [Parameter()]
+            [object]$InputValue
+        )
+
+        foreach ($candidateValue in @($InputValue)) {
+            if ($null -eq $candidateValue) {
+                continue
+            }
+
+            $candidateText = [string]$candidateValue
+            if (-not [string]::IsNullOrWhiteSpace($candidateText)) {
+                $candidateValues.Add($candidateText)
+            }
+        }
+    }
+
     $templateData = @{}
     if ($Metadata.ContainsKey('TemplateData')) {
         $templateData = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $Metadata['TemplateData']
@@ -196,10 +214,7 @@ function Get-PrivateF4keH0undTokenCorrelationContext {
                 $tokenKeys.Add($keyName)
             }
 
-            $value = [string]$templateData[$templateKey]
-            if (-not [string]::IsNullOrWhiteSpace($value)) {
-                $candidateValues.Add($value)
-            }
+            & $addCandidateValues -InputValue $templateData[$templateKey]
         }
     }
 
@@ -210,10 +225,7 @@ function Get-PrivateF4keH0undTokenCorrelationContext {
                 $tokenKeys.Add($keyName)
             }
 
-            $value = [string]$Metadata[$metadataKey]
-            if (-not [string]::IsNullOrWhiteSpace($value)) {
-                $candidateValues.Add($value)
-            }
+            & $addCandidateValues -InputValue $Metadata[$metadataKey]
         }
     }
 

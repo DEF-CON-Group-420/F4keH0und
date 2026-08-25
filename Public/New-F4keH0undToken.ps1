@@ -12,6 +12,7 @@
     - IdentityBreadcrumb : fake privileged identity breadcrumbs and canary IDs
     - CloudApiCanary     : fake OAuth/API token material and cloud env hints
     - CredentialFile     : fake credential notes and vault-export bait
+    - CanaryTextPack     : low-cost script/config/docs text-token canary pack
 
 .PARAMETER ComputerName
     One or more Windows hosts targeted over WinRM/PSRP.
@@ -49,13 +50,16 @@
 
 .EXAMPLE
     New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
+
+.EXAMPLE
+    New-F4keH0undToken -TokenType CanaryTextPack -ComputerName WIN-DEV-01 -Name "IdentityRepo-CanaryPack" -PassThru
 #>
 function New-F4keH0undToken {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     [OutputType([System.Object], [System.Object[]])]
     param(
         [Parameter()]
-        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile')]
+        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile', 'CanaryTextPack')]
         [string]$TokenType = 'IdentityBreadcrumb',
 
         [Parameter(Mandatory = $true)]
@@ -107,6 +111,7 @@ function New-F4keH0undToken {
         IdentityBreadcrumb = 'IdentityBreadcrumbTokenDecoy'
         CloudApiCanary     = 'CloudApiCanaryTokenDecoy'
         CredentialFile     = 'CredentialFileTokenDecoy'
+        CanaryTextPack     = 'CanaryTextTokenPackDecoy'
     }
 
     $elementType = [string]$tokenTypeMap[$TokenType]
@@ -120,8 +125,28 @@ function New-F4keH0undToken {
         $templateTable['CanaryToken'] = "fhlg-$($TokenType.ToLowerInvariant())-$([guid]::NewGuid().ToString('N').Substring(0,18))"
     }
 
+    if ($TokenType -eq 'CanaryTextPack') {
+        if (-not $templateTable.ContainsKey('RepositoryHint')) {
+            $templateTable['RepositoryHint'] = 'legacy-identity-automation'
+        }
+        if (-not $templateTable.ContainsKey('IdentityOwnerHint')) {
+            $templateTable['IdentityOwnerHint'] = 'identity.ops@contoso.com'
+        }
+        if (-not $templateTable.ContainsKey('GroupHint')) {
+            $templateTable['GroupHint'] = 'Identity-Engineering'
+        }
+    }
+
     $resolvedTags = [System.Collections.Generic.List[string]]::new()
-    foreach ($defaultTag in @('token', 'identity', 'phase4', "profile:$TokenType")) {
+    $defaultTokenTags = @('token', 'identity', "profile:$TokenType")
+    if ($TokenType -eq 'CanaryTextPack') {
+        $defaultTokenTags += @('phase5', 'text-token-pack')
+    }
+    else {
+        $defaultTokenTags += @('phase4')
+    }
+
+    foreach ($defaultTag in $defaultTokenTags) {
         if (-not [string]::IsNullOrWhiteSpace($defaultTag) -and -not $resolvedTags.Contains($defaultTag)) {
             $resolvedTags.Add($defaultTag)
         }

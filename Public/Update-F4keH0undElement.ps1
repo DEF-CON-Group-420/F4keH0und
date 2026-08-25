@@ -222,8 +222,17 @@ function Update-F4keH0undElement {
                         DeploymentChannel = 'WinRM/PSRP'
                         TelemetryProfile  = $telemetryProfile
                         ArtifactRoot      = $artifactRoot
+                        ArtifactLocations = @($result.Locations)
                         ThrottleLimit     = $ThrottleLimit
                         UpdatedByCommand  = $MyInvocation.MyCommand.Name
+                    }
+
+                    if ([string]$typeDefinition.Family -match 'Identity|Token|Credential') {
+                        $eventMetadata['TokenPathHints'] = @($result.Locations)
+                    }
+
+                    if ([string]$currentState.DecoyType -eq 'CanaryTextTokenPackDecoy') {
+                        $eventMetadata['CollectionHookPresets'] = @('CanaryTextPackSysmonFileCreate', 'CanaryTextPackSecurityObjectAccess')
                     }
 
                     Write-F4keH0undInventoryEvent -Action 'Update' -Identity $currentElementId -DecoyType ([string]$currentState.DecoyType) -Platform 'Windows' -ObjectType 'Element' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name

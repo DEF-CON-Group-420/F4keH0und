@@ -19,6 +19,36 @@
       }
     },
     {
+      "PresetId": "CanaryTextPackSysmonFileCreate",
+      "TriggerType": "FileAccess",
+      "TriggerSource": "Sysmon:EventID11",
+      "SignalCount": 2,
+      "Confidence": 89,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetIdentity", "RuleName"],
+        "Actor": ["User", "UserName", "SubjectUserName", "Image"],
+        "ComputerName": ["Computer", "ComputerName", "Host", "Hostname"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "TargetFilename", "ObjectName"]
+      }
+    },
+    {
+      "PresetId": "CanaryTextPackSecurityObjectAccess",
+      "TriggerType": "FileAccess",
+      "TriggerSource": "WindowsSecurity:EventID4663",
+      "SignalCount": 2,
+      "Confidence": 87,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetIdentity", "ObjectName"],
+        "Actor": ["SubjectUserName", "UserName", "AccountName", "ProcessName"],
+        "ComputerName": ["Computer", "ComputerName", "Host", "Hostname"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "ObjectName", "TargetFilename"]
+      }
+    },
+    {
       "PresetId": "SysmonEvent3NetworkConnect",
       "TriggerType": "ApiAuth",
       "TriggerSource": "Sysmon:EventID3",

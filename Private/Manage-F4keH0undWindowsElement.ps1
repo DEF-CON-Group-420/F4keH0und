@@ -302,6 +302,77 @@ LegacySQL,$(if ($TemplateData['ServiceAccount']) { [string]$TemplateData['Servic
             )
         }
 
+        'CanaryTextTokenPackDecoy' {
+            $baseCanaryToken = if ($TemplateData['CanaryToken']) {
+                [string]$TemplateData['CanaryToken']
+            }
+            else {
+                "fhlg-texttoken-$([guid]::NewGuid().ToString('N').Substring(0,20))"
+            }
+
+            $scriptCanaryToken = if ($TemplateData['ScriptCanaryToken']) {
+                [string]$TemplateData['ScriptCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-script"
+            }
+
+            $configCanaryToken = if ($TemplateData['ConfigCanaryToken']) {
+                [string]$TemplateData['ConfigCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-config"
+            }
+
+            $docsCanaryToken = if ($TemplateData['DocsCanaryToken']) {
+                [string]$TemplateData['DocsCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-docs"
+            }
+
+            return @(
+                [PSCustomObject]@{
+                    RelativePath = "scripts/$safeName-maintenance.decoy.ps1"
+                    Content      = @"
+# $ElementName - Legacy Maintenance Helper
+# GeneratedAtUtc: $generatedUtc
+
+`$RepositoryHint = "$(if ($TemplateData['RepositoryHint']) { [string]$TemplateData['RepositoryHint'] } else { 'legacy-identity-automation' })"
+`$IdentityOwnerHint = "$(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' })"
+`$GroupHint = "$(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Engineering' })"
+`$CanaryToken = "$scriptCanaryToken"
+
+Write-Output "Repository=`$RepositoryHint Owner=`$IdentityOwnerHint Group=`$GroupHint Token=`$CanaryToken"
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "config/$safeName-legacy.settings.decoy.json"
+                    Content      = (@{
+                            Name               = $ElementName
+                            RepositoryHint     = if ($TemplateData['RepositoryHint']) { [string]$TemplateData['RepositoryHint'] } else { 'legacy-identity-automation' }
+                            IdentityOwnerHint  = if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' }
+                            GroupHint          = if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Engineering' }
+                            CanaryTextToken    = $configCanaryToken
+                            GeneratedAtUtc     = $generatedUtc
+                        } | ConvertTo-Json -Depth 6)
+                }
+                [PSCustomObject]@{
+                    RelativePath = "docs/$safeName-operator-runbook.decoy.md"
+                    Content      = @"
+# $ElementName - Legacy Operator Notes
+
+- Repository: $(if ($TemplateData['RepositoryHint']) { [string]$TemplateData['RepositoryHint'] } else { 'legacy-identity-automation' })
+- Owner: $(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' })
+- Group: $(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Engineering' })
+- CanaryToken: $docsCanaryToken
+
+GeneratedAtUtc: $generatedUtc
+"@
+                }
+            )
+        }
+
         default {
             throw "Unsupported ElementType '$ElementType'."
         }

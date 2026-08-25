@@ -173,6 +173,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Drift detection + redesign suggestions implemented (`Test-F4keH0undDrift`)
 - ✅ Response playbook templates implemented (`Docs/RESPONSE-PLAYBOOKS.md` + `scripts/New-TokenTriggerResponsePlaybook.ps1`)
 - ✅ Low-cost identity-attribute lure expansion implemented (display-name/department/title/company/office/location + owner/group hints in AD/Entra/Windows templates)
+- ✅ Canary text-token packs implemented for scripts/config/docs with lightweight connector hooks (`CanaryTextTokenPackDecoy`, `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`)
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 
 ---
@@ -180,7 +181,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 ## 5) Low-Cost / High-Efficiency Feature Backlog (Prioritized)
 
 1. ✅ **Decoy identity attributes** (display names, descriptions, group hints)
-2. **Canary text tokens** in scripts/config/docs repositories
+2. ✅ **Canary text tokens** in scripts/config/docs repositories
 3. **Fake service credentials** in vault-like paths with monitoring
 4. **Decoy OAuth app metadata** (unused but attractive permissions)
 5. **Honey SPN + constrained role lure combinations**
@@ -193,4 +194,4 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Implement canary text-token packs for scripts/config/docs repositories with low-cost collection hooks.
+1. Expand fake service-credential packs in vault-like paths with matching low-cost monitoring hooks.

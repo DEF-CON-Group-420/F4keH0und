@@ -169,6 +169,11 @@ function Enable-F4keH0undElement {
                         DeploymentChannel = 'WinRM/PSRP'
                         TelemetryProfile  = $telemetryProfile
                         ArtifactRoot      = $artifactRoot
+                        ArtifactLocations = @($result.Locations)
+                    }
+
+                    if ([string]$typeDefinition.Family -match 'Identity|Token|Credential') {
+                        $eventMetadata['TokenPathHints'] = @($result.Locations)
                     }
 
                     Write-F4keH0undInventoryEvent -Action 'Enable' -Identity $currentElementId -DecoyType ([string]$currentState.DecoyType) -Platform 'Windows' -ObjectType 'Element' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name

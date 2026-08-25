@@ -221,7 +221,7 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
-| `TokenType` | `String` | No | `IdentityBreadcrumb` | Token profile: `IdentityBreadcrumb`, `CloudApiCanary`, `CredentialFile`. |
+| `TokenType` | `String` | No | `IdentityBreadcrumb` | Token profile: `IdentityBreadcrumb`, `CloudApiCanary`, `CredentialFile`, `CanaryTextPack`. |
 | `ComputerName` | `String[]` | Yes | — | Windows target hosts. |
 | `Name` | `String` | No | generated | Logical package name for rendered artifacts. |
 | `TemplateData` | `IDictionary` | No | `{}` | Optional token payload template fields. |
@@ -239,7 +239,9 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
   - `IdentityBreadcrumb` → `IdentityBreadcrumbTokenDecoy`
   - `CloudApiCanary` → `CloudApiCanaryTokenDecoy`
   - `CredentialFile` → `CredentialFileTokenDecoy`
+  - `CanaryTextPack` → `CanaryTextTokenPackDecoy`
 - Auto-generates a canary token value when none is supplied.
+- `CanaryTextPack` adds low-cost script/config/docs text-token artifacts and default collection-hook tags.
 - Uses `New-F4keH0undElement` under the hood and preserves lifecycle coverage.
 - Supports rollout profile controls through the underlying element deployment command.
 
@@ -248,6 +250,7 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
 ```powershell
 New-F4keH0undToken -TokenType IdentityBreadcrumb -ComputerName WIN-APP-01 -WhatIf
 New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
+New-F4keH0undToken -TokenType CanaryTextPack -ComputerName WIN-DEV-01 -Name "IdentityRepo-CanaryPack" -PassThru
 ```
 
 ---
@@ -261,7 +264,7 @@ Records token/identity trigger telemetry in persistent inventory and updates cor
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `Identity` | `String[]` | No | — | Inventory identity to correlate (element ID or decoy identity). Optional when connector payload contains mapped identity fields. |
-| `ConnectorPreset` | `String` | No | — | Telemetry connector preset ID (`SysmonEvent11FileCreate`, `SysmonEvent3NetworkConnect`, `WindowsSecurity4624Logon`, `WindowsSecurity4663ObjectAccess`, `WindowsSecurity4688ProcessCreate`). Must be paired with `TelemetryPayload`. |
+| `ConnectorPreset` | `String` | No | — | Telemetry connector preset ID (`SysmonEvent11FileCreate`, `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`, `SysmonEvent3NetworkConnect`, `WindowsSecurity4624Logon`, `WindowsSecurity4663ObjectAccess`, `WindowsSecurity4688ProcessCreate`). Must be paired with `TelemetryPayload`. |
 | `TelemetryPayload` | `Object` | No | — | Raw SIEM/SOAR telemetry object (hashtable/PSObject) used by `ConnectorPreset` mapping. |
 | `DecoyType` | `String` | No | from inventory | Optional decoy/element type override. |
 | `Platform` | `String` | No | from inventory/`Windows` | Optional platform override (`AD`, `Entra`, `Windows`). |
@@ -283,6 +286,7 @@ Records token/identity trigger telemetry in persistent inventory and updates cor
 - Connector mode requires both `ConnectorPreset` and `TelemetryPayload`.
 - Connector presets are loaded from `TelemetrySettings.ConnectorPackPath` (`./telemetry-connectors.windows.json` by default), with built-in fallback presets.
 - Writes inventory event with `Action = Trigger`.
+- If connector payload omits explicit identity, command can resolve identity using inventory artifact location hints (`ArtifactLocations`/`TokenPathHints`).
 - Correlates `TokenIdentifier` against known token fingerprints when available.
 - Updates inventory trigger fields (`TriggerCount`, `LastTriggeredAt`, `TokenCorrelationStatus`).
 - Updates alert model output (`AlertScore`, `AlertSeverity`, `AlertReasons`).
@@ -294,6 +298,7 @@ Records token/identity trigger telemetry in persistent inventory and updates cor
 Register-F4keH0undTokenTrigger -Identity fhlg-win-cloudapicanarytokendecoy-a1b2c3d4e5f6 -TriggerType ApiAuth -TriggerSource 'Sysmon:EventID3' -SignalCount 3 -Confidence 90
 Register-F4keH0undTokenTrigger -Identity svc_legacy_sync -Platform AD -ObjectType User -TriggerType CredentialUse -TokenValue 'decoy-passphrase' -PassThru
 Register-F4keH0undTokenTrigger -ConnectorPreset SysmonEvent11FileCreate -TelemetryPayload @{ Identity = 'fhlg-win-identitybreadcrumbtokendecoy-a1b2c3d4e5f6'; User = 'CORP\j.smith'; Computer = 'WIN-APP-01'; EventRecordId = '42755'; TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\identity\notes.txt' } -PassThru
+Register-F4keH0undTokenTrigger -ConnectorPreset CanaryTextPackSysmonFileCreate -TelemetryPayload @{ TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-canarytexttokenpackdecoy-a1b2c3d4e5f6\docs\IdentityRepo-CanaryPack-operator-runbook.decoy.md'; User = 'CORP\j.smith'; Computer = 'WIN-DEV-01'; EventRecordId = 'sysmon-22007' } -PassThru
 ```
 
 ---

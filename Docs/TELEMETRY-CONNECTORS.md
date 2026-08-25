@@ -29,6 +29,8 @@ Register-F4keH0undTokenTrigger -ConnectorPreset <PresetId> -TelemetryPayload <Ob
 | Preset ID | Source | TriggerType | TriggerSource | Default SignalCount | Default Confidence |
 |---|---|---|---|---:|---:|
 | `SysmonEvent11FileCreate` | Sysmon Event ID 11 | `FileAccess` | `Sysmon:EventID11` | 2 | 86 |
+| `CanaryTextPackSysmonFileCreate` | Sysmon Event ID 11 (text-pack tuned) | `FileAccess` | `Sysmon:EventID11` | 2 | 89 |
+| `CanaryTextPackSecurityObjectAccess` | Security Event ID 4663 (text-pack tuned) | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 87 |
 | `SysmonEvent3NetworkConnect` | Sysmon Event ID 3 | `ApiAuth` | `Sysmon:EventID3` | 3 | 90 |
 | `WindowsSecurity4624Logon` | Security Event ID 4624 | `CredentialUse` | `WindowsSecurity:EventID4624` | 2 | 84 |
 | `WindowsSecurity4663ObjectAccess` | Security Event ID 4663 | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 82 |
@@ -54,6 +56,7 @@ Resolution rules:
 2. Dot notation is supported for nested objects (for example `Event.System.Computer`).
 3. `SignalCount` and `Confidence` can be overridden by payload keys of the same name.
 4. Command-line parameters always take precedence over mapped values.
+5. If no `Identity` is mapped, trigger ingestion can resolve identity from inventory artifact path hints (`ArtifactLocations` / `TokenPathHints`).
 
 Token handling:
 
@@ -78,6 +81,19 @@ Register-F4keH0undTokenTrigger `
     -TelemetryPayload $event `
     -PassThru |
     Format-List Identity, LastTriggerType, LastTriggerSource, AlertScore, AlertSeverity
+
+$textPackEvent = @{
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-canarytexttokenpackdecoy-a1b2c3d4e5f6\docs\IdentityRepo-CanaryPack-operator-runbook.decoy.md"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-DEV-01"
+    EventRecordId  = "sysmon-22007"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset CanaryTextPackSysmonFileCreate `
+    -TelemetryPayload $textPackEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertSeverity
 ```
 
 ---

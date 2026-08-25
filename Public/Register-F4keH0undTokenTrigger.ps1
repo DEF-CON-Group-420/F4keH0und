@@ -13,7 +13,9 @@
     Inventory identity (for example element ID or decoy identity) to correlate.
 
     Optional when `-ConnectorPreset` and `-TelemetryPayload` are provided and
-    the payload contains a mapped identity field.
+    the payload contains a mapped identity field. If connector payload includes
+    file/object paths, identities can also be resolved from inventory artifact
+    location hints.
 
 .PARAMETER ConnectorPreset
     Optional telemetry connector preset ID used to normalize SIEM/SOAR payloads
@@ -183,6 +185,91 @@ function Register-F4keH0undTokenTrigger {
                 $identityValue = [string]$identityText
                 if (-not [string]::IsNullOrWhiteSpace($identityValue) -and -not $effectiveIdentities.Contains($identityValue)) {
                     $effectiveIdentities.Add($identityValue)
+                }
+            }
+        }
+
+        if ($effectiveIdentities.Count -eq 0 -and $null -ne $connectorContext) {
+            $normalizeLookupText = {
+                param(
+                    [Parameter()]
+                    [string]$Value
+                )
+
+                if ([string]::IsNullOrWhiteSpace($Value)) {
+                    return $null
+                }
+
+                return ($Value.Trim().ToLowerInvariant() -replace '/', '\\')
+            }
+
+            $lookupValues = [System.Collections.Generic.List[string]]::new()
+            foreach ($lookupCandidate in @($connectorContext.TokenIdentifier, $connectorContext.EvidenceRef)) {
+                $lookupText = & $normalizeLookupText -Value ([string]$lookupCandidate)
+                if (-not [string]::IsNullOrWhiteSpace($lookupText) -and $lookupText.Length -ge 8 -and -not $lookupValues.Contains($lookupText)) {
+                    $lookupValues.Add($lookupText)
+                }
+            }
+
+            if ($PSBoundParameters.ContainsKey('TelemetryPayload') -and $null -ne $TelemetryPayload) {
+                foreach ($pathCandidate in @('TargetFilename', 'ObjectName', 'FilePath', 'Path')) {
+                    $payloadValue = [string](Get-PrivateF4keH0undTelemetryMappedValue -Payload $TelemetryPayload -PathCandidates @($pathCandidate))
+                    $lookupText = & $normalizeLookupText -Value $payloadValue
+                    if (-not [string]::IsNullOrWhiteSpace($lookupText) -and $lookupText.Length -ge 8 -and -not $lookupValues.Contains($lookupText)) {
+                        $lookupValues.Add($lookupText)
+                    }
+                }
+            }
+
+            if ($lookupValues.Count -gt 0) {
+                foreach ($inventoryRow in @($inventoryState)) {
+                    $rowIdentity = [string]$inventoryRow.Identity
+                    if ([string]::IsNullOrWhiteSpace($rowIdentity)) {
+                        continue
+                    }
+
+                    $locationHints = [System.Collections.Generic.List[string]]::new()
+
+                    $primaryLocation = & $normalizeLookupText -Value ([string]$inventoryRow.Location)
+                    if (-not [string]::IsNullOrWhiteSpace($primaryLocation) -and -not $locationHints.Contains($primaryLocation)) {
+                        $locationHints.Add($primaryLocation)
+                    }
+
+                    $rowMetadata = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $inventoryRow.Metadata
+                    foreach ($metadataLocation in @($rowMetadata['ArtifactLocations'])) {
+                        $locationValue = & $normalizeLookupText -Value ([string]$metadataLocation)
+                        if (-not [string]::IsNullOrWhiteSpace($locationValue) -and -not $locationHints.Contains($locationValue)) {
+                            $locationHints.Add($locationValue)
+                        }
+                    }
+                    foreach ($metadataLocation in @($rowMetadata['TokenPathHints'])) {
+                        $locationValue = & $normalizeLookupText -Value ([string]$metadataLocation)
+                        if (-not [string]::IsNullOrWhiteSpace($locationValue) -and -not $locationHints.Contains($locationValue)) {
+                            $locationHints.Add($locationValue)
+                        }
+                    }
+
+                    $matchedByPath = $false
+                    foreach ($lookupValue in @($lookupValues)) {
+                        foreach ($locationHint in @($locationHints)) {
+                            if ($lookupValue -eq $locationHint -or $lookupValue -like "*$locationHint*" -or $locationHint -like "*$lookupValue*") {
+                                $matchedByPath = $true
+                                break
+                            }
+                        }
+
+                        if ($matchedByPath) {
+                            break
+                        }
+                    }
+
+                    if ($matchedByPath -and -not $effectiveIdentities.Contains($rowIdentity)) {
+                        $effectiveIdentities.Add($rowIdentity)
+                    }
+                }
+
+                if ($effectiveIdentities.Count -gt 0) {
+                    Write-Verbose "[$($MyInvocation.MyCommand)] - Resolved identities by artifact location hints from telemetry payload."
                 }
             }
         }

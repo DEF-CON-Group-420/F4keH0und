@@ -197,9 +197,18 @@ function New-F4keH0undElement {
                 DeploymentChannel = 'WinRM/PSRP'
                 TelemetryProfile  = $telemetryProfile
                 ArtifactRoot      = $ArtifactRoot
+                ArtifactLocations = @($result.Locations)
                 ThrottleLimit     = $ThrottleLimit
                 RolloutProfile    = [string]$resolvedRolloutProfile.Name
                 AuditLogPath      = $AuditLogPath
+            }
+
+            if ([string]$typeDefinition.Family -match 'Identity|Token|Credential') {
+                $eventMetadata['TokenPathHints'] = @($result.Locations)
+            }
+
+            if ([string]$ElementType -eq 'CanaryTextTokenPackDecoy') {
+                $eventMetadata['CollectionHookPresets'] = @('CanaryTextPackSysmonFileCreate', 'CanaryTextPackSecurityObjectAccess')
             }
 
             Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $elementId -DecoyType $ElementType -Platform 'Windows' -ObjectType 'Element' -Strategy 'Create' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name

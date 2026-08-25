@@ -630,6 +630,8 @@ Phase 4 adds preset-based telemetry normalization so SIEM/SOAR events can feed d
 Default preset set:
 
 - `SysmonEvent11FileCreate`
+- `CanaryTextPackSysmonFileCreate`
+- `CanaryTextPackSecurityObjectAccess`
 - `SysmonEvent3NetworkConnect`
 - `WindowsSecurity4624Logon`
 - `WindowsSecurity4663ObjectAccess`
@@ -641,6 +643,7 @@ Connector behavior:
 2. Resolve identity/actor/host/evidence/token fields from mapped payload keys.
 3. Apply preset defaults for `TriggerType`, `TriggerSource`, `SignalCount`, and `Confidence`.
 4. Emit trigger event metadata with `ConnectorPreset` for downstream analysis.
+5. If identity is missing, trigger ingestion can resolve identity from artifact location hints stored in inventory metadata.
 
 ### 8.9 Phase 5 Rollout Profiles
 
@@ -684,6 +687,18 @@ Current behavior:
 - Entra lifecycle (`Set-PrivateEntraDecoyPrincipal`) supports persona office-location and owner/group hint metadata appended to notes context.
 - Windows identity token artifacts include low-cost identity-context fields (`RoleTitle`, `Department`, `GroupHint`, `IdentityOwnerHint`) in rendered decoy files.
 - Inventory events persist these template hints as metadata for downstream triage and redesign workflows.
+
+### 8.13 Canary Text-Token Packs
+
+Phase 5 adds low-cost repository-adjacent token canary packs for scripts/config/docs deception.
+
+Current behavior:
+
+- `New-F4keH0undToken -TokenType CanaryTextPack` maps to `CanaryTextTokenPackDecoy`.
+- Windows artifact templates now render three bait planes per element (`scripts`, `config`, `docs`) with embedded canary text tokens.
+- Inventory metadata now stores `ArtifactLocations` and token-path hints to support lightweight file-path-based trigger correlation.
+- Trigger ingestion can auto-resolve identities from artifact path hints when connector payloads omit explicit `Identity`.
+- New telemetry connector presets target this pack directly: `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`.
 
 ---
 

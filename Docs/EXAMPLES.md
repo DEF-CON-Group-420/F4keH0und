@@ -30,6 +30,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 22. [Phase 5 Drift Checks](#22-phase-5-drift-checks)
 23. [Phase 5 Response Playbooks](#23-phase-5-response-playbooks)
 24. [Identity-Attribute Lure Expansion](#24-identity-attribute-lure-expansion)
+25. [Canary Text-Token Packs](#25-canary-text-token-packs)
 
 ---
 
@@ -931,6 +932,53 @@ New-F4keH0undDecoy -BloodHoundPath "C:\BH_Data\" -Execute -PreferRecycling -What
 
 Get-F4keH0undInventory -Source Events -Platform AD -SkipLiveStatus |
     Select-Object -First 10 Identity, DecoyType, Status, Metadata
+```
+
+---
+
+## 25. Canary Text-Token Packs
+
+Deploy low-cost script/config/docs canary packs and register lightweight file-access triggers using the dedicated connector presets.
+
+```powershell
+# 1) Deploy canary text-token pack to repository-adjacent Windows hosts
+$pack = New-F4keH0undToken `
+    -TokenType CanaryTextPack `
+    -ComputerName "WIN-DEV-01" `
+    -Name "IdentityRepo-CanaryPack" `
+    -TemplateData @{
+        RepositoryHint   = "legacy-identity-automation"
+        IdentityOwnerHint = "identity.ops@contoso.com"
+        GroupHint         = "Identity-Engineering"
+    } `
+    -PassThru
+
+$pack | Format-Table ElementId, ElementType, ComputerName, BasePath, Status -AutoSize
+$packRecord = @($pack)[0]
+
+# 2) Simulate Sysmon file-create telemetry (identity resolved by artifact path hints)
+$sysmonFileEvent = @{
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\$($packRecord.ElementId)\docs\IdentityRepo-CanaryPack-operator-runbook.decoy.md"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-DEV-01"
+    EventRecordId  = "sysmon-22007"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset CanaryTextPackSysmonFileCreate `
+    -TelemetryPayload $sysmonFileEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertScore, AlertSeverity
+
+# 3) Triage highest-confidence triggered token elements
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily TokenTextBait,IdentityTokenBait,CloudTokenBait,CredentialBait `
+    -AlertSeverity High,Critical `
+    -SkipLiveStatus |
+    Sort-Object AlertScore -Descending |
+    Select-Object Identity, DecoyType, Status, LastTriggerSource, AlertScore, AlertSeverity
 ```
 
 ---
