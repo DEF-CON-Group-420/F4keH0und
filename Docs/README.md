@@ -14,6 +14,7 @@ All project documentation (except the main `README.md`) is stored in the `Docs/`
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Module internals, data-flow diagrams, design decisions, extension points.
 - [EXAMPLES.md](EXAMPLES.md) — End-to-end deployment and operations examples.
+- [RESPONSE-PLAYBOOKS.md](RESPONSE-PLAYBOOKS.md) — High/Critical token-trigger incident response templates and workflow.
 - [TELEMETRY-CONNECTORS.md](TELEMETRY-CONNECTORS.md) — SIEM/SOAR connector preset model and payload mapping.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution workflow and standards.
 - [LAST-GENERATION-ROADMAP.md](LAST-GENERATION-ROADMAP.md) — Strategic phased plan.

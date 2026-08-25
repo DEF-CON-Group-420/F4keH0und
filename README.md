@@ -104,6 +104,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Lifecycle Controls**: `New-`, `Get-`, `Update-`, `Disable-`, `Enable-`, and `Remove-` workflows support full decoy lifecycle operations.
 - **Inventory Interface**: `Get-F4keH0undInventory` provides a consolidated view of deployed deceptive elements and status.
 - **Phase 5 Drift Ops**: `Test-F4keH0undDrift` flags stale token/artifact templates and suggests redesign commands.
+- **Response Playbooks**: High/Critical token-trigger response templates support consistent SOC triage and containment.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
 - **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
 - **Automated Reporting**: Generates CSV handover reports for SecOps and purple-team operations.
@@ -629,7 +630,8 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/README.md](Docs/README.md) | Documentation index and documentation maintenance policy |
 | [Docs/COMMAND-REFERENCE.md](Docs/COMMAND-REFERENCE.md) | Detailed command reference for every exported command, including parameters and behavior |
 | [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
-| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 22 complete deployment scenarios with annotated commands |
+| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 23 complete deployment scenarios with annotated commands |
+| [Docs/RESPONSE-PLAYBOOKS.md](Docs/RESPONSE-PLAYBOOKS.md) | High/Critical token-trigger response templates with containment and recovery workflows |
 | [Docs/TELEMETRY-CONNECTORS.md](Docs/TELEMETRY-CONNECTORS.md) | SIEM/SOAR connector preset catalog and payload mapping guide |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
 | [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |

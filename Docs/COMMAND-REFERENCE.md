@@ -814,6 +814,31 @@ Example:
 ./Reinstall-F4keH0und.ps1 -PullLatest
 ```
 
+### `scripts/New-TokenTriggerResponsePlaybook.ps1`
+
+Repository utility script that generates markdown response playbook templates for `High` or `Critical` token-trigger incidents using current inventory context.
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `AlertSeverity` | `String` | No | `High` | Severity profile (`High`, `Critical`). |
+| `Identity` | `String[]` | No | — | Optional identity filter for focused playbook generation. |
+| `Source` | `String` | No | `Auto` | Inventory source: `Auto`, `Events`, `Reports`. |
+| `IncludeRemoved` | `Switch` | No | `false` | Includes removed lifecycle entries in events inventory. |
+| `PreferSnapshot` | `Switch` | No | `false` | Events source: prefer snapshot cache before replay. |
+| `SkipLiveStatus` | `Switch` | No | lightweight mode | Controls AD live checks (`true` by default unless explicitly passed). |
+| `Server` | `String` | No | — | Domain Controller for optional AD live checks. |
+| `Credential` | `PSCredential` | No | — | Credentials for optional AD live checks. |
+| `MaxFindings` | `Int32` | No | `25` | Maximum matching findings included in the generated playbook. |
+| `OutputPath` | `String` | No | `Docs/Playbooks/...` | Optional explicit markdown output path. |
+
+Examples:
+
+```powershell
+./scripts/New-TokenTriggerResponsePlaybook.ps1 -AlertSeverity High
+
+./scripts/New-TokenTriggerResponsePlaybook.ps1 -AlertSeverity Critical -Source Events -PreferSnapshot -MaxFindings 15
+```
+
 ---
 
 ## Quick Discovery Commands

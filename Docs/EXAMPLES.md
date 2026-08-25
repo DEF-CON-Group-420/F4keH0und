@@ -28,6 +28,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 20. [Telemetry Connector Presets (SIEM/SOAR)](#20-telemetry-connector-presets-siemsoar)
 21. [Phase 5 Rollout Profiles](#21-phase-5-rollout-profiles)
 22. [Phase 5 Drift Checks](#22-phase-5-drift-checks)
+23. [Phase 5 Response Playbooks](#23-phase-5-response-playbooks)
 
 ---
 
@@ -882,6 +883,29 @@ Test-F4keH0undDrift `
     -AsList |
     Where-Object { $_.Drifted -and $_.DecoyType -match 'Token|Credential|Identity' } |
     Select-Object Identity, DriftReasons, SuggestedCommand
+```
+
+---
+
+## 23. Phase 5 Response Playbooks
+
+Generate a severity-specific incident playbook from current inventory and drift context.
+
+```powershell
+# Generate High-severity token-trigger response playbook
+./scripts/New-TokenTriggerResponsePlaybook.ps1 -AlertSeverity High
+
+# Generate Critical playbook with Events inventory focus
+./scripts/New-TokenTriggerResponsePlaybook.ps1 `
+    -AlertSeverity Critical `
+    -Source Events `
+    -PreferSnapshot `
+    -MaxFindings 15
+
+# Generate focused playbook for one identity
+./scripts/New-TokenTriggerResponsePlaybook.ps1 `
+    -AlertSeverity Critical `
+    -Identity fhlg-win-cloudapicanarytokendecoy-a1b2c3d4e5f6
 ```
 
 ---

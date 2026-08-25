@@ -663,6 +663,16 @@ Current behavior:
 - Prioritizes identity/token families by applying stricter staleness thresholds and canary-presence checks.
 - Produces actionable redesign guidance (`RecommendedAction`, `SuggestedCommand`) for Windows, AD, and Entra element refresh workflows.
 
+### 8.11 Phase 5 Response Playbooks
+
+Phase 5 response operations add a reusable playbook layer for token-trigger incidents.
+
+Components:
+
+- `Docs/RESPONSE-PLAYBOOKS.md` provides canonical High/Critical incident templates.
+- `scripts/New-TokenTriggerResponsePlaybook.ps1` generates incident-specific markdown playbooks from inventory context.
+- Generated playbooks can enrich findings with drift-driven redesign recommendations (`Test-F4keH0undDrift`).
+
 ---
 
 ## See Also
