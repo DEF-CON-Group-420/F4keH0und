@@ -31,7 +31,7 @@ git push origin main
    git checkout -b feature/my-new-feature
    ```
 2. Follow the [Extending F4keH0und](../README.md#-extending-f4keh0und) guide when adding new detection or decoy types.
-3. Update the relevant files in `Docs/` for every code or behavior change.
+3. Update the relevant files in `Docs/` for every code or behavior change (including `COMMAND-REFERENCE.md` when command parameters/behavior change).
 4. Ensure your PowerShell code passes [PSScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer) before submitting:
    ```powershell
    Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser

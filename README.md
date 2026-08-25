@@ -591,6 +591,7 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 |----------|-------------|
 | [README.md](README.md) | This file — overview, quick start, feature reference |
 | [Docs/README.md](Docs/README.md) | Documentation index and documentation maintenance policy |
+| [Docs/COMMAND-REFERENCE.md](Docs/COMMAND-REFERENCE.md) | Detailed command reference for every exported command, including parameters and behavior |
 | [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
 | [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 10+ complete deployment scenarios with annotated commands |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
