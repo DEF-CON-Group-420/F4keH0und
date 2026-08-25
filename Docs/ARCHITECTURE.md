@@ -632,6 +632,8 @@ Default preset set:
 - `SysmonEvent11FileCreate`
 - `CanaryTextPackSysmonFileCreate`
 - `CanaryTextPackSecurityObjectAccess`
+- `ServiceCredentialPackSysmonFileCreate`
+- `ServiceCredentialPackSecurityObjectAccess`
 - `SysmonEvent3NetworkConnect`
 - `WindowsSecurity4624Logon`
 - `WindowsSecurity4663ObjectAccess`
@@ -699,6 +701,18 @@ Current behavior:
 - Inventory metadata now stores `ArtifactLocations` and token-path hints to support lightweight file-path-based trigger correlation.
 - Trigger ingestion can auto-resolve identities from artifact path hints when connector payloads omit explicit `Identity`.
 - New telemetry connector presets target this pack directly: `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`.
+
+### 8.14 Service Credential Packs
+
+Phase 5 expands low-cost credential deception with vault-like service credential packs.
+
+Current behavior:
+
+- `New-F4keH0undToken -TokenType ServiceCredentialPack` maps to `ServiceCredentialPackDecoy`.
+- Windows artifact templates render vault and runbook planes (`vault/<name>/service-credentials.decoy.json`, `vault/<name>/rotation-queue.decoy.csv`, `runbooks/<name>-vault-access.decoy.txt`).
+- Template defaults prioritize identity/token cues (`ServiceName`, `ServiceAccount`, `SecretReference`, `VaultPath`, `IdentityOwnerHint`, `GroupHint`) without requiring high-cost infrastructure.
+- Deploy/update inventory events persist `CollectionHookPresets` for low-cost monitoring (`ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`).
+- Opportunity ranking now includes this family as a high-efficiency Windows artifact candidate (`ServiceCredentialBait`).
 
 ---
 

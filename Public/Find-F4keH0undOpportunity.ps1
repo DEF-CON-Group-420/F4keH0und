@@ -805,6 +805,16 @@ function Find-F4keH0undOpportunity {
                                         ServiceAccount = 'corp\svc_legacy_backup'
                                     }
                                 }
+                                'ServiceCredentialPackDecoy' {
+                                    @{
+                                        ServiceName       = 'LegacyIdentitySync'
+                                        ServiceAccount    = 'corp\svc_identity_sync'
+                                        SecretReference   = 'kv://prod/legacy/identity-sync'
+                                        VaultPath         = 'C:\ProgramData\VaultCache\legacy-identity-sync'
+                                        IdentityOwnerHint = 'identity.ops@contoso.com'
+                                        GroupHint         = 'Identity-Engineering'
+                                    }
+                                }
                                 'CanaryTextTokenPackDecoy' {
                                     @{
                                         RepositoryHint    = 'legacy-identity-automation'

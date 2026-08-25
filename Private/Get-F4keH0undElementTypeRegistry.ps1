@@ -104,6 +104,17 @@ function Get-PrivateF4keH0undDefaultElementTypeRegistry {
             Description     = 'Deploys fake credential note files and runbook snippets with canary usernames/password tokens.'
         }
         [PSCustomObject]@{
+            TypeId          = 'ServiceCredentialPackDecoy'
+            Family          = 'ServiceCredentialBait'
+            Platforms       = @('Windows')
+            Capabilities    = @('Deploy', 'Update', 'Disable', 'Enable', 'Remove')
+            RiskLevel       = 'Low'
+            CostScore       = 1
+            DetectionScore  = 10
+            TelemetryProfile = 'Windows-Identity-Token'
+            Description     = 'Deploys vault-like fake service credential packs with embedded canary tokens and owner hints.'
+        }
+        [PSCustomObject]@{
             TypeId          = 'CanaryTextTokenPackDecoy'
             Family          = 'TokenTextBait'
             Platforms       = @('Windows')

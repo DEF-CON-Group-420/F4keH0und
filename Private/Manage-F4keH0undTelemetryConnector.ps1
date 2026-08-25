@@ -80,6 +80,36 @@ function Get-PrivateF4keH0undDefaultTelemetryConnectorPack {
                 }
             }
             [PSCustomObject]@{
+                PresetId = 'ServiceCredentialPackSysmonFileCreate'
+                TriggerType = 'CredentialUse'
+                TriggerSource = 'Sysmon:EventID11'
+                SignalCount = 2
+                Confidence = 91
+                CorrelationHint = 'Unknown'
+                FieldMap = [PSCustomObject]@{
+                    Identity = @('Identity', 'DecoyIdentity', 'ElementId', 'TargetIdentity', 'RuleName')
+                    Actor = @('User', 'UserName', 'SubjectUserName', 'Image')
+                    ComputerName = @('Computer', 'ComputerName', 'Host', 'Hostname')
+                    EvidenceRef = @('EventRecordId', 'RecordId', 'EventId', 'CaseId')
+                    TokenIdentifier = @('TokenIdentifier', 'TokenFingerprint', 'TargetFilename', 'ObjectName')
+                }
+            }
+            [PSCustomObject]@{
+                PresetId = 'ServiceCredentialPackSecurityObjectAccess'
+                TriggerType = 'CredentialUse'
+                TriggerSource = 'WindowsSecurity:EventID4663'
+                SignalCount = 2
+                Confidence = 90
+                CorrelationHint = 'Unknown'
+                FieldMap = [PSCustomObject]@{
+                    Identity = @('Identity', 'DecoyIdentity', 'ElementId', 'TargetIdentity', 'ObjectName')
+                    Actor = @('SubjectUserName', 'UserName', 'AccountName', 'ProcessName')
+                    ComputerName = @('Computer', 'ComputerName', 'Host', 'Hostname')
+                    EvidenceRef = @('EventRecordId', 'RecordId', 'EventId', 'CaseId')
+                    TokenIdentifier = @('TokenIdentifier', 'TokenFingerprint', 'ObjectName', 'TargetFilename')
+                }
+            }
+            [PSCustomObject]@{
                 PresetId = 'SysmonEvent3NetworkConnect'
                 TriggerType = 'ApiAuth'
                 TriggerSource = 'Sysmon:EventID3'

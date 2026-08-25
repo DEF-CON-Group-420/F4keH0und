@@ -31,6 +31,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 23. [Phase 5 Response Playbooks](#23-phase-5-response-playbooks)
 24. [Identity-Attribute Lure Expansion](#24-identity-attribute-lure-expansion)
 25. [Canary Text-Token Packs](#25-canary-text-token-packs)
+26. [Service Credential Packs (Vault-Style)](#26-service-credential-packs-vault-style)
 
 ---
 
@@ -976,6 +977,56 @@ Get-F4keH0undInventory `
     -Platform Windows `
     -ElementFamily TokenTextBait,IdentityTokenBait,CloudTokenBait,CredentialBait `
     -AlertSeverity High,Critical `
+    -SkipLiveStatus |
+    Sort-Object AlertScore -Descending |
+    Select-Object Identity, DecoyType, Status, LastTriggerSource, AlertScore, AlertSeverity
+```
+
+---
+
+## 26. Service Credential Packs (Vault-Style)
+
+Deploy vault-like service credential bait and register lightweight trigger telemetry using the service-pack connector presets.
+
+```powershell
+# 1) Deploy service credential pack to Windows identity-management host
+$pack = New-F4keH0undToken `
+    -TokenType ServiceCredentialPack `
+    -ComputerName "WIN-IDM-01" `
+    -Name "VaultSync-CredPack" `
+    -TemplateData @{
+        ServiceName       = "LegacyIdentitySync"
+        ServiceAccount    = "CORP\\svc_identity_sync"
+        SecretReference   = "kv://prod/legacy/identity-sync"
+        VaultPath         = "C:\ProgramData\VaultCache\legacy-identity-sync"
+        IdentityOwnerHint = "identity.ops@contoso.com"
+        GroupHint         = "Identity-Engineering"
+    } `
+    -PassThru
+
+$pack | Format-Table ElementId, ElementType, ComputerName, BasePath, Status -AutoSize
+$packRecord = @($pack)[0]
+
+# 2) Simulate Sysmon file-create telemetry for vault artifact access
+$serviceEvent = @{
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\$($packRecord.ElementId)\vault\VaultSync-CredPack\service-credentials.decoy.json"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-IDM-01"
+    EventRecordId  = "sysmon-31009"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset ServiceCredentialPackSysmonFileCreate `
+    -TelemetryPayload $serviceEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertScore, AlertSeverity
+
+# 3) Review service-credential bait triage view
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily ServiceCredentialBait,CredentialBait,IdentityTokenBait `
+    -AlertSeverity Medium,High,Critical `
     -SkipLiveStatus |
     Sort-Object AlertScore -Descending |
     Select-Object Identity, DecoyType, Status, LastTriggerSource, AlertScore, AlertSeverity

@@ -234,6 +234,9 @@ function Update-F4keH0undElement {
                     if ([string]$currentState.DecoyType -eq 'CanaryTextTokenPackDecoy') {
                         $eventMetadata['CollectionHookPresets'] = @('CanaryTextPackSysmonFileCreate', 'CanaryTextPackSecurityObjectAccess')
                     }
+                    elseif ([string]$currentState.DecoyType -eq 'ServiceCredentialPackDecoy') {
+                        $eventMetadata['CollectionHookPresets'] = @('ServiceCredentialPackSysmonFileCreate', 'ServiceCredentialPackSecurityObjectAccess')
+                    }
 
                     Write-F4keH0undInventoryEvent -Action 'Update' -Identity $currentElementId -DecoyType ([string]$currentState.DecoyType) -Platform 'Windows' -ObjectType 'Element' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name
                 }

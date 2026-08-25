@@ -302,6 +302,68 @@ LegacySQL,$(if ($TemplateData['ServiceAccount']) { [string]$TemplateData['Servic
             )
         }
 
+        'ServiceCredentialPackDecoy' {
+            $baseCanaryToken = if ($TemplateData['CanaryToken']) {
+                [string]$TemplateData['CanaryToken']
+            }
+            else {
+                "fhlg-svccred-$([guid]::NewGuid().ToString('N').Substring(0,20))"
+            }
+
+            $vaultCanaryToken = if ($TemplateData['VaultCanaryToken']) {
+                [string]$TemplateData['VaultCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-vault"
+            }
+
+            $runbookCanaryToken = if ($TemplateData['RunbookCanaryToken']) {
+                [string]$TemplateData['RunbookCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-runbook"
+            }
+
+            return @(
+                [PSCustomObject]@{
+                    RelativePath = "vault/$safeName/service-credentials.decoy.json"
+                    Content      = (@{
+                            Name               = $ElementName
+                            ServiceName        = if ($TemplateData['ServiceName']) { [string]$TemplateData['ServiceName'] } else { 'LegacyIdentitySync' }
+                            ServiceAccount     = if ($TemplateData['ServiceAccount']) { [string]$TemplateData['ServiceAccount'] } else { 'corp\svc_identity_sync' }
+                            SecretReference    = if ($TemplateData['SecretReference']) { [string]$TemplateData['SecretReference'] } else { 'kv://prod/legacy/identity-sync' }
+                            SecretHint         = if ($TemplateData['SecretHint']) { [string]$TemplateData['SecretHint'] } else { 'RotateAfterCutover_2024Q4!' }
+                            VaultPath          = if ($TemplateData['VaultPath']) { [string]$TemplateData['VaultPath'] } else { 'C:\ProgramData\VaultCache\legacy-identity-sync' }
+                            IdentityOwnerHint  = if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' }
+                            GroupHint          = if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Engineering' }
+                            CanaryToken        = $vaultCanaryToken
+                            GeneratedAtUtc     = $generatedUtc
+                        } | ConvertTo-Json -Depth 6)
+                }
+                [PSCustomObject]@{
+                    RelativePath = "vault/$safeName/rotation-queue.decoy.csv"
+                    Content      = @"
+ServiceName,ServiceAccount,SecretReference,RotationWindowDays,CanaryToken,OwnerHint,GeneratedAtUtc
+$(if ($TemplateData['ServiceName']) { [string]$TemplateData['ServiceName'] } else { 'LegacyIdentitySync' }),$(if ($TemplateData['ServiceAccount']) { [string]$TemplateData['ServiceAccount'] } else { 'corp\svc_identity_sync' }),$(if ($TemplateData['SecretReference']) { [string]$TemplateData['SecretReference'] } else { 'kv://prod/legacy/identity-sync' }),$(if ($TemplateData['RotationWindowDays']) { [string]$TemplateData['RotationWindowDays'] } else { '45' }),$vaultCanaryToken,$(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' }),$generatedUtc
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "runbooks/$safeName-vault-access.decoy.txt"
+                    Content      = @"
+[$ElementName] Service Credential Vault Access Notes
+
+VaultPath: $(if ($TemplateData['VaultPath']) { [string]$TemplateData['VaultPath'] } else { 'C:\ProgramData\VaultCache\legacy-identity-sync' })
+ServiceAccount: $(if ($TemplateData['ServiceAccount']) { [string]$TemplateData['ServiceAccount'] } else { 'corp\svc_identity_sync' })
+IdentityOwner: $(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' })
+GroupHint: $(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Engineering' })
+RunbookCanaryToken: $runbookCanaryToken
+
+GeneratedAtUtc: $generatedUtc
+"@
+                }
+            )
+        }
+
         'CanaryTextTokenPackDecoy' {
             $baseCanaryToken = if ($TemplateData['CanaryToken']) {
                 [string]$TemplateData['CanaryToken']

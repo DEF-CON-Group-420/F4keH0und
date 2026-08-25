@@ -174,6 +174,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Response playbook templates implemented (`Docs/RESPONSE-PLAYBOOKS.md` + `scripts/New-TokenTriggerResponsePlaybook.ps1`)
 - ✅ Low-cost identity-attribute lure expansion implemented (display-name/department/title/company/office/location + owner/group hints in AD/Entra/Windows templates)
 - ✅ Canary text-token packs implemented for scripts/config/docs with lightweight connector hooks (`CanaryTextTokenPackDecoy`, `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`)
+- ✅ Service credential packs implemented for vault-like paths with lightweight connector hooks (`ServiceCredentialPackDecoy`, `ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`)
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 
 ---
@@ -182,7 +183,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 
 1. ✅ **Decoy identity attributes** (display names, descriptions, group hints)
 2. ✅ **Canary text tokens** in scripts/config/docs repositories
-3. **Fake service credentials** in vault-like paths with monitoring
+3. ✅ **Fake service credentials** in vault-like paths with monitoring
 4. **Decoy OAuth app metadata** (unused but attractive permissions)
 5. **Honey SPN + constrained role lure combinations**
 6. **Fake admin troubleshooting artifacts** (`.txt`, `.ps1`, `.xml`) with token bait
@@ -194,4 +195,4 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Expand fake service-credential packs in vault-like paths with matching low-cost monitoring hooks.
+1. Expand decoy OAuth app metadata templates with low-cost, high-signal permission lure patterns.

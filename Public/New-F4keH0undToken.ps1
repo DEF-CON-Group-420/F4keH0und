@@ -12,6 +12,7 @@
     - IdentityBreadcrumb : fake privileged identity breadcrumbs and canary IDs
     - CloudApiCanary     : fake OAuth/API token material and cloud env hints
     - CredentialFile     : fake credential notes and vault-export bait
+    - ServiceCredentialPack : fake service-credential vault pack with canary tokens
     - CanaryTextPack     : low-cost script/config/docs text-token canary pack
 
 .PARAMETER ComputerName
@@ -52,6 +53,9 @@
     New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
 
 .EXAMPLE
+    New-F4keH0undToken -TokenType ServiceCredentialPack -ComputerName WIN-IDM-01 -Name "VaultSync-CredPack" -PassThru
+
+.EXAMPLE
     New-F4keH0undToken -TokenType CanaryTextPack -ComputerName WIN-DEV-01 -Name "IdentityRepo-CanaryPack" -PassThru
 #>
 function New-F4keH0undToken {
@@ -59,7 +63,7 @@ function New-F4keH0undToken {
     [OutputType([System.Object], [System.Object[]])]
     param(
         [Parameter()]
-        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile', 'CanaryTextPack')]
+        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile', 'ServiceCredentialPack', 'CanaryTextPack')]
         [string]$TokenType = 'IdentityBreadcrumb',
 
         [Parameter(Mandatory = $true)]
@@ -111,6 +115,7 @@ function New-F4keH0undToken {
         IdentityBreadcrumb = 'IdentityBreadcrumbTokenDecoy'
         CloudApiCanary     = 'CloudApiCanaryTokenDecoy'
         CredentialFile     = 'CredentialFileTokenDecoy'
+        ServiceCredentialPack = 'ServiceCredentialPackDecoy'
         CanaryTextPack     = 'CanaryTextTokenPackDecoy'
     }
 
@@ -136,11 +141,34 @@ function New-F4keH0undToken {
             $templateTable['GroupHint'] = 'Identity-Engineering'
         }
     }
+    elseif ($TokenType -eq 'ServiceCredentialPack') {
+        if (-not $templateTable.ContainsKey('ServiceName')) {
+            $templateTable['ServiceName'] = 'LegacyIdentitySync'
+        }
+        if (-not $templateTable.ContainsKey('ServiceAccount')) {
+            $templateTable['ServiceAccount'] = 'corp\svc_identity_sync'
+        }
+        if (-not $templateTable.ContainsKey('SecretReference')) {
+            $templateTable['SecretReference'] = 'kv://prod/legacy/identity-sync'
+        }
+        if (-not $templateTable.ContainsKey('VaultPath')) {
+            $templateTable['VaultPath'] = 'C:\ProgramData\VaultCache\legacy-identity-sync'
+        }
+        if (-not $templateTable.ContainsKey('IdentityOwnerHint')) {
+            $templateTable['IdentityOwnerHint'] = 'identity.ops@contoso.com'
+        }
+        if (-not $templateTable.ContainsKey('GroupHint')) {
+            $templateTable['GroupHint'] = 'Identity-Engineering'
+        }
+    }
 
     $resolvedTags = [System.Collections.Generic.List[string]]::new()
     $defaultTokenTags = @('token', 'identity', "profile:$TokenType")
     if ($TokenType -eq 'CanaryTextPack') {
         $defaultTokenTags += @('phase5', 'text-token-pack')
+    }
+    elseif ($TokenType -eq 'ServiceCredentialPack') {
+        $defaultTokenTags += @('phase5', 'service-credential-pack', 'vault-bait')
     }
     else {
         $defaultTokenTags += @('phase4')
