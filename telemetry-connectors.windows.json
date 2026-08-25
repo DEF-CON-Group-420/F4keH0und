@@ -1,0 +1,82 @@
+{
+  "Version": "1.0",
+  "Platform": "Windows",
+  "Description": "Telemetry connector preset pack for SIEM/SOAR trigger ingestion.",
+  "Presets": [
+    {
+      "PresetId": "SysmonEvent11FileCreate",
+      "TriggerType": "FileAccess",
+      "TriggerSource": "Sysmon:EventID11",
+      "SignalCount": 2,
+      "Confidence": 86,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetIdentity", "RuleName"],
+        "Actor": ["User", "UserName", "SubjectUserName", "Image"],
+        "ComputerName": ["Computer", "ComputerName", "Host", "Hostname"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "FileHash", "TargetFilename"]
+      }
+    },
+    {
+      "PresetId": "SysmonEvent3NetworkConnect",
+      "TriggerType": "ApiAuth",
+      "TriggerSource": "Sysmon:EventID3",
+      "SignalCount": 3,
+      "Confidence": 90,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetIdentity", "RuleName"],
+        "Actor": ["User", "UserName", "SubjectUserName", "Image"],
+        "ComputerName": ["Computer", "ComputerName", "Host", "Hostname"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "DestinationHostname", "DestinationIp"]
+      }
+    },
+    {
+      "PresetId": "WindowsSecurity4624Logon",
+      "TriggerType": "CredentialUse",
+      "TriggerSource": "WindowsSecurity:EventID4624",
+      "SignalCount": 2,
+      "Confidence": 84,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetUserName", "TargetIdentity"],
+        "Actor": ["SubjectUserName", "UserName", "AccountName", "IpAddress"],
+        "ComputerName": ["Computer", "ComputerName", "WorkstationName", "Host"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "TargetUserName"]
+      }
+    },
+    {
+      "PresetId": "WindowsSecurity4663ObjectAccess",
+      "TriggerType": "FileAccess",
+      "TriggerSource": "WindowsSecurity:EventID4663",
+      "SignalCount": 2,
+      "Confidence": 82,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetIdentity", "ObjectName"],
+        "Actor": ["SubjectUserName", "UserName", "AccountName", "ProcessName"],
+        "ComputerName": ["Computer", "ComputerName", "Host", "Hostname"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "ObjectName"]
+      }
+    },
+    {
+      "PresetId": "WindowsSecurity4688ProcessCreate",
+      "TriggerType": "ProcessAccess",
+      "TriggerSource": "WindowsSecurity:EventID4688",
+      "SignalCount": 1,
+      "Confidence": 74,
+      "CorrelationHint": "Unknown",
+      "FieldMap": {
+        "Identity": ["Identity", "DecoyIdentity", "ElementId", "TargetIdentity", "NewProcessName"],
+        "Actor": ["SubjectUserName", "UserName", "AccountName", "CommandLine"],
+        "ComputerName": ["Computer", "ComputerName", "Host", "Hostname"],
+        "EvidenceRef": ["EventRecordId", "RecordId", "EventId", "CaseId"],
+        "TokenIdentifier": ["TokenIdentifier", "TokenFingerprint", "CommandLine", "NewProcessName"]
+      }
+    }
+  ]
+}

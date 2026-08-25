@@ -55,7 +55,8 @@
     "PrimarySources": [
       "Sysmon",
       "WindowsSecurity"
-    ]
+    ],
+    "ConnectorPackPath": "./telemetry-connectors.windows.json"
   },
 
   "ElementRegistrySettings": {

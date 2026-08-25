@@ -199,6 +199,7 @@ function Get-F4keH0undDefaultConfig {
         TelemetrySettings = [PSCustomObject]@{
             DefaultTelemetryProfile = 'Windows-Artifact-Baseline'
             PrimarySources          = @('Sysmon', 'WindowsSecurity')
+            ConnectorPackPath       = './telemetry-connectors.windows.json'
         }
 
         ElementRegistrySettings = [PSCustomObject]@{

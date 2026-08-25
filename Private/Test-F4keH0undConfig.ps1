@@ -107,6 +107,21 @@ function Test-F4keH0undConfig {
         if ([string]::IsNullOrWhiteSpace([string]$config.TelemetrySettings.DefaultTelemetryProfile)) {
             $validationResult.Warnings += 'TelemetrySettings.DefaultTelemetryProfile is empty. Runtime fallback profile will be used.'
         }
+
+        $connectorPackPath = [string]$config.TelemetrySettings.ConnectorPackPath
+        if (-not [string]::IsNullOrWhiteSpace($connectorPackPath)) {
+            $resolvedConnectorPackPath = if ([System.IO.Path]::IsPathRooted($connectorPackPath)) {
+                $connectorPackPath
+            }
+            else {
+                $configDirectory = Split-Path -Path $ConfigPath -Parent
+                Join-Path -Path $configDirectory -ChildPath $connectorPackPath
+            }
+
+            if (-not (Test-Path -Path $resolvedConnectorPackPath -PathType Leaf)) {
+                $validationResult.Warnings += "Telemetry connector pack '$connectorPackPath' (resolved: '$resolvedConnectorPackPath') was not found locally. Built-in telemetry presets will be used."
+            }
+        }
     }
 
     # Validate ElementRegistrySettings

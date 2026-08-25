@@ -13,20 +13,21 @@ Current exported commands:
 3. `Get-F4keH0undElementType`
 4. `New-F4keH0undElement`
 5. `New-F4keH0undToken`
-6. `Update-F4keH0undElement`
-7. `Disable-F4keH0undElement`
-8. `Enable-F4keH0undElement`
-9. `Remove-F4keH0undElement`
-10. `Sync-F4keH0undEntraParity`
-11. `Update-F4keH0undDecoy`
-12. `Disable-F4keH0undDecoy`
-13. `Enable-F4keH0undDecoy`
-14. `Get-F4keH0undInventory`
-15. `Add-F4keH0undRelationship`
-16. `Remove-F4keH0undDecoy`
-17. `Get-F4keH0undConfig`
-18. `Test-F4keH0undCoverage`
-19. `Test-F4keH0undConfig`
+6. `Register-F4keH0undTokenTrigger`
+7. `Update-F4keH0undElement`
+8. `Disable-F4keH0undElement`
+9. `Enable-F4keH0undElement`
+10. `Remove-F4keH0undElement`
+11. `Sync-F4keH0undEntraParity`
+12. `Update-F4keH0undDecoy`
+13. `Disable-F4keH0undDecoy`
+14. `Enable-F4keH0undDecoy`
+15. `Get-F4keH0undInventory`
+16. `Add-F4keH0undRelationship`
+17. `Remove-F4keH0undDecoy`
+18. `Get-F4keH0undConfig`
+19. `Test-F4keH0undCoverage`
+20. `Test-F4keH0undConfig`
 
 ---
 
@@ -37,6 +38,7 @@ Current exported commands:
   - `New-F4keH0undDecoy`
   - `New-F4keH0undElement`
   - `New-F4keH0undToken`
+  - `Register-F4keH0undTokenTrigger`
   - `Update-F4keH0undElement`
   - `Disable-F4keH0undElement`
   - `Enable-F4keH0undElement`
@@ -232,6 +234,52 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
 ```powershell
 New-F4keH0undToken -TokenType IdentityBreadcrumb -ComputerName WIN-APP-01 -WhatIf
 New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
+```
+
+---
+
+## `Register-F4keH0undTokenTrigger`
+
+Records token/identity trigger telemetry in persistent inventory and updates correlation/alert fields.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Meaning |
+|---|---|---:|---|---|
+| `Identity` | `String[]` | No | — | Inventory identity to correlate (element ID or decoy identity). Optional when connector payload contains mapped identity fields. |
+| `ConnectorPreset` | `String` | No | — | Telemetry connector preset ID (`SysmonEvent11FileCreate`, `SysmonEvent3NetworkConnect`, `WindowsSecurity4624Logon`, `WindowsSecurity4663ObjectAccess`, `WindowsSecurity4688ProcessCreate`). Must be paired with `TelemetryPayload`. |
+| `TelemetryPayload` | `Object` | No | — | Raw SIEM/SOAR telemetry object (hashtable/PSObject) used by `ConnectorPreset` mapping. |
+| `DecoyType` | `String` | No | from inventory | Optional decoy/element type override. |
+| `Platform` | `String` | No | from inventory/`Windows` | Optional platform override (`AD`, `Entra`, `Windows`). |
+| `ObjectType` | `String` | No | from inventory/`Element` | Optional object type override. |
+| `TriggerType` | `String` | No | `TokenUse` | Trigger classification (`TokenUse`, `CredentialUse`, `ApiAuth`, `FileAccess`, `ProcessAccess`, `NetworkAccess`, `ManualInvestigation`, `Other`). |
+| `TriggerSource` | `String` | No | — | Telemetry source hint (for example `Sysmon:EventID11`). |
+| `Actor` | `String` | No | — | Actor identity associated with trigger. |
+| `ComputerName` | `String` | No | — | Host where trigger was observed. |
+| `EvidenceRef` | `String` | No | — | Evidence reference (event ID/case/artifact path). |
+| `TokenIdentifier` | `String` | No | — | Token fingerprint identifier (`sha256:<short>` recommended). |
+| `TokenValue` | `String` | No | — | Raw token value; hashed to fingerprint before storage. |
+| `SignalCount` | `Int32` | No | `1` | Number of correlated telemetry signals in this trigger event. |
+| `Confidence` | `Double` | No | `80` | Trigger confidence score (0-100). |
+| `Correlated` | `Switch` | No | `false` | Upstream hint that token correlation is already verified. |
+| `PassThru` | `Switch` | No | `false` | Returns updated inventory row for identity. |
+
+### Behavior Notes
+
+- Connector mode requires both `ConnectorPreset` and `TelemetryPayload`.
+- Connector presets are loaded from `TelemetrySettings.ConnectorPackPath` (`./telemetry-connectors.windows.json` by default), with built-in fallback presets.
+- Writes inventory event with `Action = Trigger`.
+- Correlates `TokenIdentifier` against known token fingerprints when available.
+- Updates inventory trigger fields (`TriggerCount`, `LastTriggeredAt`, `TokenCorrelationStatus`).
+- Updates alert model output (`AlertScore`, `AlertSeverity`, `AlertReasons`).
+- Writes connector metadata (`ConnectorPreset`) into trigger event metadata when connector mode is used.
+
+### Example
+
+```powershell
+Register-F4keH0undTokenTrigger -Identity fhlg-win-cloudapicanarytokendecoy-a1b2c3d4e5f6 -TriggerType ApiAuth -TriggerSource 'Sysmon:EventID3' -SignalCount 3 -Confidence 90
+Register-F4keH0undTokenTrigger -Identity svc_legacy_sync -Platform AD -ObjectType User -TriggerType CredentialUse -TokenValue 'decoy-passphrase' -PassThru
+Register-F4keH0undTokenTrigger -ConnectorPreset SysmonEvent11FileCreate -TelemetryPayload @{ Identity = 'fhlg-win-identitybreadcrumbtokendecoy-a1b2c3d4e5f6'; User = 'CORP\j.smith'; Computer = 'WIN-APP-01'; EventRecordId = '42755'; TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\identity\notes.txt' } -PassThru
 ```
 
 ---
@@ -513,6 +561,8 @@ Builds consolidated deceptive-element inventory from persistent lifecycle backen
 | `ElementFamily` | `String[]` | No | — | Post-load filter by metadata family (for example `ServiceLure`, `ApiHookBait`). |
 | `ComputerName` | `String[]` | No | — | Post-load filter by metadata host (`ComputerName` or `TargetHost`). |
 | `Status` | `String[]` | No | — | Post-load filter by lifecycle or recorded status value. |
+| `AlertSeverity` | `String[]` | No | — | Post-load filter by alert severity (`None`, `Low`, `Medium`, `High`, `Critical`). |
+| `MinAlertScore` | `Int32` | No | — | Post-load minimum alert score filter (0-100). |
 
 ### Behavior Notes
 
@@ -521,13 +571,16 @@ Builds consolidated deceptive-element inventory from persistent lifecycle backen
   2. Otherwise uses events if event log exists and has content.
   3. Falls back to reports.
 - Returns normalized fields including `Identity`, `DecoyType`, `Platform`, `ObjectType`, `Status`, `LastAction`, `LastUpdated`, `Location`.
+- Events-backed rows include trigger/correlation fields (`TriggerCount`, `LastTriggeredAt`, `TokenCorrelationStatus`) and alert model outputs (`AlertScore`, `AlertSeverity`, `AlertReasons`).
 - Platform/element/host/status filters are applied after source normalization.
+- Alert filters (`AlertSeverity`, `MinAlertScore`) are applied after source normalization.
 
 ### Example
 
 ```powershell
 Get-F4keH0undInventory -Source Events -IncludeRemoved -PreferSnapshot -SkipLiveStatus
 Get-F4keH0undInventory -Source Events -Platform Windows -ElementFamily ApiHookBait -Status Armed
+Get-F4keH0undInventory -Source Events -Platform Windows -AlertSeverity High,Critical -MinAlertScore 65
 ```
 
 ---

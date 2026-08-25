@@ -154,7 +154,9 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ New token-focused Windows element families (`IdentityTokenBait`, `CloudTokenBait`, `CredentialBait`)
 - ✅ Token/identity artifact templates added to Windows deployment plane
 - ✅ Ranking priority boost for identity/token/credential families in Windows artifact opportunities
-- ⏳ Remaining: token-trigger correlation fields and alert-scoring model in persistent inventory
+- ✅ Token-trigger correlation fields in persistent inventory (`TriggerCount`, `LastTriggeredAt`, `TokenCorrelationStatus`)
+- ✅ Alert-scoring model outputs in inventory (`AlertScore`, `AlertSeverity`, `AlertReasons`)
+- ✅ Telemetry connector pack for direct SIEM/SOAR ingestion templates (`telemetry-connectors.windows.json` + preset mapping in `Register-F4keH0undTokenTrigger`)
 
 ## Phase 5 — Hardening & Operations (Week 10)
 
@@ -184,8 +186,7 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Add token-trigger correlation fields to inventory status model.
-2. Implement high-confidence alert scoring for token/identity interactions.
-3. Extend Entra lure templates (consent/role-assignment/conditional-access themed variants).
-4. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
-5. Add lightweight drift checks for stale artifact/token templates.
+1. Extend Entra lure templates (consent/role-assignment/conditional-access themed variants).
+2. Add rollout profile defaults (`Lab`, `Pilot`, `Production`) for Phase 5 hardening.
+3. Add lightweight drift checks for stale artifact/token templates.
+4. Add response playbook templates for `High/Critical` token trigger severities.

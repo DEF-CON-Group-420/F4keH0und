@@ -24,6 +24,8 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 16. [Windows Artifact Lifecycle (WinRM/PSRP)](#16-windows-artifact-lifecycle-winrmpsrp)
 17. [Windows Inventory Filtering](#17-windows-inventory-filtering)
 18. [Token-Priority Workflow (Phase 4)](#18-token-priority-workflow-phase-4)
+19. [Token Trigger Correlation & Alert Scoring](#19-token-trigger-correlation--alert-scoring)
+20. [Telemetry Connector Presets (SIEM/SOAR)](#20-telemetry-connector-presets-siemsoar)
 
 ---
 
@@ -720,6 +722,96 @@ Get-F4keH0undInventory `
     -SkipLiveStatus |
     Sort-Object LastUpdated -Descending |
     Format-Table Identity, DecoyType, Status, @{Name='Computer';Expression={ $_.Metadata.ComputerName }}, LastUpdated -AutoSize
+```
+
+---
+
+## 19. Token Trigger Correlation & Alert Scoring
+
+Register a trigger event from telemetry, then query prioritized alerts by severity/score.
+
+```powershell
+$identity = "fhlg-win-identitybreadcrumbtokendecoy-a1b2c3d4e5f6"
+
+# 1) Record trigger from telemetry pipeline (SIEM/SOAR handoff)
+Register-F4keH0undTokenTrigger `
+    -Identity $identity `
+    -TriggerType TokenUse `
+    -TriggerSource "Sysmon:EventID11" `
+    -Actor "CORP\\j.smith" `
+    -EvidenceRef "case-427" `
+    -SignalCount 3 `
+    -Confidence 92 `
+    -TokenIdentifier "sha256:1234567890abcdef" `
+    -PassThru |
+    Format-List Identity, TriggerCount, TokenCorrelationStatus, AlertScore, AlertSeverity
+
+# 2) Query high-confidence alerts only
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -AlertSeverity High,Critical `
+    -MinAlertScore 65 `
+    -SkipLiveStatus |
+    Sort-Object AlertScore -Descending |
+    Select-Object Identity, DecoyType, Status, TriggerCount, LastTriggeredAt, TokenCorrelationStatus, AlertScore, AlertSeverity
+
+# 3) Filter by one decoy family with active triggers
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily IdentityTokenBait `
+    -MinAlertScore 40 `
+    -SkipLiveStatus
+```
+
+---
+
+## 20. Telemetry Connector Presets (SIEM/SOAR)
+
+Use connector presets to map raw Sysmon/Security events into `Register-F4keH0undTokenTrigger` fields.
+
+```powershell
+# Example A: Sysmon Event ID 3 (network connect) from SIEM parser
+$sysmonEvent = @{
+    Identity            = "fhlg-win-cloudapicanarytokendecoy-3f1c9a2d4e6b"
+    User                = "CORP\\j.smith"
+    Computer            = "WIN-API-01"
+    EventRecordId       = "sysmon-92117"
+    DestinationHostname = "graph.microsoft.com"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset SysmonEvent3NetworkConnect `
+    -TelemetryPayload $sysmonEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, LastTriggerActor, AlertScore, AlertSeverity
+
+# Example B: Windows Security 4624 logon event
+$securityEvent = @{
+    DecoyIdentity   = "svc_legacy_sync"
+    SubjectUserName = "backup.operator"
+    WorkstationName = "WKST-017"
+    EventRecordId   = "security-55102"
+    TargetUserName  = "svc_legacy_sync"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset WindowsSecurity4624Logon `
+    -TelemetryPayload $securityEvent `
+    -Platform AD `
+    -ObjectType User `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertScore, AlertSeverity
+
+# Prioritize triggered artifacts from mapped connector flow
+Get-F4keH0undInventory `
+    -Source Events `
+    -AlertSeverity High,Critical `
+    -MinAlertScore 65 `
+    -SkipLiveStatus |
+    Sort-Object AlertScore -Descending |
+    Select-Object Identity, DecoyType, Platform, LastTriggerSource, AlertScore, AlertSeverity
 ```
 
 ---

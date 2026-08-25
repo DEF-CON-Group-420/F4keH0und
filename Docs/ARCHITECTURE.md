@@ -43,6 +43,7 @@ F4keH0und/
 ├── F4keH0und.psm1                          # Module root — dot-sources all Public and Private scripts
 ├── config.json                             # Active configuration (read at runtime)
 ├── config.example.json                     # Template for new deployments
+├── telemetry-connectors.windows.json       # SIEM/SOAR connector preset mappings for trigger ingestion
 │
 ├── Public/                                 # Exported functions (user-facing API)
 │   ├── Find-F4keH0undOpportunity.ps1       # Analysis engine — parses BH data, calls recycling engine
@@ -50,6 +51,7 @@ F4keH0und/
 │   ├── Get-F4keH0undElementType.ps1        # Lists Windows artifact element families/types from registry
 │   ├── New-F4keH0undElement.ps1            # Windows artifact deployment command (WinRM/PSRP)
 │   ├── New-F4keH0undToken.ps1              # Token-priority wrapper for identity/cloud credential bait profiles
+│   ├── Register-F4keH0undTokenTrigger.ps1  # Trigger ingestion for token interactions and alert scoring
 │   ├── Update-F4keH0undElement.ps1         # Windows artifact lifecycle update command
 │   ├── Disable-F4keH0undElement.ps1        # Windows artifact lifecycle disable command
 │   ├── Enable-F4keH0undElement.ps1         # Windows artifact lifecycle enable command
@@ -71,9 +73,10 @@ F4keH0und/
     ├── Get-F4keH0undElementTypeRegistry.ps1 # Loads/validates Windows element-type registry
     ├── Get-F4keH0undParityModel.ps1        # Shared parity family/lifecycle capability model
     ├── Get-F4keH0undRank.ps1               # Opportunity ranker — Critical / High / Low assignment
-    ├── Manage-F4keH0undEntraLifecycle.ps1  # Entra lifecycle helpers (resolve/state/event context)
-    ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
-    ├── Manage-F4keH0undWindowsElement.ps1  # Windows artifact deployment + lifecycle execution plane
+	    ├── Manage-F4keH0undEntraLifecycle.ps1  # Entra lifecycle helpers (resolve/state/event context)
+	    ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
+	    ├── Manage-F4keH0undTelemetryConnector.ps1 # Telemetry connector pack loader + payload mapping helpers
+	    ├── Manage-F4keH0undWindowsElement.ps1  # Windows artifact deployment + lifecycle execution plane
     ├── Set-PrivateADDecoyUser.ps1          # Recycles a stale user into a decoy
     ├── Set-PrivateADDecoyComputer.ps1      # Recycles a stale computer into a decoy
     ├── Set-PrivateADDecoyGroup.ps1         # Recycles a stale group into a decoy
@@ -537,6 +540,7 @@ Windows artifact lifecycle is fully represented with dedicated commands:
 
 - `New-F4keH0undElement`
 - `New-F4keH0undToken`
+- `Register-F4keH0undTokenTrigger`
 - `Update-F4keH0undElement`
 - `Disable-F4keH0undElement`
 - `Enable-F4keH0undElement`
@@ -555,6 +559,7 @@ Phase 3 extends configuration with:
 
 - `WindowsDeploymentSettings` — WinRM defaults, artifact root, throttle settings.
 - `TelemetrySettings` — default telemetry profile + source hints.
+- `TelemetrySettings.ConnectorPackPath` — telemetry connector preset pack path for SIEM/SOAR payload mapping.
 - `ElementRegistrySettings` — registry path + fallback behavior.
 
 These are present in both `config.json` and `config.example.json`, validated by `Test-F4keH0undConfig`, and consumed by lifecycle commands.
@@ -580,6 +585,50 @@ This forms the first implementation of the requested unified interface for where
 - Returned opportunities include deployment hints (`RecommendedCommand = New-F4keH0undElement`) and explicit host targeting metadata.
 
 This closes the Phase 3 ranking-integration gap and creates a direct bridge into Phase 4 token-priority operations.
+
+### 8.7 Token Trigger Correlation and Alert Scoring
+
+Inventory now supports first-class trigger telemetry correlation for token/identity deception:
+
+- `Write-F4keH0undInventoryEvent` accepts `Action = Trigger`.
+- `Register-F4keH0undTokenTrigger` writes trigger events from SIEM/SOAR pipelines.
+- State model tracks trigger fields (`TriggerCount`, `LastTriggeredAt`, `TokenCorrelationStatus`).
+- Alert model computes per-element severity outputs (`AlertScore`, `AlertSeverity`, `AlertReasons`).
+
+Correlation behavior:
+
+1. Token indicators are fingerprinted (`sha256:<short>`) from stored metadata/template fields.
+2. Incoming trigger token identifiers are normalized to the same fingerprint format.
+3. Match/mismatch drives `TokenCorrelationStatus` (`Correlated`, `Uncorrelated`, `Unknown`).
+
+Alert scoring behavior:
+
+- Score combines signal count, repeat triggers, confidence, decoy family priority, and correlation status.
+- Severity mapping: `None` (0), `Low`, `Medium`, `High`, `Critical`.
+- `Get-F4keH0undInventory` supports alert filtering via `-AlertSeverity` and `-MinAlertScore`.
+
+### 8.8 Telemetry Connector Pack
+
+Phase 4 adds preset-based telemetry normalization so SIEM/SOAR events can feed directly into trigger registration.
+
+- Connector pack file: `telemetry-connectors.windows.json`.
+- Loader and mapping helpers: `Private/Manage-F4keH0undTelemetryConnector.ps1`.
+- Trigger ingestion command: `Register-F4keH0undTokenTrigger -ConnectorPreset <PresetId> -TelemetryPayload <Object>`.
+
+Default preset set:
+
+- `SysmonEvent11FileCreate`
+- `SysmonEvent3NetworkConnect`
+- `WindowsSecurity4624Logon`
+- `WindowsSecurity4663ObjectAccess`
+- `WindowsSecurity4688ProcessCreate`
+
+Connector behavior:
+
+1. Load preset mapping from `TelemetrySettings.ConnectorPackPath` (with built-in fallback).
+2. Resolve identity/actor/host/evidence/token fields from mapped payload keys.
+3. Apply preset defaults for `TriggerType`, `TriggerSource`, `SignalCount`, and `Confidence`.
+4. Emit trigger event metadata with `ConnectorPreset` for downstream analysis.
 
 ---
 

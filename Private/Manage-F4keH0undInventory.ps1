@@ -99,6 +99,234 @@ function Get-F4keH0undInventoryEvents {
     })
 }
 
+function Convert-PrivateF4keH0undInventoryObjectToHashtable {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter()]
+        [object]$InputObject
+    )
+
+    $result = @{}
+    if ($null -eq $InputObject) {
+        return $result
+    }
+
+    if ($InputObject -is [System.Collections.IDictionary]) {
+        foreach ($keyObject in $InputObject.Keys) {
+            $result[[string]$keyObject] = $InputObject[$keyObject]
+        }
+        return $result
+    }
+
+    foreach ($property in $InputObject.PSObject.Properties) {
+        $result[[string]$property.Name] = $property.Value
+    }
+
+    return $result
+}
+
+function Get-PrivateF4keH0undTokenFingerprint {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $null
+    }
+
+    if ($Value -match '^sha256:[a-fA-F0-9]{16,64}$') {
+        return $Value.ToLowerInvariant()
+    }
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value.Trim())
+        $hashBytes = $sha256.ComputeHash($bytes)
+        $hex = ([System.BitConverter]::ToString($hashBytes) -replace '-', '').ToLowerInvariant()
+        return "sha256:$($hex.Substring(0, 16))"
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
+function Get-PrivateF4keH0undTokenCorrelationContext {
+    [CmdletBinding()]
+    [OutputType([PSObject])]
+    param(
+        [Parameter()]
+        [hashtable]$Metadata
+    )
+
+    $fingerprints = [System.Collections.Generic.List[string]]::new()
+    $tokenKeys = [System.Collections.Generic.List[string]]::new()
+
+    if ($null -eq $Metadata) {
+        return [PSCustomObject]@{
+            TokenFingerprints = @()
+            TokenKeys         = @()
+        }
+    }
+
+    if ($Metadata.ContainsKey('TokenFingerprints')) {
+        foreach ($fingerprint in @($Metadata['TokenFingerprints'])) {
+            $value = [string]$fingerprint
+            if (-not [string]::IsNullOrWhiteSpace($value) -and -not $fingerprints.Contains($value)) {
+                $fingerprints.Add($value)
+            }
+        }
+    }
+
+    $candidateValues = [System.Collections.Generic.List[string]]::new()
+    $tokenLikePattern = '(?i)token|secret|password|key|credential'
+
+    $templateData = @{}
+    if ($Metadata.ContainsKey('TemplateData')) {
+        $templateData = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $Metadata['TemplateData']
+    }
+
+    foreach ($templateKey in $templateData.Keys) {
+        $keyName = [string]$templateKey
+        if ($keyName -match $tokenLikePattern) {
+            if (-not $tokenKeys.Contains($keyName)) {
+                $tokenKeys.Add($keyName)
+            }
+
+            $value = [string]$templateData[$templateKey]
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                $candidateValues.Add($value)
+            }
+        }
+    }
+
+    foreach ($metadataKey in $Metadata.Keys) {
+        $keyName = [string]$metadataKey
+        if ($keyName -match $tokenLikePattern -or $keyName -eq 'TokenIdentifier') {
+            if (-not $tokenKeys.Contains($keyName)) {
+                $tokenKeys.Add($keyName)
+            }
+
+            $value = [string]$Metadata[$metadataKey]
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                $candidateValues.Add($value)
+            }
+        }
+    }
+
+    foreach ($candidateValue in $candidateValues) {
+        $fingerprint = Get-PrivateF4keH0undTokenFingerprint -Value $candidateValue
+        if (-not [string]::IsNullOrWhiteSpace($fingerprint) -and -not $fingerprints.Contains($fingerprint)) {
+            $fingerprints.Add($fingerprint)
+        }
+    }
+
+    return [PSCustomObject]@{
+        TokenFingerprints = @($fingerprints)
+        TokenKeys         = @($tokenKeys)
+    }
+}
+
+function Get-PrivateF4keH0undAlertAssessment {
+    [CmdletBinding()]
+    [OutputType([PSObject])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [PSObject]$Entry
+    )
+
+    $triggerCount = [int]$Entry.TriggerCount
+    if ($triggerCount -le 0) {
+        return [PSCustomObject]@{
+            Score    = 0
+            Severity = 'None'
+            Reasons  = @()
+        }
+    }
+
+    $score = 20
+    $reasons = [System.Collections.Generic.List[string]]::new()
+    $reasons.Add("Trigger events observed: $triggerCount")
+
+    $signalCount = [int]$Entry.TriggerSignalCount
+    if ($signalCount -gt 0) {
+        $signalContribution = [Math]::Min(30, $signalCount * 5)
+        $score += $signalContribution
+        $reasons.Add("Signal count contribution: +$signalContribution")
+    }
+
+    $repeatContribution = [Math]::Min(15, [Math]::Max(0, ($triggerCount - 1) * 3))
+    if ($repeatContribution -gt 0) {
+        $score += $repeatContribution
+        $reasons.Add("Repeated trigger contribution: +$repeatContribution")
+    }
+
+    $confidence = 0
+    try {
+        $confidence = [double]$Entry.LastTriggerConfidence
+    }
+    catch {
+        $confidence = 0
+    }
+
+    if ($confidence -gt 0) {
+        $confidenceContribution = [Math]::Min(20, [Math]::Round($confidence / 5, 0))
+        $score += $confidenceContribution
+        $reasons.Add("Confidence contribution: +$confidenceContribution")
+    }
+
+    $correlationStatus = [string]$Entry.TokenCorrelationStatus
+    switch ($correlationStatus) {
+        'Correlated' {
+            $score += 15
+            $reasons.Add('Token correlation matched known canary fingerprint: +15')
+        }
+        'Uncorrelated' {
+            $score -= 15
+            $reasons.Add('Token correlation mismatch penalty: -15')
+        }
+    }
+
+    $decoyType = [string]$Entry.DecoyType
+    if ($decoyType -match '(?i)token|credential|apihook|identity') {
+        $score += 10
+        $reasons.Add('Identity/token decoy family priority boost: +10')
+    }
+
+    if ([string]$Entry.Strategy -eq 'Artifact') {
+        $score += 5
+        $reasons.Add('Artifact strategy operational confidence: +5')
+    }
+
+    if ([string]$Entry.Status -eq 'Removed') {
+        $score -= 30
+        $reasons.Add('Removed element penalty: -30')
+    }
+
+    $score = [Math]::Max(0, [Math]::Min(100, [int][Math]::Round($score, 0)))
+    $severity = if ($score -ge 85) {
+        'Critical'
+    }
+    elseif ($score -ge 65) {
+        'High'
+    }
+    elseif ($score -ge 40) {
+        'Medium'
+    }
+    else {
+        'Low'
+    }
+
+    return [PSCustomObject]@{
+        Score    = $score
+        Severity = $severity
+        Reasons  = @($reasons)
+    }
+}
+
 function Convert-F4keH0undInventoryEventsToState {
     [CmdletBinding()]
     [OutputType([System.Object[]])]
@@ -139,6 +367,22 @@ function Convert-F4keH0undInventoryEventsToState {
                 RIDAnomalySafe  = 'Unknown'
                 EventCount      = 0
                 Metadata        = @{}
+                TriggerCount    = 0
+                TriggerSignalCount = 0
+                FirstTriggeredAt = $null
+                LastTriggeredAt = $null
+                LastTriggerType = $null
+                LastTriggerSource = $null
+                LastTriggerActor = $null
+                LastTriggerEvidence = $null
+                LastTriggerConfidence = 0
+                TokenFingerprints = @()
+                TokenKeys       = @()
+                TokenCorrelationStatus = 'Unknown'
+                TokenCorrelationMatched = $false
+                AlertScore      = 0
+                AlertSeverity   = 'None'
+                AlertReasons    = @()
                 ReportSource    = 'InventoryEvents'
                 LastStatusCheck = $null
             }
@@ -180,11 +424,16 @@ function Convert-F4keH0undInventoryEventsToState {
         }
 
         if ($event.metadata) {
-            $metadataTable = @{}
-            foreach ($property in $event.metadata.PSObject.Properties) {
-                $metadataTable[$property.Name] = $property.Value
+            $existingMetadata = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $entry.Metadata
+            $eventMetadata = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $event.metadata
+            foreach ($metadataKey in $eventMetadata.Keys) {
+                $existingMetadata[$metadataKey] = $eventMetadata[$metadataKey]
             }
-            $entry.Metadata = $metadataTable
+            $entry.Metadata = $existingMetadata
+
+            $tokenContext = Get-PrivateF4keH0undTokenCorrelationContext -Metadata $existingMetadata
+            $entry.TokenFingerprints = @($tokenContext.TokenFingerprints)
+            $entry.TokenKeys = @($tokenContext.TokenKeys)
         }
 
         switch ([string]$event.action) {
@@ -208,6 +457,80 @@ function Convert-F4keH0undInventoryEventsToState {
                 $entry.IsActive = $false
                 $entry.Status = 'Removed'
             }
+            'Trigger' {
+                $triggerMetadata = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $entry.Metadata
+                $signalCount = 1
+                if ($triggerMetadata.ContainsKey('SignalCount')) {
+                    try {
+                        $parsedSignalCount = [int]$triggerMetadata['SignalCount']
+                        if ($parsedSignalCount -gt 0) {
+                            $signalCount = $parsedSignalCount
+                        }
+                    }
+                    catch {
+                        $signalCount = 1
+                    }
+                }
+
+                $entry.TriggerCount = [int]$entry.TriggerCount + 1
+                $entry.TriggerSignalCount = [int]$entry.TriggerSignalCount + $signalCount
+
+                if ($null -eq $entry.FirstTriggeredAt) {
+                    $entry.FirstTriggeredAt = $eventTime
+                }
+                $entry.LastTriggeredAt = $eventTime
+
+                if ($triggerMetadata.ContainsKey('TriggerType')) {
+                    $entry.LastTriggerType = [string]$triggerMetadata['TriggerType']
+                }
+                if ($triggerMetadata.ContainsKey('TriggerSource')) {
+                    $entry.LastTriggerSource = [string]$triggerMetadata['TriggerSource']
+                }
+                if ($triggerMetadata.ContainsKey('Actor')) {
+                    $entry.LastTriggerActor = [string]$triggerMetadata['Actor']
+                }
+                if ($triggerMetadata.ContainsKey('EvidenceRef')) {
+                    $entry.LastTriggerEvidence = [string]$triggerMetadata['EvidenceRef']
+                }
+                if ($triggerMetadata.ContainsKey('Confidence')) {
+                    try {
+                        $entry.LastTriggerConfidence = [double]$triggerMetadata['Confidence']
+                    }
+                    catch {
+                        $entry.LastTriggerConfidence = 0
+                    }
+                }
+
+                if ($entry.IsActive -ne $false) {
+                    $entry.Status = 'Triggered'
+                }
+
+                $tokenIdentifier = if ($triggerMetadata.ContainsKey('TokenIdentifier')) {
+                    [string]$triggerMetadata['TokenIdentifier']
+                }
+                else {
+                    $null
+                }
+
+                if (-not [string]::IsNullOrWhiteSpace($tokenIdentifier)) {
+                    $normalizedIdentifier = Get-PrivateF4keH0undTokenFingerprint -Value $tokenIdentifier
+                    if ($normalizedIdentifier -and (@($entry.TokenFingerprints) -contains $normalizedIdentifier)) {
+                        $entry.TokenCorrelationStatus = 'Correlated'
+                        $entry.TokenCorrelationMatched = $true
+                    }
+                    else {
+                        $entry.TokenCorrelationStatus = 'Uncorrelated'
+                        $entry.TokenCorrelationMatched = $false
+                    }
+                }
+                elseif ($triggerMetadata.ContainsKey('CorrelationHint') -and [string]$triggerMetadata['CorrelationHint'] -eq 'Correlated') {
+                    $entry.TokenCorrelationStatus = 'Correlated'
+                    $entry.TokenCorrelationMatched = $true
+                }
+                else {
+                    $entry.TokenCorrelationStatus = 'Unknown'
+                }
+            }
         }
 
         if ($entry.Strategy -eq 'Recycle') {
@@ -216,6 +539,11 @@ function Convert-F4keH0undInventoryEventsToState {
         elseif ($entry.Strategy -eq 'Create') {
             $entry.RIDAnomalySafe = 'No'
         }
+
+        $assessment = Get-PrivateF4keH0undAlertAssessment -Entry $entry
+        $entry.AlertScore = [int]$assessment.Score
+        $entry.AlertSeverity = [string]$assessment.Severity
+        $entry.AlertReasons = @($assessment.Reasons)
     }
 
     $state = @($stateByKey.Values)
@@ -266,7 +594,7 @@ function Write-F4keH0undInventoryEvent {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Deploy', 'Update', 'Disable', 'Enable', 'Remove')]
+        [ValidateSet('Deploy', 'Update', 'Disable', 'Enable', 'Remove', 'Trigger')]
         [string]$Action,
 
         [Parameter(Mandatory = $true)]
@@ -305,6 +633,10 @@ function Write-F4keH0undInventoryEvent {
     $store = Get-F4keH0undInventoryStore -Ensure
     if (-not $store.Enabled) {
         return
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Status) -and $Action -eq 'Trigger') {
+        $Status = 'Triggered'
     }
 
     $entry = [ordered]@{

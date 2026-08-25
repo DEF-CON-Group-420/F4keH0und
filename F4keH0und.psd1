@@ -7,7 +7,7 @@
 RootModule = 'F4keH0und.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.9.0'
+ModuleVersion = '2.11.0'
 
 # ID used to uniquely identify this module
 GUID = 'd2b0e6f3-8d3c-4e8f-8c6a-1e9f4c3a2b1d'
@@ -31,6 +31,7 @@ FunctionsToExport = @(
     'Get-F4keH0undElementType',
     'New-F4keH0undElement',
     'New-F4keH0undToken',
+    'Register-F4keH0undTokenTrigger',
     'Update-F4keH0undElement',
     'Disable-F4keH0undElement',
     'Enable-F4keH0undElement',

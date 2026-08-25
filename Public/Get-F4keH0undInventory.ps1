@@ -58,6 +58,12 @@
     Optional status filter (for example, Armed, Disabled, Removed, Enabled,
     Recorded).
 
+.PARAMETER AlertSeverity
+    Optional alert-severity filter (`None`, `Low`, `Medium`, `High`, `Critical`).
+
+.PARAMETER MinAlertScore
+    Optional minimum alert score filter (0-100).
+
 .EXAMPLE
     Get-F4keH0undInventory
 
@@ -77,6 +83,11 @@
     Get-F4keH0undInventory -Source Events -Platform Windows -ElementFamily ApiHookBait -Status Armed
 
     Returns active Windows artifact elements for one family.
+
+.EXAMPLE
+    Get-F4keH0undInventory -Source Events -Platform Windows -AlertSeverity High,Critical -MinAlertScore 65
+
+    Returns high-confidence triggered elements.
 #>
 function Get-F4keH0undInventory {
     [CmdletBinding()]
@@ -123,7 +134,15 @@ function Get-F4keH0undInventory {
         [string[]]$ComputerName,
 
         [Parameter()]
-        [string[]]$Status
+        [string[]]$Status,
+
+        [Parameter()]
+        [ValidateSet('None', 'Low', 'Medium', 'High', 'Critical')]
+        [string[]]$AlertSeverity,
+
+        [Parameter()]
+        [ValidateRange(0, 100)]
+        [int]$MinAlertScore
     )
 
     $commandName = $MyInvocation.MyCommand.Name
@@ -192,6 +211,22 @@ function Get-F4keH0undInventory {
                 RIDAnomalySafe  = [string]$reportRow.RIDAnomalySafe
                 EventCount      = 1
                 Metadata        = @{}
+                TriggerCount    = 0
+                TriggerSignalCount = 0
+                FirstTriggeredAt = $null
+                LastTriggeredAt = $null
+                LastTriggerType = $null
+                LastTriggerSource = $null
+                LastTriggerActor = $null
+                LastTriggerEvidence = $null
+                LastTriggerConfidence = 0
+                TokenFingerprints = @()
+                TokenKeys       = @()
+                TokenCorrelationStatus = 'Unknown'
+                TokenCorrelationMatched = $false
+                AlertScore      = 0
+                AlertSeverity   = 'None'
+                AlertReasons    = @()
                 ReportSource    = [IO.Path]::GetFileName([string]$reportRow._ReportSource)
                 LastStatusCheck = $null
             }
@@ -412,6 +447,37 @@ function Get-F4keH0undInventory {
 
     if ($PSBoundParameters.ContainsKey('Status') -and @($Status).Count -gt 0) {
         $inventoryRows = @($inventoryRows | Where-Object { @($Status) -contains [string]$_.Status })
+    }
+
+    if ($PSBoundParameters.ContainsKey('AlertSeverity') -and @($AlertSeverity).Count -gt 0) {
+        $inventoryRows = @(
+            $inventoryRows | Where-Object {
+                $rowSeverity = if ($_.PSObject.Properties.Name -contains 'AlertSeverity') {
+                    [string]$_.AlertSeverity
+                }
+                else {
+                    'None'
+                }
+                @($AlertSeverity) -contains $rowSeverity
+            }
+        )
+    }
+
+    if ($PSBoundParameters.ContainsKey('MinAlertScore')) {
+        $inventoryRows = @(
+            $inventoryRows | Where-Object {
+                $rowScore = 0
+                if ($_.PSObject.Properties.Name -contains 'AlertScore') {
+                    try {
+                        $rowScore = [int]$_.AlertScore
+                    }
+                    catch {
+                        $rowScore = 0
+                    }
+                }
+                $rowScore -ge $MinAlertScore
+            }
+        )
     }
 
     return @($inventoryRows | Sort-Object -Property @{
