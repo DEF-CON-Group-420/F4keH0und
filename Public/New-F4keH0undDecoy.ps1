@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Creates decoy objects in AD based on opportunities found by the analysis engine.
+    Creates decoy objects in AD and Entra based on analysis opportunities.
 .DESCRIPTION
     This is the primary deployment function of the F4keH0und module. It first runs the
     analysis engine (Find-F4keH0undOpportunity) to find deception opportunities.
@@ -116,19 +116,27 @@ function New-F4keH0undDecoy {
         [string]$AuditLogPath
     )
 
-    # Check for recycling function dependencies
-    $recyclingFunctionsAvailable = $true
-    $requiredFunctions = @('Find-F4keH0undRecyclableObject', 'Set-PrivateADDecoyUser', 'Set-PrivateADDecoyComputer', 'Set-PrivateADDecoyGroup')
+    # Check mode-specific helper dependencies
+    if ($PSCmdlet.ParameterSetName -eq 'AD') {
+        $recyclingFunctionsAvailable = $true
+        $requiredFunctions = @('Find-F4keH0undRecyclableObject', 'Set-PrivateADDecoyUser', 'Set-PrivateADDecoyComputer', 'Set-PrivateADDecoyGroup')
 
-    foreach ($funcName in $requiredFunctions) {
-        if (-not (Get-Command -Name $funcName -ErrorAction SilentlyContinue)) {
-            Write-Warning "[$($MyInvocation.MyCommand)] - Recycling function '$funcName' not found. Recycling features may not work."
-            $recyclingFunctionsAvailable = $false
+        foreach ($funcName in $requiredFunctions) {
+            if (-not (Get-Command -Name $funcName -ErrorAction SilentlyContinue)) {
+                Write-Warning "[$($MyInvocation.MyCommand)] - Recycling function '$funcName' not found. Recycling features may not work."
+                $recyclingFunctionsAvailable = $false
+            }
+        }
+
+        if (-not $recyclingFunctionsAvailable) {
+            Write-Warning "[$($MyInvocation.MyCommand)] - Some recycling functions are missing. Only creation-based deployment will be available."
         }
     }
-
-    if (-not $recyclingFunctionsAvailable) {
-        Write-Warning "[$($MyInvocation.MyCommand)] - Some recycling functions are missing. Only creation-based deployment will be available."
+    elseif ($PSCmdlet.ParameterSetName -eq 'Azure') {
+        if (-not (Get-Command -Name 'Set-PrivateEntraDecoyPrincipal' -ErrorAction SilentlyContinue)) {
+            Write-Error "[ERROR] Required helper 'Set-PrivateEntraDecoyPrincipal' is not available. Entra deployment cannot continue."
+            return
+        }
     }
 
     # Load configuration
@@ -538,12 +546,133 @@ function New-F4keH0undDecoy {
                         }
                     }
                 }
+
+                "EntraServicePrincipalDecoy" {
+                    if ($opportunity.Strategy -ne 'Recycle') {
+                        Write-Warning "[WARNING] EntraServicePrincipalDecoy currently supports only 'Recycle' strategy."
+                        break
+                    }
+
+                    if (-not $opportunity.RecyclableObject) {
+                        Write-Warning "[WARNING] No recyclable object available for EntraServicePrincipalDecoy opportunity ID $($opportunity.ID)."
+                        break
+                    }
+
+                    $entraParams = @{
+                        RecyclableObject = $opportunity.RecyclableObject
+                        Description      = $opportunity.Template.Description
+                        ErrorAction      = 'Stop'
+                    }
+                    if ($opportunity.Template.AssignHighPrivilegeRole) { $entraParams['AssignHighPrivilegeRole'] = $true }
+                    if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $entraParams['AuditLogPath'] = $AuditLogPath }
+
+                    $createdObject = Set-PrivateEntraDecoyPrincipal @entraParams
+
+                    if ($createdObject) {
+                        Write-Host "[RECYCLED] Entra service principal '$($createdObject.DisplayName)' (ObjectId: $($createdObject.ObjectId))" -ForegroundColor Cyan
+                    }
+                }
+
+                "EntraGuestUserDecoy" {
+                    if ($opportunity.Strategy -ne 'Recycle') {
+                        Write-Warning "[WARNING] EntraGuestUserDecoy currently supports only 'Recycle' strategy."
+                        break
+                    }
+
+                    if (-not $opportunity.RecyclableObject) {
+                        Write-Warning "[WARNING] No recyclable object available for EntraGuestUserDecoy opportunity ID $($opportunity.ID)."
+                        break
+                    }
+
+                    $entraParams = @{
+                        RecyclableObject = $opportunity.RecyclableObject
+                        Description      = $opportunity.Template.Description
+                        ErrorAction      = 'Stop'
+                    }
+                    if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $entraParams['AuditLogPath'] = $AuditLogPath }
+
+                    $createdObject = Set-PrivateEntraDecoyPrincipal @entraParams
+
+                    if ($createdObject) {
+                        Write-Host "[RECYCLED] Entra guest user '$($createdObject.DisplayName)' (ObjectId: $($createdObject.ObjectId))" -ForegroundColor Cyan
+                    }
+                }
+
+                "EntraAppRegistrationDecoy" {
+                    if ($opportunity.Strategy -ne 'Recycle') {
+                        Write-Warning "[WARNING] EntraAppRegistrationDecoy currently supports only 'Recycle' strategy."
+                        break
+                    }
+
+                    if (-not $opportunity.RecyclableObject) {
+                        Write-Warning "[WARNING] No recyclable object available for EntraAppRegistrationDecoy opportunity ID $($opportunity.ID)."
+                        break
+                    }
+
+                    $entraParams = @{
+                        RecyclableObject = $opportunity.RecyclableObject
+                        Description      = $opportunity.Template.Description
+                        ErrorAction      = 'Stop'
+                    }
+                    if ($PSBoundParameters.ContainsKey('AuditLogPath')) { $entraParams['AuditLogPath'] = $AuditLogPath }
+
+                    $createdObject = Set-PrivateEntraDecoyPrincipal @entraParams
+
+                    if ($createdObject) {
+                        Write-Host "[RECYCLED] Entra app registration '$($createdObject.DisplayName)' (ObjectId: $($createdObject.ObjectId))" -ForegroundColor Cyan
+                    }
+                }
             }
             if ($createdObject) {
-                Write-Host "[SUCCESS] Successfully deployed decoy '$($createdObject.Name)' and its relationships." -ForegroundColor Green
+                $createdDisplayName = if ($createdObject.Name) {
+                    $createdObject.Name
+                }
+                elseif ($createdObject.DisplayName) {
+                    $createdObject.DisplayName
+                }
+                elseif ($createdObject.SamAccountName) {
+                    $createdObject.SamAccountName
+                }
+                elseif ($createdObject.UserPrincipalName) {
+                    $createdObject.UserPrincipalName
+                }
+                elseif ($createdObject.AppId) {
+                    $createdObject.AppId
+                }
+                elseif ($createdObject.ObjectId) {
+                    $createdObject.ObjectId
+                }
+                else {
+                    'UnknownObject'
+                }
+
+                Write-Host "[SUCCESS] Successfully deployed decoy '$createdDisplayName' and its relationships." -ForegroundColor Green
 
                 if (Get-Command -Name Write-F4keH0undInventoryEvent -ErrorAction SilentlyContinue) {
-                    $inventoryIdentity = if ($createdObject.SamAccountName) { $createdObject.SamAccountName } else { $createdObject.Name }
+                    $inventoryIdentity = switch ($opportunity.DecoyType) {
+                        'EntraServicePrincipalDecoy' {
+                            if ($createdObject.AppId) { $createdObject.AppId }
+                            elseif ($createdObject.ObjectId) { $createdObject.ObjectId }
+                            else { $createdObject.DisplayName }
+                        }
+                        'EntraGuestUserDecoy' {
+                            if ($createdObject.UserPrincipalName) { $createdObject.UserPrincipalName }
+                            elseif ($createdObject.ObjectId) { $createdObject.ObjectId }
+                            else { $createdObject.DisplayName }
+                        }
+                        'EntraAppRegistrationDecoy' {
+                            if ($createdObject.AppId) { $createdObject.AppId }
+                            elseif ($createdObject.ObjectId) { $createdObject.ObjectId }
+                            else { $createdObject.DisplayName }
+                        }
+                        default {
+                            if ($createdObject.SamAccountName) { $createdObject.SamAccountName }
+                            elseif ($createdObject.Name) { $createdObject.Name }
+                            elseif ($createdObject.DisplayName) { $createdObject.DisplayName }
+                            else { 'UnknownIdentity' }
+                        }
+                    }
+
                     $inventoryObjectType = switch ($opportunity.DecoyType) {
                         'UnconstrainedDelegationComputer' { 'Computer' }
                         'EntraServicePrincipalDecoy'      { 'ServicePrincipal' }
@@ -565,8 +694,34 @@ function New-F4keH0undDecoy {
                     elseif ($createdObject.PSObject.Properties.Name -contains 'Enabled') {
                         if ($createdObject.Enabled) { 'Enabled' } else { 'Disabled' }
                     }
+                    elseif ($createdObject.PSObject.Properties.Name -contains 'AccountEnabled') {
+                        if ($createdObject.AccountEnabled) { 'Enabled' } else { 'Disabled' }
+                    }
+                    elseif ($inventoryObjectType -eq 'AppRegistration') {
+                        'Present'
+                    }
                     else {
                         'Recorded'
+                    }
+
+                    $inventoryLocation = switch ($inventoryObjectType) {
+                        'ServicePrincipal' {
+                            if ($createdObject.ObjectId) { "ServicePrincipalId:$($createdObject.ObjectId)" } else { $null }
+                        }
+                        'GuestUser' {
+                            if ($createdObject.ObjectId) { "UserId:$($createdObject.ObjectId)" } else { $null }
+                        }
+                        'AppRegistration' {
+                            if ($createdObject.ObjectId) { "ApplicationId:$($createdObject.ObjectId)" } else { $null }
+                        }
+                        default {
+                            if ($createdObject.PSObject.Properties.Name -contains 'DistinguishedName') {
+                                $createdObject.DistinguishedName
+                            }
+                            else {
+                                $null
+                            }
+                        }
                     }
 
                     $inventoryMetadata = @{
@@ -574,7 +729,7 @@ function New-F4keH0undDecoy {
                         Justification = $opportunity.Justification
                     }
 
-                    Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $inventoryIdentity -DecoyType $opportunity.DecoyType -Platform $inventoryPlatform -ObjectType $inventoryObjectType -Strategy $opportunity.Strategy -Status $inventoryStatus -Location $createdObject.DistinguishedName -Metadata $inventoryMetadata -SourceCommand $MyInvocation.MyCommand.Name
+                    Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $inventoryIdentity -DecoyType $opportunity.DecoyType -Platform $inventoryPlatform -ObjectType $inventoryObjectType -Strategy $opportunity.Strategy -Status $inventoryStatus -Location $inventoryLocation -Metadata $inventoryMetadata -SourceCommand $MyInvocation.MyCommand.Name
                 }
 
                 $deployedDecoy = [PSCustomObject]@{
@@ -624,14 +779,14 @@ function New-F4keH0undDecoy {
                 Timestamp         = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
                 Strategy          = $strategy
                 DecoyType         = $_.Opportunity.DecoyType
-                Identity          = if ($_.Object.SamAccountName) { $_.Object.SamAccountName } else { $_.Object.Name }
-                DistinguishedName = $_.Object.DistinguishedName
+                Identity          = if ($_.Object.SamAccountName) { $_.Object.SamAccountName } elseif ($_.Object.UserPrincipalName) { $_.Object.UserPrincipalName } elseif ($_.Object.AppId) { $_.Object.AppId } elseif ($_.Object.Name) { $_.Object.Name } elseif ($_.Object.DisplayName) { $_.Object.DisplayName } elseif ($_.Object.ObjectId) { $_.Object.ObjectId } else { 'N/A' }
+                DistinguishedName = if ($_.Object.DistinguishedName) { $_.Object.DistinguishedName } elseif ($_.Object.ObjectId) { "ObjectId:$($_.Object.ObjectId)" } else { 'N/A' }
                 RID               = $rid
                 WhenCreated       = if ($_.Object.whenCreated) { $_.Object.whenCreated.ToString('yyyy-MM-dd') } else { 'N/A' }
                 AgeInDays         = $ageInDays
-                Description       = $_.Object.Description
+                Description       = if ($_.Object.Description) { $_.Object.Description } elseif ($_.Object.JobTitle) { $_.Object.JobTitle } elseif ($_.Object.Notes) { $_.Object.Notes } else { '' }
                 Groups            = if ($_.Groups) { $_.Groups -join '; ' } else { '' }
-                SPNs              = if ($_.Object.ServicePrincipalNames) { $_.Object.ServicePrincipalNames -join '; ' } else { '' }
+                SPNs              = if ($_.Object.ServicePrincipalNames) { $_.Object.ServicePrincipalNames -join '; ' } elseif ($_.Object.AppId) { "AppId:$($_.Object.AppId)" } else { '' }
                 Justification     = $_.Opportunity.Justification
                 RIDAnomalySafe    = if ($strategy -eq 'Recycle') { 'Yes' } else { 'No' }
             }

@@ -55,15 +55,18 @@ F4keH0und/
 │
 └── Private/                                # Internal functions (not exported)
     ├── Find-F4keH0undRecyclableObject.ps1  # Recycling engine — staleness scoring and AD queries
+    ├── Find-F4keH0undRecyclableEntraObject.ps1 # Recycling engine — stale Entra object discovery
     ├── Get-F4keH0undConfig.ps1             # Config reader — parses config.json with defaults
     ├── Get-F4keH0undData.ps1               # BloodHound data loader — reads and normalizes JSON
     ├── Get-F4keH0undRank.ps1               # Opportunity ranker — Critical / High / Low assignment
+    ├── Manage-F4keH0undEntraLifecycle.ps1  # Entra lifecycle helpers (resolve/state/event context)
     ├── Manage-F4keH0undInventory.ps1       # Persistent inventory event backend (NDJSON + snapshot)
     ├── Set-PrivateADDecoyUser.ps1          # Recycles a stale user into a decoy
     ├── Set-PrivateADDecoyComputer.ps1      # Recycles a stale computer into a decoy
     ├── Set-PrivateADDecoyGroup.ps1         # Recycles a stale group into a decoy
     ├── Set-PrivateADDecoySPN.ps1           # Adds/removes SPNs on recycled users
     ├── Set-PrivateADACL.ps1                # Writes ACL entries for ACLAttackPath decoys
+    ├── Set-PrivateEntraDecoyPrincipal.ps1  # Recycles stale Entra principals/apps into decoys
     └── Test-F4keH0undConfig.ps1            # Configuration validator
 ```
 
@@ -298,9 +301,9 @@ Add-F4keH0undRelationship│
 (Set-PrivateADACL)       │
                          │
       ┌──────────────────┘
-      │ PrivilegedEntraSP
+      │ EntraServicePrincipalDecoy / EntraGuestUserDecoy / EntraAppRegistrationDecoy
       ▼
-Entra ID SP creation (via Microsoft Graph)
+Set-PrivateEntraDecoyPrincipal (Microsoft Graph recycling)
 
              │ (all paths converge)
              ▼
@@ -368,10 +371,11 @@ Implements persistent lifecycle inventory storage and state folding:
 
 ### Update/Disable/Enable Lifecycle Commands (Public)
 
-These commands provide CRUD-like lifecycle operations for deployed AD-backed decoys:
-- `Update-F4keH0undDecoy` modifies description, memberships, and SPNs.
-- `Disable-F4keH0undDecoy` moves decoys to disabled state without removal.
-- `Enable-F4keH0undDecoy` restores decoys to enabled state.
+These commands provide CRUD-like lifecycle operations for deployed AD and Entra decoys:
+- `Update-F4keH0undDecoy` modifies AD descriptions/memberships/SPNs and Entra decoy description metadata.
+- `Disable-F4keH0undDecoy` disables AD (`Disable-ADAccount`) or Entra (`AccountEnabled:$false`) identities.
+- `Enable-F4keH0undDecoy` re-enables AD or Entra identities.
+- `Remove-F4keH0undDecoy` deletes AD objects (membership-safe) and Entra objects (service principals, guest users, app registrations).
 
 Every command records a persistent inventory event so `Get-F4keH0undInventory -Source Events` can reflect current lifecycle state without relying only on CSV deployment reports.
 

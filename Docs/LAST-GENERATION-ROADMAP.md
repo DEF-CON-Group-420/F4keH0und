@@ -108,6 +108,12 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - `Sync-F4keH0undEntraParity`
 - Entra lifecycle remove/update support
 
+**Current implementation status:**
+- ✅ Entra deployment switch support in `New-F4keH0undDecoy` for service principal, guest user, and app registration decoys
+- ✅ Entra lifecycle parity in `Update/Disable/Enable/Remove-F4keH0undDecoy`
+- ✅ Entra lifecycle events written to persistent inventory with canonical identity/location mapping
+- ⏳ Remaining: parity scoring command surface (`Test-F4keH0undCoverage`, `Sync-F4keH0undEntraParity`)
+
 ## Phase 3 — New Element Families (Weeks 6–7)
 
 - Add low-resource element plugins:
@@ -162,8 +168,8 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Add Entra lifecycle update/remove parity and event writes.
-2. Add first token decoy pack (`New-F4keH0undToken`) with deterministic telemetry tags.
-3. Add coverage scoring dashboard output in `Get-F4keH0undInventory`.
-4. Add versioned decoy profiles and redesign workflows (`Redesign-F4keH0undDecoy`).
-5. Add parity scoring command (`Test-F4keH0undCoverage`).
+1. Add first token decoy pack (`New-F4keH0undToken`) with deterministic telemetry tags.
+2. Add coverage scoring dashboard output in `Get-F4keH0undInventory`.
+3. Add versioned decoy profiles and redesign workflows (`Redesign-F4keH0undDecoy`).
+4. Add parity scoring command (`Test-F4keH0undCoverage`).
+5. Add parity remediation command (`Sync-F4keH0undEntraParity`).

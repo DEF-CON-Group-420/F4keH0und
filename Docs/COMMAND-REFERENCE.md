@@ -109,8 +109,9 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 
 - Uses `Find-F4keH0undOpportunity` internally.
 - Displays opportunity list and prompts for IDs to deploy when `-Execute` is supplied.
+- Deploys Entra recycling opportunities (`EntraServicePrincipalDecoy`, `EntraGuestUserDecoy`, `EntraAppRegistrationDecoy`) via `Set-PrivateEntraDecoyPrincipal`.
 - Generates deployment report data and optional CSV handover.
-- Writes lifecycle inventory `Deploy` events to persistent backend.
+- Writes lifecycle inventory `Deploy` events to persistent backend with platform-aware identity/location fields.
 
 ### Example
 
@@ -122,56 +123,64 @@ New-F4keH0undDecoy -BloodHoundPath ./BH_Data -Execute -PreferRecycling -WhatIf
 
 ## `Update-F4keH0undDecoy`
 
-Applies lifecycle-safe updates to an existing AD decoy.
+Applies lifecycle-safe updates to AD or Entra decoys.
 
 ### Parameters
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `Identity` | `String` | Yes | — | Target decoy object identity. |
-| `ObjectType` | `String` | No | `User` | AD object type: `User`, `Computer`, `Group`. |
+| `Platform` | `String` | No | `AD` | Target platform: `AD` or `Entra`. |
+| `ObjectType` | `String` | No | `User` | AD: `User`, `Computer`, `Group`; Entra: `ServicePrincipal`, `GuestUser`, `AppRegistration`. |
 | `DecoyType` | `String` | No | `LifecycleManagedDecoy` | Decoy classification label for lifecycle events. |
 | `Description` | `String` | No | — | Replaces object description. |
-| `AddGroups` | `String[]` | No | — | Adds object to listed AD groups. |
-| `RemoveGroups` | `String[]` | No | — | Removes object from listed AD groups. |
-| `AddServicePrincipalNames` | `String[]` | No | — | Adds SPNs (User/Computer only). |
-| `RemoveServicePrincipalNames` | `String[]` | No | — | Removes SPNs (User/Computer only). |
-| `Server` | `String` | No | — | Domain Controller for AD operations. |
-| `Credential` | `PSCredential` | No | — | Credentials for AD operations. |
-| `PassThru` | `Switch` | No | `false` | Returns updated AD object. |
+| `AddGroups` | `String[]` | No | — | Adds object to listed groups (AD mode). |
+| `RemoveGroups` | `String[]` | No | — | Removes object from listed groups (AD mode). |
+| `AddServicePrincipalNames` | `String[]` | No | — | Adds SPNs (AD User/Computer only). |
+| `RemoveServicePrincipalNames` | `String[]` | No | — | Removes SPNs (AD User/Computer only). |
+| `Server` | `String` | No | — | Domain Controller for AD operations (AD mode). |
+| `Credential` | `PSCredential` | No | — | Credentials for AD operations (AD mode). |
+| `PassThru` | `Switch` | No | `false` | Returns updated object. |
 
 ### Behavior Notes
 
-- Group SPN updates are blocked with warning (SPN changes only valid on User/Computer).
-- Writes lifecycle inventory `Update` event with change metadata.
+- AD mode supports description, group membership, and SPN updates.
+- Entra mode supports decoy-description updates (`Notes` or `JobTitle` depending on object type).
+- AD-only parameters passed to Entra mode are ignored with warnings.
+- Writes lifecycle inventory `Update` event with platform-aware metadata.
 
 ### Example
 
 ```powershell
 Update-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User \
   -Description "Legacy SQL service account" -AddGroups "DnsAdmins"
+
+Update-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal \
+  -Description "Legacy BI Analytics Connector"
 ```
 
 ---
 
 ## `Disable-F4keH0undDecoy`
 
-Disables AD decoy identity state.
+Disables AD or Entra decoy identity state.
 
 ### Parameters
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `Identity` | `String` | Yes | — | Target decoy identity. |
-| `ObjectType` | `String` | No | `User` | Decoy type: `User` or `Computer`. |
+| `Platform` | `String` | No | `AD` | Target platform: `AD` or `Entra`. |
+| `ObjectType` | `String` | No | `User` | AD: `User`, `Computer`; Entra: `ServicePrincipal`, `GuestUser`. |
 | `DecoyType` | `String` | No | `LifecycleManagedDecoy` | Decoy classification label for lifecycle events. |
-| `Server` | `String` | No | — | Domain Controller for AD operations. |
-| `Credential` | `PSCredential` | No | — | Credentials for AD operations. |
-| `PassThru` | `Switch` | No | `false` | Returns updated AD object. |
+| `Server` | `String` | No | — | Domain Controller for AD operations (AD mode). |
+| `Credential` | `PSCredential` | No | — | Credentials for AD operations (AD mode). |
+| `PassThru` | `Switch` | No | `false` | Returns updated object. |
 
 ### Behavior Notes
 
-- Uses `Disable-ADAccount`.
+- AD mode uses `Disable-ADAccount`.
+- Entra mode uses `Update-MgServicePrincipal` / `Update-MgUser` with `AccountEnabled:$false`.
 - If already disabled, records non-changing lifecycle state metadata.
 - Writes lifecycle inventory `Disable` event.
 
@@ -179,28 +188,31 @@ Disables AD decoy identity state.
 
 ```powershell
 Disable-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User
+Disable-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal
 ```
 
 ---
 
 ## `Enable-F4keH0undDecoy`
 
-Enables AD decoy identity state.
+Enables AD or Entra decoy identity state.
 
 ### Parameters
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `Identity` | `String` | Yes | — | Target decoy identity. |
-| `ObjectType` | `String` | No | `User` | Decoy type: `User` or `Computer`. |
+| `Platform` | `String` | No | `AD` | Target platform: `AD` or `Entra`. |
+| `ObjectType` | `String` | No | `User` | AD: `User`, `Computer`; Entra: `ServicePrincipal`, `GuestUser`. |
 | `DecoyType` | `String` | No | `LifecycleManagedDecoy` | Decoy classification label for lifecycle events. |
-| `Server` | `String` | No | — | Domain Controller for AD operations. |
-| `Credential` | `PSCredential` | No | — | Credentials for AD operations. |
-| `PassThru` | `Switch` | No | `false` | Returns updated AD object. |
+| `Server` | `String` | No | — | Domain Controller for AD operations (AD mode). |
+| `Credential` | `PSCredential` | No | — | Credentials for AD operations (AD mode). |
+| `PassThru` | `Switch` | No | `false` | Returns updated object. |
 
 ### Behavior Notes
 
-- Uses `Enable-ADAccount`.
+- AD mode uses `Enable-ADAccount`.
+- Entra mode uses `Update-MgServicePrincipal` / `Update-MgUser` with `AccountEnabled:$true`.
 - If already enabled, records non-changing lifecycle state metadata.
 - Writes lifecycle inventory `Enable` event.
 
@@ -208,6 +220,7 @@ Enables AD decoy identity state.
 
 ```powershell
 Enable-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User
+Enable-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal
 ```
 
 ---
@@ -277,27 +290,30 @@ Add-F4keH0undRelationship -Decoy $decoy -Target "VPN Users" -RelationshipType Gr
 
 ## `Remove-F4keH0undDecoy`
 
-Removes/deletes a decoy AD object and its memberships.
+Removes/deletes AD or Entra decoys.
 
 ### Parameters
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `Identity` | `String` | Yes | — | Target decoy identity to remove. |
-| `Server` | `String` | No | — | Domain Controller for AD operations. |
-| `Credential` | `PSCredential` | No | — | Credentials for AD operations. |
-| `DecoyType` | `String` | No | `User` | Object type: `User`, `Computer`, `Group`. |
+| `Platform` | `String` | No | `AD` | Target platform: `AD` or `Entra`. |
+| `Server` | `String` | No | — | Domain Controller for AD operations (AD mode). |
+| `Credential` | `PSCredential` | No | — | Credentials for AD operations (AD mode). |
+| `DecoyType` | `String` | No | `User` | AD: `User`, `Computer`, `Group`; Entra: `ServicePrincipal`, `GuestUser`, `AppRegistration`. Alias: `ObjectType`. |
 
 ### Behavior Notes
 
-- Removes group memberships first when present.
-- Deletes AD object via `Remove-ADUser` / `Remove-ADComputer` / `Remove-ADGroup`.
+- AD mode removes group memberships first when present.
+- AD mode deletes objects via `Remove-ADUser` / `Remove-ADComputer` / `Remove-ADGroup`.
+- Entra mode deletes objects via `Remove-MgServicePrincipal` / `Remove-MgUser` / `Remove-MgApplication`.
 - Writes lifecycle inventory `Remove` event.
 
 ### Example
 
 ```powershell
 Remove-F4keH0undDecoy -Identity "svc_sql_legacy" -DecoyType User -WhatIf
+Remove-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -DecoyType ServicePrincipal -WhatIf
 ```
 
 ---

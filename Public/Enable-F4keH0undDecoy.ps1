@@ -1,16 +1,23 @@
 <#
 .SYNOPSIS
-    Enables an AD-backed decoy identity and records a lifecycle event.
+    Enables a decoy identity and records a lifecycle event.
 
 .DESCRIPTION
-    Enables a User or Computer decoy account using Enable-ADAccount, then
-    records the lifecycle transition in the persistent inventory backend.
+    Supports enabling AD and Entra identity decoys.
+
+    - AD mode: enables User/Computer via Enable-ADAccount.
+    - Entra mode: enables ServicePrincipal/GuestUser via Microsoft Graph.
 
 .PARAMETER Identity
     Identity of the decoy object to enable.
 
+.PARAMETER Platform
+    Decoy platform to manage. Supports AD and Entra.
+
 .PARAMETER ObjectType
-    Type of decoy identity. Supports User and Computer.
+    Decoy object type.
+    AD: User, Computer.
+    Entra: ServicePrincipal, GuestUser.
 
 .PARAMETER DecoyType
     Decoy classification label used in persistent inventory events.
@@ -22,10 +29,13 @@
     Optional privileged credential for AD operations.
 
 .PARAMETER PassThru
-    Returns the updated AD object.
+    Returns the updated object.
 
 .EXAMPLE
-    Enable-F4keH0undDecoy -Identity "svc_sql_legacy" -ObjectType User
+    Enable-F4keH0undDecoy -Identity "svc_sql_legacy" -Platform AD -ObjectType User
+
+.EXAMPLE
+    Enable-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal
 #>
 function Enable-F4keH0undDecoy {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
@@ -34,7 +44,11 @@ function Enable-F4keH0undDecoy {
         [string]$Identity,
 
         [Parameter()]
-        [ValidateSet('User', 'Computer')]
+        [ValidateSet('AD', 'Entra')]
+        [string]$Platform = 'AD',
+
+        [Parameter()]
+        [ValidateSet('User', 'Computer', 'ServicePrincipal', 'GuestUser')]
         [string]$ObjectType = 'User',
 
         [Parameter()]
@@ -51,6 +65,83 @@ function Enable-F4keH0undDecoy {
     )
 
     process {
+        if ($Platform -eq 'Entra') {
+            if ($ObjectType -notin @('ServicePrincipal', 'GuestUser')) {
+                Write-Error "[ERROR] ObjectType '$ObjectType' is not supported in Entra enable mode. Use ServicePrincipal or GuestUser."
+                return
+            }
+
+            try {
+                Test-PrivateEntraLifecyclePrerequisite | Out-Null
+                $decoyObject = Resolve-PrivateEntraDecoyObject -Identity $Identity -ObjectType $ObjectType
+                $eventContext = Get-PrivateEntraDecoyEventContext -ObjectType $ObjectType -Object $decoyObject
+            }
+            catch {
+                Write-Error "[ERROR] Failed to resolve Entra decoy '$Identity' ($ObjectType). Error: $($_.Exception.Message)"
+                return
+            }
+
+            $metadata = @{}
+            if ($decoyObject.AccountEnabled -ne $true) {
+                $target = $eventContext.Location
+                $action = 'Enable account'
+                if ($PSCmdlet.ShouldProcess($target, $action)) {
+                    try {
+                        switch ($ObjectType) {
+                            'ServicePrincipal' {
+                                Update-MgServicePrincipal -ServicePrincipalId $decoyObject.Id -AccountEnabled:$true -ErrorAction Stop
+                            }
+                            'GuestUser' {
+                                Update-MgUser -UserId $decoyObject.Id -AccountEnabled:$true -ErrorAction Stop
+                            }
+                        }
+                        $metadata['Changed'] = $true
+                    }
+                    catch {
+                        Write-Error "[ERROR] Failed to enable Entra decoy '$Identity'. Error: $($_.Exception.Message)"
+                        return
+                    }
+                }
+            }
+            else {
+                Write-Verbose "[$($MyInvocation.MyCommand)] - Entra decoy '$Identity' is already enabled."
+                $metadata['Changed'] = $false
+                $metadata['AlreadyEnabled'] = $true
+            }
+
+            try {
+                $updatedObject = Get-PrivateEntraDecoyObjectById -ObjectId $decoyObject.Id -ObjectType $ObjectType
+                $updatedContext = Get-PrivateEntraDecoyEventContext -ObjectType $ObjectType -Object $updatedObject
+            }
+            catch {
+                Write-Error "[ERROR] Failed to refresh Entra decoy '$Identity'. Error: $($_.Exception.Message)"
+                return
+            }
+
+            $eventDecoyType = if ($DecoyType -eq 'LifecycleManagedDecoy') {
+                Get-PrivateEntraDecoyTypeLabel -ObjectType $ObjectType
+            }
+            else {
+                $DecoyType
+            }
+
+            Write-F4keH0undInventoryEvent -Action 'Enable' -Identity $updatedContext.Identity -DecoyType $eventDecoyType -Platform 'Entra' -ObjectType $ObjectType -Status $updatedContext.Status -Location $updatedContext.Location -Metadata $metadata -SourceCommand $MyInvocation.MyCommand.Name
+
+            $displayLabel = if ([string]::IsNullOrWhiteSpace($updatedContext.DisplayName)) { $updatedContext.Identity } else { $updatedContext.DisplayName }
+            Write-Host "[SUCCESS] Entra decoy '$displayLabel' is $($updatedContext.Status.ToLower())." -ForegroundColor Green
+
+            if ($PassThru) {
+                return $updatedObject
+            }
+
+            return
+        }
+
+        if ($ObjectType -notin @('User', 'Computer')) {
+            Write-Error "[ERROR] ObjectType '$ObjectType' is not supported in AD enable mode. Use User or Computer."
+            return
+        }
+
         $adParams = @{}
         if ($PSBoundParameters.ContainsKey('Server')) { $adParams['Server'] = $Server }
         if ($PSBoundParameters.ContainsKey('Credential')) { $adParams['Credential'] = $Credential }
@@ -98,9 +189,11 @@ function Enable-F4keH0undDecoy {
             'Computer' { $updatedObject = Get-ADComputer @refreshParams }
         }
 
-        Write-F4keH0undInventoryEvent -Action 'Enable' -Identity $Identity -DecoyType $DecoyType -Platform 'AD' -ObjectType $ObjectType -Status 'Enabled' -Location $updatedObject.DistinguishedName -Metadata $metadata -SourceCommand $MyInvocation.MyCommand.Name
+        $status = if ($updatedObject.Enabled) { 'Enabled' } else { 'Disabled' }
 
-        Write-Host "[SUCCESS] Decoy '$Identity' is enabled." -ForegroundColor Green
+        Write-F4keH0undInventoryEvent -Action 'Enable' -Identity $Identity -DecoyType $DecoyType -Platform 'AD' -ObjectType $ObjectType -Status $status -Location $updatedObject.DistinguishedName -Metadata $metadata -SourceCommand $MyInvocation.MyCommand.Name
+
+        Write-Host "[SUCCESS] Decoy '$Identity' is $($status.ToLower())." -ForegroundColor Green
 
         if ($PassThru) {
             return $updatedObject

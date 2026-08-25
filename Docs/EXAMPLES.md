@@ -377,6 +377,9 @@ Write-Host "If no 'Access Denied' errors appeared above, credentials are suffici
 Deploy decoys in a hybrid AD + Entra ID environment using both SharpHound and AzureHound data.
 
 ```powershell
+# Ensure Graph session is established for Entra operations
+Connect-MgGraph -Scopes "Application.ReadWrite.All","User.ReadWrite.All","Directory.ReadWrite.All"
+
 # Step 1: Analyze on-premises AD data
 $adOpportunities = Find-F4keH0undOpportunity `
     -BloodHoundPath "C:\SharpHound_Data\" `
@@ -408,9 +411,13 @@ New-F4keH0undDecoy `
     -Execute
 ```
 
-**Entra ID decoy type — PrivilegedEntraSP:**
+**Current Entra decoy families:**
 
-The `PrivilegedEntraSP` decoy creates a Service Principal with a high-privilege role (e.g., Global Reader, Security Reader) that appears enticing in AzureHound graphs. Any OAuth token request or role enumeration against this SP is flagged.
+- `EntraServicePrincipalDecoy`
+- `EntraGuestUserDecoy`
+- `EntraAppRegistrationDecoy`
+
+All three are recycling-first and are transformed through `Set-PrivateEntraDecoyPrincipal`.
 
 ---
 
@@ -519,7 +526,7 @@ Get-F4keH0undInventory -Source Reports -AllReports -SkipLiveStatus |
 
 ## 14. Lifecycle Management
 
-Perform full lifecycle operations on existing AD-backed decoys without redeploying.
+Perform lifecycle operations on existing AD and Entra decoys without redeploying.
 
 ```powershell
 $cred = Get-Credential
@@ -539,6 +546,16 @@ Enable-F4keH0undDecoy  -Identity "svc_sql_legacy" -ObjectType User -Server $dc -
 Get-F4keH0undInventory -Source Events -IncludeRemoved -SkipLiveStatus |
     Where-Object Identity -eq "svc_sql_legacy" |
     Format-Table Identity, LastAction, Status, LastUpdated -AutoSize
+
+# Entra lifecycle operations
+Update-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal `
+    -Description "Legacy BI Analytics Connector - Last Generation"
+
+Disable-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal
+Enable-F4keH0undDecoy  -Identity "legacy-bi-app" -Platform Entra -ObjectType ServicePrincipal
+
+# Optional cleanup in Entra
+Remove-F4keH0undDecoy -Identity "legacy-bi-app" -Platform Entra -DecoyType ServicePrincipal -WhatIf
 ```
 
 ---
