@@ -29,3 +29,8 @@ jobs:
           } else {
             Write-Host "PSScriptAnalyzer: No issues found." -ForegroundColor Green
           }
+
+      - name: Validate command reference coverage
+        shell: pwsh
+        run: |
+          ./scripts/Test-CommandReferenceCoverage.ps1

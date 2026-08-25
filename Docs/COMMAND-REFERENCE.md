@@ -2,6 +2,8 @@
 
 This document describes every exported `F4keH0und` module command, its parameters, expected behavior, and practical usage patterns.
 
+Coverage of command sections in this file is enforced in CI by `scripts/Test-CommandReferenceCoverage.ps1`.
+
 ## Command Inventory
 
 Current exported commands:
@@ -377,4 +379,3 @@ Get-Command -Module F4keH0und
 Get-Help Find-F4keH0undOpportunity -Full
 Get-Help Update-F4keH0undDecoy -Examples
 ```
-

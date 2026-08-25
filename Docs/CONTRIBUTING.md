@@ -37,6 +37,10 @@ git push origin main
    Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
    Invoke-ScriptAnalyzer -Path . -Recurse
    ```
+5. Validate command-reference coverage locally before pushing:
+   ```powershell
+   ./scripts/Test-CommandReferenceCoverage.ps1
+   ```
 
 ## Submitting a Pull Request
 

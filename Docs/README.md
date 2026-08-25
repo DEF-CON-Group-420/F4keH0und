@@ -7,6 +7,7 @@ All project documentation (except the main `README.md`) is stored in the `Docs/`
 - Every code or behavior change must include corresponding documentation updates.
 - Keep architecture, examples, and roadmap documents aligned with the current implementation.
 - Keep `COMMAND-REFERENCE.md` aligned whenever command names, parameters, defaults, or lifecycle behavior change.
+- CI enforces command coverage via `scripts/Test-CommandReferenceCoverage.ps1`.
 - If a feature is added, changed, or removed, update the relevant file(s) in `Docs/` in the same change set.
 
 ## Documents
