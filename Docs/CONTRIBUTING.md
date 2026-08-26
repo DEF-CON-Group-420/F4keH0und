@@ -31,15 +31,21 @@ git push origin main
    git checkout -b feature/my-new-feature
    ```
 2. Follow the [Extending F4keH0und](../README.md#-extending-f4keh0und) guide when adding new detection or decoy types.
-3. Update the relevant files in `Docs/` for every code or behavior change (including `COMMAND-REFERENCE.md` when command parameters/behavior change).
-4. Ensure your PowerShell code passes [PSScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer) before submitting:
+3. Increment `ModuleVersion` in `F4keH0und.psd1` for every change set using semantic versioning rules (`patch`/`minor`/`major`).
+4. Append a new entry to `Docs/changelog.md` describing what changed.
+5. Update the relevant files in `Docs/` for every code or behavior change (including `COMMAND-REFERENCE.md` when command parameters/behavior change).
+6. Ensure your PowerShell code passes [PSScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer) before submitting:
    ```powershell
    Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
    Invoke-ScriptAnalyzer -Path . -Recurse
    ```
-5. Validate command-reference coverage locally before pushing:
+7. Validate command-reference coverage locally before pushing:
    ```powershell
    ./scripts/Test-CommandReferenceCoverage.ps1
+   ```
+8. Validate version/changelog policy locally before pushing:
+   ```powershell
+   ./scripts/Test-VersionChangelogPolicy.ps1 -BaseRef HEAD^ -HeadRef HEAD
    ```
 
 ## Submitting a Pull Request
@@ -62,9 +68,10 @@ Typical release flow:
 
 1. Open **Actions** → **Version and Release**.
 2. Choose bump type (`patch`, `minor`, `major`, or `custom`).
-3. Keep `target_branch = main`.
-4. Set `create_tag = true` and `create_release = true`.
-5. Run workflow.
+3. Provide `changelog_note` with a concise description of the release change set.
+4. Keep `target_branch = main`.
+5. Set `create_tag = true` and `create_release = true`.
+6. Run workflow.
 
 For full parameter details and behavior, see [VERSIONING.md](VERSIONING.md).
 

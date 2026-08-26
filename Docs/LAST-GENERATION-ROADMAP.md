@@ -182,6 +182,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Endpoint-name preset alert scoring tuned with correlation/source weighting for `RpcEndpointBait*` and `ApiEndpointBait*`
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 - ✅ GitHub Actions version/release workflow added (`.github/workflows/version-release.yml` + `Docs/VERSIONING.md`)
+- ✅ Mandatory version-bump + append-only changelog governance enforced in CI (`scripts/Test-VersionChangelogPolicy.ps1`, `Docs/changelog.md`)
 
 ---
 

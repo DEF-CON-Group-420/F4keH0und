@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/th3r3d/F4keH0und-LG/releases">
-    <img src="https://img.shields.io/badge/Version-2.20.0-0A66C2?logo=github&logoColor=white" alt="Module version"> <!-- f4keh0und-version-badge -->
+    <img src="https://img.shields.io/badge/Version-2.20.1-0A66C2?logo=github&logoColor=white" alt="Module version"> <!-- f4keh0und-version-badge -->
   </a>
   <a href="https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml">
     <img src="https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml/badge.svg" alt="CI">
@@ -695,6 +695,7 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/RESPONSE-PLAYBOOKS.md](Docs/RESPONSE-PLAYBOOKS.md) | High/Critical token-trigger response templates with containment and recovery workflows |
 | [Docs/TELEMETRY-CONNECTORS.md](Docs/TELEMETRY-CONNECTORS.md) | SIEM/SOAR connector preset catalog and payload mapping guide |
 | [Docs/VERSIONING.md](Docs/VERSIONING.md) | GitHub Actions workflow for module version bump, tag, and release creation |
+| [Docs/changelog.md](Docs/changelog.md) | Append-only changelog required for every change set |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
 | [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |
 

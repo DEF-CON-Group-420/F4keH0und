@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Run PSScriptAnalyzer
         shell: pwsh
@@ -34,3 +36,15 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/Test-CommandReferenceCoverage.ps1
+
+      - name: Validate version/changelog policy (push)
+        if: github.event_name == 'push'
+        shell: pwsh
+        run: |
+          ./scripts/Test-VersionChangelogPolicy.ps1 -BaseRef '${{ github.event.before }}' -HeadRef '${{ github.sha }}'
+
+      - name: Validate version/changelog policy (pull request)
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          ./scripts/Test-VersionChangelogPolicy.ps1 -BaseRef '${{ github.event.pull_request.base.sha }}' -HeadRef '${{ github.event.pull_request.head.sha }}'

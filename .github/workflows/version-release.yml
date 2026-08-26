@@ -17,6 +17,10 @@ on:
         description: "Required when bump_type=custom (for example 2.20.0)"
         required: false
         type: string
+      changelog_note:
+        description: "Required changelog summary for this version bump"
+        required: true
+        type: string
       target_branch:
         description: "Branch to bump/tag from"
         required: true
@@ -103,16 +107,26 @@ jobs:
           "next_version=$nextText" >> $env:GITHUB_OUTPUT
           "tag_name=v$nextText" >> $env:GITHUB_OUTPUT
 
-      - name: Update module manifest and README version badge
+      - name: Update module manifest, README badge, and changelog
         shell: pwsh
         env:
           NEXT_VERSION: ${{ steps.resolve.outputs.next_version }}
         run: |
           $manifestPath = 'F4keH0und.psd1'
           $readmePath = 'README.md'
+          $changelogPath = 'Docs/changelog.md'
+          $changelogNote = [string]'${{ github.event.inputs.changelog_note }}'
+
+          if ([string]::IsNullOrWhiteSpace($changelogNote)) {
+            throw 'changelog_note is required and cannot be empty.'
+          }
 
           if (-not (Test-Path -Path $readmePath -PathType Leaf)) {
             throw "README not found at '$readmePath'."
+          }
+
+          if (-not (Test-Path -Path $changelogPath -PathType Leaf)) {
+            Set-Content -Path $changelogPath -Value "# Changelog`n`nAll changes are recorded here.`n" -NoNewline
           }
 
           $content = Get-Content -Path $manifestPath -Raw -ErrorAction Stop
@@ -144,6 +158,19 @@ jobs:
 
           Set-Content -Path $readmePath -Value $updatedReadme -NoNewline
 
+          $entryDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+          $entryLines = @(
+            '',
+            '---',
+            '',
+            "## $env:NEXT_VERSION - $entryDate",
+            '',
+            "- $changelogNote",
+            "- Automated version bump by workflow actor '$env:GITHUB_ACTOR'."
+          )
+
+          Add-Content -Path $changelogPath -Value ($entryLines -join "`n")
+
       - name: Commit version bump
         id: commit
         env:
@@ -152,15 +179,15 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          if git diff --quiet -- F4keH0und.psd1 README.md; then
+          if git diff --quiet -- F4keH0und.psd1 README.md Docs/changelog.md; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No manifest/badge change detected; skipping commit."
+            echo "No manifest/badge/changelog change detected; skipping commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add F4keH0und.psd1 README.md
+          git add F4keH0und.psd1 README.md Docs/changelog.md
           git commit -m "chore(version): bump module to ${NEXT_VERSION} [skip ci]"
           git push origin "HEAD:${TARGET_BRANCH}"
 
