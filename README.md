@@ -673,6 +673,7 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 28 complete deployment scenarios with annotated commands |
 | [Docs/RESPONSE-PLAYBOOKS.md](Docs/RESPONSE-PLAYBOOKS.md) | High/Critical token-trigger response templates with containment and recovery workflows |
 | [Docs/TELEMETRY-CONNECTORS.md](Docs/TELEMETRY-CONNECTORS.md) | SIEM/SOAR connector preset catalog and payload mapping guide |
+| [Docs/VERSIONING.md](Docs/VERSIONING.md) | GitHub Actions workflow for module version bump, tag, and release creation |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
 | [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |
 

@@ -51,6 +51,23 @@ git push origin main
 2. Open a Pull Request against the `main` branch of the upstream repository.
 3. Describe your changes and reference any related issues.
 
+## Versioning and Releases
+
+Project versioning and release creation can be performed through GitHub Actions:
+
+- Workflow: `Version and Release`
+- File: `.github/workflows/version-release.yml`
+
+Typical release flow:
+
+1. Open **Actions** → **Version and Release**.
+2. Choose bump type (`patch`, `minor`, `major`, or `custom`).
+3. Keep `target_branch = main`.
+4. Set `create_tag = true` and `create_release = true`.
+5. Run workflow.
+
+For full parameter details and behavior, see [VERSIONING.md](VERSIONING.md).
+
 ## Code Style
 
 - Follow the existing PowerShell conventions in the repository (verb-noun function naming, `[CmdletBinding()]`, comment-based help).

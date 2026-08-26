@@ -1,0 +1,204 @@
+name: Version and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: "Required when bump_type=custom (for example 2.20.0)"
+        required: false
+        type: string
+      target_branch:
+        description: "Branch to bump/tag from"
+        required: true
+        default: "main"
+        type: string
+      create_tag:
+        description: "Create git tag vX.Y.Z"
+        required: true
+        default: true
+        type: boolean
+      create_release:
+        description: "Create GitHub Release (requires create_tag=true)"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  version_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+          fetch-depth: 0
+
+      - name: Resolve current and next version
+        id: resolve
+        shell: pwsh
+        run: |
+          $manifestPath = 'F4keH0und.psd1'
+          if (-not (Test-Path -Path $manifestPath -PathType Leaf)) {
+            throw "Manifest not found at '$manifestPath'."
+          }
+
+          $manifest = Import-PowerShellDataFile -Path $manifestPath
+          $currentVersion = [version]([string]$manifest.ModuleVersion)
+
+          $bumpType = '${{ github.event.inputs.bump_type }}'
+          $customVersionInput = [string]'${{ github.event.inputs.custom_version }}'
+
+          $customVersion = $null
+          if (-not [string]::IsNullOrWhiteSpace($customVersionInput)) {
+            $parsedCustom = $null
+            if (-not [version]::TryParse($customVersionInput.Trim(), [ref]$parsedCustom)) {
+              throw "Invalid custom_version '$customVersionInput'. Use semantic version format like 2.20.0."
+            }
+            $customVersion = [version]$parsedCustom
+          }
+
+          switch ($bumpType) {
+            'major' {
+              $nextVersion = [version]::new($currentVersion.Major + 1, 0, 0)
+            }
+            'minor' {
+              $nextVersion = [version]::new($currentVersion.Major, $currentVersion.Minor + 1, 0)
+            }
+            'patch' {
+              $nextVersion = [version]::new($currentVersion.Major, $currentVersion.Minor, $currentVersion.Build + 1)
+            }
+            'custom' {
+              if ($null -eq $customVersion) {
+                throw "custom_version is required when bump_type=custom."
+              }
+              $nextVersion = [version]::new($customVersion.Major, $customVersion.Minor, $customVersion.Build)
+            }
+            default {
+              throw "Unsupported bump_type '$bumpType'."
+            }
+          }
+
+          $currentText = "{0}.{1}.{2}" -f $currentVersion.Major, $currentVersion.Minor, $currentVersion.Build
+          $nextText = "{0}.{1}.{2}" -f $nextVersion.Major, $nextVersion.Minor, $nextVersion.Build
+
+          if ($nextVersion -lt $currentVersion) {
+            throw "Next version '$nextText' cannot be lower than current '$currentText'."
+          }
+
+          "current_version=$currentText" >> $env:GITHUB_OUTPUT
+          "next_version=$nextText" >> $env:GITHUB_OUTPUT
+          "tag_name=v$nextText" >> $env:GITHUB_OUTPUT
+
+      - name: Update module manifest version
+        shell: pwsh
+        env:
+          NEXT_VERSION: ${{ steps.resolve.outputs.next_version }}
+        run: |
+          $manifestPath = 'F4keH0und.psd1'
+          $content = Get-Content -Path $manifestPath -Raw -ErrorAction Stop
+
+          $updated = [regex]::Replace(
+            $content,
+            "(?m)^(\s*ModuleVersion\s*=\s*)'[^']+'",
+            "`$1'$env:NEXT_VERSION'"
+          )
+
+          if ($updated -eq $content) {
+            throw "Failed to update ModuleVersion in '$manifestPath'."
+          }
+
+          Set-Content -Path $manifestPath -Value $updated -NoNewline
+
+      - name: Commit version bump
+        id: commit
+        env:
+          NEXT_VERSION: ${{ steps.resolve.outputs.next_version }}
+          TARGET_BRANCH: ${{ github.event.inputs.target_branch }}
+        run: |
+          set -Eeuo pipefail
+
+          if git diff --quiet -- F4keH0und.psd1; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No manifest change detected; skipping commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add F4keH0und.psd1
+          git commit -m "chore(version): bump module to ${NEXT_VERSION} [skip ci]"
+          git push origin "HEAD:${TARGET_BRANCH}"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: github.event.inputs.create_tag == 'true'
+        env:
+          TAG_NAME: ${{ steps.resolve.outputs.tag_name }}
+        run: |
+          set -Eeuo pipefail
+
+          git fetch origin --tags
+          if git rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null; then
+            echo "Tag already exists: ${TAG_NAME}" >&2
+            exit 1
+          fi
+
+          git tag -a "${TAG_NAME}" -m "F4keH0und - Last Generation ${TAG_NAME}"
+          git push origin "${TAG_NAME}"
+
+      - name: Create GitHub release
+        if: github.event.inputs.create_tag == 'true' && github.event.inputs.create_release == 'true'
+        uses: actions/github-script@v7
+        env:
+          TAG_NAME: ${{ steps.resolve.outputs.tag_name }}
+          TARGET_BRANCH: ${{ github.event.inputs.target_branch }}
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.TAG_NAME,
+              target_commitish: process.env.TARGET_BRANCH,
+              name: process.env.TAG_NAME,
+              generate_release_notes: true,
+              draft: false,
+              prerelease: false
+            });
+
+      - name: Summary
+        env:
+          CURRENT_VERSION: ${{ steps.resolve.outputs.current_version }}
+          NEXT_VERSION: ${{ steps.resolve.outputs.next_version }}
+          TAG_NAME: ${{ steps.resolve.outputs.tag_name }}
+          COMMIT_CHANGED: ${{ steps.commit.outputs.changed }}
+          CREATE_TAG: ${{ github.event.inputs.create_tag }}
+          CREATE_RELEASE: ${{ github.event.inputs.create_release }}
+        run: |
+          {
+            echo "## Version and Release Summary"
+            echo ""
+            echo "- Current version: \\`${CURRENT_VERSION}\\`"
+            echo "- Next version: \\`${NEXT_VERSION}\\`"
+            echo "- Manifest commit pushed: \\`${COMMIT_CHANGED}\\`"
+            echo "- Tag requested: \\`${CREATE_TAG}\\`"
+            echo "- Release requested: \\`${CREATE_RELEASE}\\`"
+            if [[ "${CREATE_TAG}" == "true" ]]; then
+              echo "- Tag: \\`${TAG_NAME}\\`"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+

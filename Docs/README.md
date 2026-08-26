@@ -17,5 +17,6 @@ All project documentation (except the main `README.md`) is stored in the `Docs/`
 - [RESPONSE-PLAYBOOKS.md](RESPONSE-PLAYBOOKS.md) — High/Critical token-trigger incident response templates and workflow.
 - [TELEMETRY-CONNECTORS.md](TELEMETRY-CONNECTORS.md) — SIEM/SOAR connector preset model and payload mapping.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution workflow and standards.
+- [VERSIONING.md](VERSIONING.md) — GitHub Actions version bump, tagging, and release workflow.
 - [LAST-GENERATION-ROADMAP.md](LAST-GENERATION-ROADMAP.md) — Strategic phased plan.
 - [COMMAND-REFERENCE.md](COMMAND-REFERENCE.md) — Full command catalog with parameters, meanings, behaviors, and examples.

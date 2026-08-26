@@ -181,6 +181,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ RPC/API endpoint-name bait records implemented with lifecycle hooks and lightweight connector presets (`RpcEndpointBait*`, `ApiEndpointBait*`)
 - ✅ Endpoint-name preset alert scoring tuned with correlation/source weighting for `RpcEndpointBait*` and `ApiEndpointBait*`
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
+- ✅ GitHub Actions version/release workflow added (`.github/workflows/version-release.yml` + `Docs/VERSIONING.md`)
 
 ---
 
