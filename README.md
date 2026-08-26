@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/th3r3d/F4keH0und-LG/releases">
-    <img src="https://img.shields.io/github/v/release/th3r3d/F4keH0und-LG?display_name=tag&sort=semver&label=Version" alt="Latest release version">
+    <img src="https://img.shields.io/badge/Version-2.19.0-0A66C2?logo=github&logoColor=white" alt="Module version"> <!-- f4keh0und-version-badge -->
   </a>
   <a href="https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml">
     <img src="https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml/badge.svg" alt="CI">

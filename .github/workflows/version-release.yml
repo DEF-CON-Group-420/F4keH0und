@@ -103,12 +103,18 @@ jobs:
           "next_version=$nextText" >> $env:GITHUB_OUTPUT
           "tag_name=v$nextText" >> $env:GITHUB_OUTPUT
 
-      - name: Update module manifest version
+      - name: Update module manifest and README version badge
         shell: pwsh
         env:
           NEXT_VERSION: ${{ steps.resolve.outputs.next_version }}
         run: |
           $manifestPath = 'F4keH0und.psd1'
+          $readmePath = 'README.md'
+
+          if (-not (Test-Path -Path $readmePath -PathType Leaf)) {
+            throw "README not found at '$readmePath'."
+          }
+
           $content = Get-Content -Path $manifestPath -Raw -ErrorAction Stop
 
           $updated = [regex]::Replace(
@@ -123,6 +129,21 @@ jobs:
 
           Set-Content -Path $manifestPath -Value $updated -NoNewline
 
+          $readmeContent = Get-Content -Path $readmePath -Raw -ErrorAction Stop
+          $newBadgeLine = "    <img src=`"https://img.shields.io/badge/Version-$env:NEXT_VERSION-0A66C2?logo=github&logoColor=white`" alt=`"Module version`"> <!-- f4keh0und-version-badge -->"
+
+          $updatedReadme = [regex]::Replace(
+            $readmeContent,
+            '(?m)^\s*<img src="https://img\.shields\.io/badge/Version-[^"]+" alt="Module version"> <!-- f4keh0und-version-badge -->$',
+            $newBadgeLine
+          )
+
+          if ($updatedReadme -eq $readmeContent) {
+            throw "Failed to update README version badge marker in '$readmePath'."
+          }
+
+          Set-Content -Path $readmePath -Value $updatedReadme -NoNewline
+
       - name: Commit version bump
         id: commit
         env:
@@ -131,15 +152,15 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          if git diff --quiet -- F4keH0und.psd1; then
+          if git diff --quiet -- F4keH0und.psd1 README.md; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No manifest change detected; skipping commit."
+            echo "No manifest/badge change detected; skipping commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add F4keH0und.psd1
+          git add F4keH0und.psd1 README.md
           git commit -m "chore(version): bump module to ${NEXT_VERSION} [skip ci]"
           git push origin "HEAD:${TARGET_BRANCH}"
 
@@ -201,4 +222,3 @@ jobs:
               echo "- Tag: \\`${TAG_NAME}\\`"
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
-

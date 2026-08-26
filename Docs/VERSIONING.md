@@ -27,9 +27,10 @@ What it does:
 1. Reads current `ModuleVersion` from `F4keH0und.psd1`.
 2. Computes next semantic version (`X.Y.Z`).
 3. Updates `F4keH0und.psd1` `ModuleVersion`.
-4. Commits and pushes the version bump.
-5. Optionally creates/pushes annotated tag `vX.Y.Z`.
-6. Optionally creates a GitHub Release for that tag.
+4. Updates the version badge in `README.md`.
+5. Commits and pushes the version bump.
+6. Optionally creates/pushes annotated tag `vX.Y.Z`.
+7. Optionally creates a GitHub Release for that tag.
 
 ---
 
@@ -80,4 +81,3 @@ git tag -a v2.20.0 -m "F4keH0und - Last Generation v2.20.0"
 git push origin main
 git push origin v2.20.0
 ```
-
