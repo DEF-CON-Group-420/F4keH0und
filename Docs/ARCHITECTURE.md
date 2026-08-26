@@ -687,6 +687,7 @@ Current behavior:
 
 - `Find-F4keH0undOpportunity` now emits identity-attributed templates (display name, department, title, company/office, location, and group/owner hints).
 - AD recycler commands (`Set-PrivateADDecoyUser`, `Set-PrivateADDecoyGroup`, `Set-PrivateADDecoyComputer`) apply optional persona attributes during recycle operations.
+- Kerberoast AD templates now support honey SPN + constrained-role lure combinations (`ServicePrincipalName` + `GroupsToAdd` + `ConstrainedRoleLure`) that pair ticket-request detection with role-abuse context.
 - Entra lifecycle (`Set-PrivateEntraDecoyPrincipal`) supports persona office-location, owner/group hints, and expanded OAuth app metadata bait fields appended to notes context.
 - Windows identity token artifacts include low-cost identity-context fields (`RoleTitle`, `Department`, `GroupHint`, `IdentityOwnerHint`) in rendered decoy files.
 - Inventory events persist these template hints as metadata for downstream triage and redesign workflows.

@@ -176,6 +176,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Low-cost identity-attribute lure expansion implemented (display-name/department/title/company/office/location + owner/group hints in AD/Entra/Windows templates)
 - ✅ Canary text-token packs implemented for scripts/config/docs with lightweight connector hooks (`CanaryTextTokenPackDecoy`, `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`)
 - ✅ Service credential packs implemented for vault-like paths with lightweight connector hooks (`ServiceCredentialPackDecoy`, `ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`)
+- ✅ Honey SPN + constrained role lure combinations implemented for AD Kerberoast workflows (`KerberoastableUser` with `GroupsToAdd` / `ConstrainedRoleLure` metadata)
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 
 ---
@@ -186,7 +187,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 2. ✅ **Canary text tokens** in scripts/config/docs repositories
 3. ✅ **Fake service credentials** in vault-like paths with monitoring
 4. ✅ **Decoy OAuth app metadata** (unused but attractive permissions)
-5. **Honey SPN + constrained role lure combinations**
+5. ✅ **Honey SPN + constrained role lure combinations**
 6. **Fake admin troubleshooting artifacts** (`.txt`, `.ps1`, `.xml`) with token bait
 7. **RPC/API endpoint-name bait records** without running full emulators
 
@@ -196,4 +197,4 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Expand honey SPN + constrained role lure combinations with recycling-first deployment patterns.
+1. Expand fake admin troubleshooting artifact templates with low-cost token bait and lightweight monitoring hooks.

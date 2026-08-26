@@ -362,6 +362,46 @@ function Find-F4keH0undOpportunity {
             $identityCompanies = @('Contoso Corporate Services', 'Contoso Shared Operations', 'Contoso Legacy Platforms')
             $identityOffices = @('HQ-Prague', 'HQ-London', 'DC-North', 'Hybrid/Remote')
             $computerLocations = @('Primary Datacenter Rack C12', 'Legacy Hosting Zone B', 'DR Site - Compute Pod 7', 'Regional Branch Server Room')
+            $kerberoastConstrainedRolePatterns = @(
+                '*REMOTE MANAGEMENT USERS@*',
+                '*EVENT LOG READERS@*',
+                '*SERVER OPERATORS@*',
+                '*BACKUP OPERATORS@*',
+                '*PRINT OPERATORS@*',
+                '*ACCOUNT OPERATORS@*',
+                '*SQL*OPERATORS@*',
+                '*DBA*@*'
+            )
+            $ResolveKerberoastConstrainedRoleGroups = {
+                param(
+                    [Parameter()]
+                    [object[]]$GroupDataset
+                )
+
+                $resolvedGroups = [System.Collections.Generic.List[string]]::new()
+                foreach ($groupPattern in $kerberoastConstrainedRolePatterns) {
+                    $matchedGroup = @($GroupDataset | Where-Object { [string]$_.Name -like $groupPattern } | Select-Object -First 1 -ExpandProperty Name)
+                    if (@($matchedGroup).Count -eq 0) {
+                        continue
+                    }
+
+                    $candidateGroup = [string]$matchedGroup[0]
+                    if ([string]::IsNullOrWhiteSpace($candidateGroup)) {
+                        continue
+                    }
+
+                    $normalizedGroup = $candidateGroup -replace '@.*$', ''
+                    if (-not [string]::IsNullOrWhiteSpace($normalizedGroup) -and -not $resolvedGroups.Contains($normalizedGroup)) {
+                        $resolvedGroups.Add($normalizedGroup)
+                    }
+
+                    if ($resolvedGroups.Count -ge 1) {
+                        break
+                    }
+                }
+
+                return @($resolvedGroups)
+            }
 
             # Apply recycling preferences from config if not specified
             if (-not $PSBoundParameters.ContainsKey('PreferRecycling')) {
@@ -528,6 +568,13 @@ function Find-F4keH0undOpportunity {
                 $sqlHost = Get-Random -InputObject @('prod-sql', 'app-db', 'reporting-sql', 'warehouse-db')
                 $domainPrefix = if ($data.Domains.data -and $data.Domains.data[0].Name) { ($data.Domains.data[0].Name -split '\.')[0] } else { 'corp' }
                 $decoySPN = "MSSQLSvc/$sqlHost.$domainPrefix.local:1433"
+                $constrainedRoleGroups = & $ResolveKerberoastConstrainedRoleGroups -GroupDataset @($data.Groups.data)
+                $constrainedRoleHint = if (@($constrainedRoleGroups).Count -gt 0) {
+                    [string](@($constrainedRoleGroups) -join ',')
+                }
+                else {
+                    'Tier2-Service-Operations'
+                }
 
                 $opportunityShell = [PSCustomObject]@{ DecoyType = "KerberoastableUser" }
                 $opportunity = [PSCustomObject]@{
@@ -536,7 +583,7 @@ function Find-F4keH0undOpportunity {
                     DecoyType        = "KerberoastableUser"
                     Strategy         = "Recycle"
                     RecyclableObject = $recyclableUser.Identity
-                    Justification    = "Recycles legitimately old user '$($recyclableUser.SamAccountName)' (RID: $($recyclableUser.RID), created $($recyclableUser.whenCreated.ToString('yyyy-MM-dd')), staleness: $([math]::Round($recyclableUser.StalenessScore, 1))%) and adds SPN '$decoySPN' to detect Kerberoasting (TTP T1558.003)."
+                    Justification    = "Recycles legitimately old user '$($recyclableUser.SamAccountName)' (RID: $($recyclableUser.RID), created $($recyclableUser.whenCreated.ToString('yyyy-MM-dd')), staleness: $([math]::Round($recyclableUser.StalenessScore, 1))%) and adds SPN '$decoySPN' plus constrained role lure '$constrainedRoleHint' to detect Kerberoasting (TTP T1558.003) and operator-role abuse patterns."
                     Template         = @{
                         SamAccountName       = $recyclableUser.SamAccountName
                         Name                 = $recyclableUser.SamAccountName
@@ -546,7 +593,11 @@ function Find-F4keH0undOpportunity {
                         Title                = 'SQL Service Owner'
                         Company              = Get-Random -InputObject $identityCompanies
                         Office               = Get-Random -InputObject $identityOffices
-                        GroupHint            = 'Database Tier3'
+                        GroupHint            = if (@($constrainedRoleGroups).Count -gt 0) { @($constrainedRoleGroups) -join ',' } else { 'Database Tier3' }
+                        GroupsToAdd          = @($constrainedRoleGroups)
+                        ConstrainedRoleLure  = $constrainedRoleHint
+                        ConstrainedRoleTier  = 'Tier2'
+                        KerberoastDetectionHint = 'Monitor EventID 4769 for MSSQLSvc decoy tickets from non-service hosts.'
                         ServicePrincipalName = $decoySPN
                     }
                 }
@@ -702,6 +753,13 @@ function Find-F4keH0undOpportunity {
                 if ($null -ne $kerberoastableTemplateUser) {
                     $domainName = $kerberoastableTemplateUser.Properties.domain
                     $decoySPN = "MSSQLSvc/decoy-sql-prod-01.$($domainName):1433"
+                    $constrainedRoleGroups = & $ResolveKerberoastConstrainedRoleGroups -GroupDataset @($data.Groups.data)
+                    $constrainedRoleHint = if (@($constrainedRoleGroups).Count -gt 0) {
+                        [string](@($constrainedRoleGroups) -join ',')
+                    }
+                    else {
+                        'Tier2-Service-Operations'
+                    }
                     $opportunityShell = [PSCustomObject]@{ DecoyType = "KerberoastableUser" }
                     $opportunity = [PSCustomObject]@{
                         ID               = $opportunityId++
@@ -709,8 +767,23 @@ function Find-F4keH0undOpportunity {
                         DecoyType        = $opportunityShell.DecoyType
                         Strategy         = "Create"
                         RecyclableObject = $null
-                        Justification    = "Creates an attractive Kerberoastable user with a common SPN format (e.g., MSSQLSvc) to detect TTP T1558.003."
-                        Template         = @{ Name = "svc_mssql_prod"; SamAccountName = "svc_mssql_prod"; Description = "Production SQL Service Account"; DisplayName = 'Legacy SQL Service svc_mssql_prod'; Department = 'Database Operations'; Title = 'SQL Service Owner'; Company = (Get-Random -InputObject $identityCompanies); Office = (Get-Random -InputObject $identityOffices); GroupHint = 'Database Tier3'; ServicePrincipalName = $decoySPN }
+                        Justification    = "Creates an attractive Kerberoastable user with a common SPN format (e.g., MSSQLSvc) and constrained role lure '$constrainedRoleHint' to detect TTP T1558.003 and role-guided lateral movement."
+                        Template         = @{
+                            Name                 = "svc_mssql_prod"
+                            SamAccountName       = "svc_mssql_prod"
+                            Description          = "Production SQL Service Account"
+                            DisplayName          = 'Legacy SQL Service svc_mssql_prod'
+                            Department           = 'Database Operations'
+                            Title                = 'SQL Service Owner'
+                            Company              = (Get-Random -InputObject $identityCompanies)
+                            Office               = (Get-Random -InputObject $identityOffices)
+                            GroupHint            = if (@($constrainedRoleGroups).Count -gt 0) { @($constrainedRoleGroups) -join ',' } else { 'Database Tier3' }
+                            GroupsToAdd          = @($constrainedRoleGroups)
+                            ConstrainedRoleLure  = $constrainedRoleHint
+                            ConstrainedRoleTier  = 'Tier2'
+                            KerberoastDetectionHint = 'Monitor EventID 4769 for MSSQLSvc decoy tickets from non-service hosts.'
+                            ServicePrincipalName = $decoySPN
+                        }
                     }
                     $allOpportunities.Add($opportunity)
                 }

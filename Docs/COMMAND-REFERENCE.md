@@ -95,7 +95,7 @@ When `-WindowsComputerName` is supplied, additional Windows artifact opportuniti
 
 In Entra mode, template payloads now include themed lure metadata (for example `LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`) plus expanded OAuth app metadata bait fields (`OAuthPermissionBait`, `OAuthGrantTypeBait`, `OAuthResourceBait`, `OAuthRedirectUriBait`, `OAuthAdminConsentHint`) used by downstream deployment and inventory tracking.
 
-AD opportunity templates also include low-cost identity-attribute lure fields (for example `DisplayName`, `Department`, `Title`, `Company`, `Office`, `Location`, `GroupHint`) consumed by recycle deployment workflows.
+AD opportunity templates also include low-cost identity-attribute lure fields (for example `DisplayName`, `Department`, `Title`, `Company`, `Office`, `Location`, `GroupHint`) plus Kerberoast constrained-role lure fields (`GroupsToAdd`, `ConstrainedRoleLure`, `ConstrainedRoleTier`, `KerberoastDetectionHint`) consumed by recycle deployment workflows.
 
 ### Example
 
@@ -140,6 +140,7 @@ Runs analysis + interactive deployment workflow and deploys selected decoys.
 - Uses `Find-F4keH0undOpportunity` internally.
 - Displays opportunity list and prompts for IDs to deploy when `-Execute` is supplied.
 - Applies low-cost identity persona attributes for AD recycle paths (`DisplayName`, `Department`, `Title`, `Company`, `Office`, `Location`) including ACL user/group display hints.
+- For `KerberoastableUser`, can combine decoy SPNs with constrained operator-role group membership lures (`GroupsToAdd`) to raise detection confidence.
 - Deploys Entra recycling opportunities (`EntraServicePrincipalDecoy`, `EntraGuestUserDecoy`, `EntraAppRegistrationDecoy`) via `Set-PrivateEntraDecoyPrincipal`.
 - For Entra decoys, forwards template lure metadata (theme, role/consent/conditional-access hints, persona fields, owner/group hints) to deployment helpers and inventory events.
 - Honors rollout profile defaults (`DefaultWhatIf`, `MaxEntraDeploymentsPerRun`, high-privilege role-assignment guardrail).

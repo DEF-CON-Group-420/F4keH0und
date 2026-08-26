@@ -106,6 +106,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Phase 5 Drift Ops**: `Test-F4keH0undDrift` flags stale token/artifact templates and suggests redesign commands.
 - **Response Playbooks**: High/Critical token-trigger response templates support consistent SOC triage and containment.
 - **Identity-Attribute Lures**: Low-cost persona attributes (display name, department, title, office/location, owner/group hints) enrich AD/Entra/Windows decoys.
+- **Honey SPN + Constrained Role Lures**: Kerberoast decoys can combine tempting SPNs with constrained operator-role group context for higher-confidence detection chains.
 - **OAuth App Metadata Lures**: Entra decoys now include low-cost/high-signal OAuth metadata bait (permission bundles, grant types, resource/redirect hints, admin-consent breadcrumbs).
 - **Canary Text-Token Packs**: Deploys low-cost script/config/docs text canaries with lightweight Sysmon/Security collection hooks.
 - **Service Credential Packs**: Deploys vault-like fake service credential artifacts with dedicated low-cost Sysmon/Security monitoring hooks.
@@ -144,7 +145,7 @@ StalenessScore : 87
 
 ### 2 — KerberoastableUser *(Rank: High)*
 
-Recycles a stale user and adds a tempting Service Principal Name (SPN). Any Kerberoasting tool (`Rubeus`, `Impacket`) that requests a TGS for this SPN generates an immediate alert.
+Recycles a stale user and adds a tempting Service Principal Name (SPN). It can also place the decoy into constrained operator-role group context (for example `Remote Management Users` / `Event Log Readers` / `Server Operators`) to increase attacker interaction probability with low acquisition cost.
 
 ```powershell
 # SPN added during recycling

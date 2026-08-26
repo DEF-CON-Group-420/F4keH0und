@@ -195,7 +195,12 @@ $opportunities = Find-F4keH0undOpportunity `
 
 $kerberoastTargets = $opportunities | Where-Object { $_.DecoyType -eq 'KerberoastableUser' }
 Write-Host "Kerberoastable decoy candidates: $($kerberoastTargets.Count)"
-$kerberoastTargets | Format-Table Identity, StalenessScore, SuggestedSPN -AutoSize
+$kerberoastTargets |
+    Select-Object ID, Rank,
+        @{Name='SPN';Expression={ $_.Template.ServicePrincipalName }},
+        @{Name='ConstrainedRole';Expression={ $_.Template.ConstrainedRoleLure }},
+        @{Name='GroupsToAdd';Expression={ @($_.Template.GroupsToAdd) -join ';' }} |
+    Format-Table -AutoSize
 
 # Deploy Kerberoastable decoys
 New-F4keH0undDecoy `
@@ -214,6 +219,8 @@ or
 python3 GetUserSPNs.py corp.local/user:pass -dc-ip 10.0.0.1 -request
 ```
 ...a TGS request for the decoy SPN is captured in your SIEM, identifying the attacker's machine.
+
+If the constrained-role group lure is present, add group-membership change monitoring for the decoy account to capture role-enumeration and abuse attempts in the same workflow.
 
 **Recommended SIEM alert:**
 ```

@@ -378,6 +378,23 @@ function New-F4keH0undDecoy {
                             }
                         }
                     }
+
+                    $kerberoastRoleGroups = @($opportunity.Template.GroupsToAdd | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                    if ($createdObject -and $kerberoastRoleGroups.Count -gt 0) {
+                        Write-Verbose "[$($MyInvocation.MyCommand)] - Adding Kerberoast decoy to constrained role lure groups..."
+                        foreach ($group in $kerberoastRoleGroups) {
+                            $relationshipParams = @{
+                                Decoy            = $createdObject
+                                Target           = $group
+                                RelationshipType = 'GroupMembership'
+                                Environment      = 'AD'
+                            }
+                            if ($PSBoundParameters.ContainsKey('Credential')) { $relationshipParams['Credential'] = $Credential }
+                            if ($PSBoundParameters.ContainsKey('Server')) { $relationshipParams['Server'] = $Server }
+
+                            Add-F4keH0undRelationship @relationshipParams
+                        }
+                    }
                 }
                 "UnconstrainedDelegationComputer" {
                     if ($opportunity.Strategy -eq "Recycle") {
@@ -803,7 +820,7 @@ function New-F4keH0undDecoy {
                         Justification = $opportunity.Justification
                         RolloutProfile = [string]$resolvedRolloutProfile.Name
                     }
-                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'OAuthPermissionBait', 'OAuthGrantTypeBait', 'OAuthResourceBait', 'OAuthRedirectUriBait', 'OAuthAdminConsentHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint', 'DisplayName', 'Department', 'Title', 'Company', 'Office', 'Location', 'DecoyUserDisplayName', 'DecoyUserDepartment', 'DecoyUserTitle', 'DecoyUserCompany', 'DecoyUserOffice', 'DecoyGroupDisplayName')) {
+                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'OAuthPermissionBait', 'OAuthGrantTypeBait', 'OAuthResourceBait', 'OAuthRedirectUriBait', 'OAuthAdminConsentHint', 'ConstrainedRoleLure', 'ConstrainedRoleTier', 'KerberoastDetectionHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint', 'DisplayName', 'Department', 'Title', 'Company', 'Office', 'Location', 'DecoyUserDisplayName', 'DecoyUserDepartment', 'DecoyUserTitle', 'DecoyUserCompany', 'DecoyUserOffice', 'DecoyGroupDisplayName')) {
                         $metadataValue = $opportunity.Template.$metadataKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
                             $inventoryMetadata[$metadataKey] = [string]$metadataValue
