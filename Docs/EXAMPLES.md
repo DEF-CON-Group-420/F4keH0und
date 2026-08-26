@@ -597,7 +597,10 @@ $plan.SelectedOpportunities |
     Select-Object OpportunityId, DecoyType, Rank,
         @{Name='LureTheme';Expression={ $_.LureTheme }},
         @{Name='Consent';Expression={ $_.ConsentScopeBait }},
-        @{Name='CABypass';Expression={ $_.ConditionalAccessBypassHint }} |
+        @{Name='CABypass';Expression={ $_.ConditionalAccessBypassHint }},
+        @{Name='OAuthPermission';Expression={ $_.OAuthPermissionBait }},
+        @{Name='GrantType';Expression={ $_.OAuthGrantTypeBait }},
+        @{Name='RedirectUri';Expression={ $_.OAuthRedirectUriBait }} |
     Format-Table -AutoSize
 
 # Step 3: Safe execution preview

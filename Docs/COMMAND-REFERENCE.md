@@ -93,7 +93,7 @@ Returns a collection of opportunity objects with fields such as `ID`, `Rank`, `D
 
 When `-WindowsComputerName` is supplied, additional Windows artifact opportunities are included with `Strategy = Artifact` and template hints for `New-F4keH0undElement`.
 
-In Entra mode, template payloads now include themed lure metadata (for example `LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`) used by downstream deployment and inventory tracking.
+In Entra mode, template payloads now include themed lure metadata (for example `LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`) plus expanded OAuth app metadata bait fields (`OAuthPermissionBait`, `OAuthGrantTypeBait`, `OAuthResourceBait`, `OAuthRedirectUriBait`, `OAuthAdminConsentHint`) used by downstream deployment and inventory tracking.
 
 AD opportunity templates also include low-cost identity-attribute lure fields (for example `DisplayName`, `Department`, `Title`, `Company`, `Office`, `Location`, `GroupHint`) consumed by recycle deployment workflows.
 
@@ -448,9 +448,9 @@ Plans or applies Entra deployments to close family-level parity gaps against AD 
 - Uses `Test-F4keH0undCoverage` to measure current family-level gaps.
 - Selects Entra opportunities that map to uncovered parity families first.
 - In `-Execute` mode, deploys with `Set-PrivateEntraDecoyPrincipal` and writes inventory `Deploy` events.
-- Carries Entra lure metadata (`LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`, `PersonaOfficeLocation`, `IdentityOwnerHint`, `GroupHint`) into deployment and event metadata.
+- Carries Entra lure metadata (`LureTheme`, `RoleAssignmentHint`, `ConsentScopeBait`, `ConditionalAccessBypassHint`, `SecretHint`, `OAuthPermissionBait`, `OAuthGrantTypeBait`, `OAuthResourceBait`, `OAuthRedirectUriBait`, `OAuthAdminConsentHint`, `PersonaOfficeLocation`, `IdentityOwnerHint`, `GroupHint`) into deployment and event metadata.
 - Applies rollout profile defaults for `MaxDeployments`, optional `WhatIf` default, and high-privilege role-assignment suppression.
-- Returns before/after coverage state, planned opportunities (including `LureTheme` and consent/CA hints), and deployment outcomes.
+- Returns before/after coverage state, planned opportunities (including `LureTheme`, consent/CA hints, and OAuth app metadata bait fields), and deployment outcomes.
 
 ### Example
 

@@ -234,6 +234,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'AppRoleAssignment.ReadWrite.All Directory.Read.All'
                 ConditionalAccessBypassHint  = 'Service principal exempted from MFA for unattended scheduler host'
                 SecretHint                   = 'Client secret rotation exception documented in 2023 migration runbook'
+                OAuthPermissionBait          = 'Application.ReadWrite.All AppRoleAssignment.ReadWrite.All Directory.Read.All'
+                OAuthGrantTypeBait           = 'client_credentials'
+                OAuthResourceBait            = 'Microsoft Graph, Microsoft Entra ID'
+                OAuthRedirectUriBait         = 'https://legacy-idm.contoso.com/oauth2/callback'
+                OAuthAdminConsentHint        = 'Tenant-wide admin consent documented in legacy CAB exception sheet'
             }
             [PSCustomObject]@{
                 LureTheme                    = 'OAuthConsentTrap'
@@ -246,6 +251,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'offline_access Mail.ReadWrite Files.ReadWrite.All'
                 ConditionalAccessBypassHint  = 'Trusted-location bypass for legacy callback URL still present'
                 SecretHint                   = 'Certificate rollover handoff notes reference reusable bearer secret'
+                OAuthPermissionBait          = 'Mail.ReadWrite Files.ReadWrite.All Group.Read.All'
+                OAuthGrantTypeBait           = 'authorization_code refresh_token'
+                OAuthResourceBait            = 'Microsoft Graph, Exchange Online'
+                OAuthRedirectUriBait         = 'https://workflow-connector.contoso.com/auth/callback'
+                OAuthAdminConsentHint        = 'Delegated consent renewal ticket pending governance sign-off'
             }
             [PSCustomObject]@{
                 LureTheme                    = 'ConditionalAccessBypassBait'
@@ -258,6 +268,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'Directory.Read.All AuditLog.Read.All'
                 ConditionalAccessBypassHint  = 'Legacy workload tagged for policy bypass in report-only migration stage'
                 SecretHint                   = 'Automation certificate thumbprint archived in plaintext runbook export'
+                OAuthPermissionBait          = 'AuditLog.Read.All Directory.Read.All Policy.Read.All'
+                OAuthGrantTypeBait           = 'client_credentials'
+                OAuthResourceBait            = 'Microsoft Graph (Audit + Directory)'
+                OAuthRedirectUriBait         = 'https://breakglass-sync.contoso.com/entra/callback'
+                OAuthAdminConsentHint        = 'Emergency consent exception approved for incident-response automation'
             }
         )
 
@@ -275,6 +290,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'Delegated admin consent review mailbox access'
                 ConditionalAccessBypassHint  = 'Guest MFA bypass approved during weekend cutover window'
                 SecretHint                   = 'Invitation redemption reminder references emergency bypass process'
+                OAuthPermissionBait          = 'Delegated review: Mail.Read Directory.Read.All'
+                OAuthGrantTypeBait           = 'authorization_code'
+                OAuthResourceBait            = 'Microsoft Graph (delegated)'
+                OAuthRedirectUriBait         = 'https://external-review.contoso.com/guest/callback'
+                OAuthAdminConsentHint        = 'Guest reviewer included in delegated-consent attestation workflow'
             }
             [PSCustomObject]@{
                 LureTheme                    = 'OAuthConsentReviewerGuest'
@@ -289,6 +309,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'Consent review for Files.ReadWrite.All and Group.ReadWrite.All'
                 ConditionalAccessBypassHint  = 'Legacy partner trust policy allows unmanaged device access'
                 SecretHint                   = 'Guest onboarding checklist references reusable OTP recovery code'
+                OAuthPermissionBait          = 'Files.ReadWrite.All Group.ReadWrite.All User.Read'
+                OAuthGrantTypeBait           = 'authorization_code device_code'
+                OAuthResourceBait            = 'Microsoft Graph (Files + Groups)'
+                OAuthRedirectUriBait         = 'https://vendor-audit.contoso.com/consent/callback'
+                OAuthAdminConsentHint        = 'Reviewer consent pack retained for quarterly compliance sampling'
             }
         )
 
@@ -303,6 +328,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'offline_access User.Read Mail.ReadWrite Files.ReadWrite.All'
                 ConditionalAccessBypassHint  = 'Redirect URI host still whitelisted in trusted-location policy'
                 SecretHint                   = 'Runbook note references long-lived client secret for backfill jobs'
+                OAuthPermissionBait          = 'offline_access User.Read Mail.ReadWrite Files.ReadWrite.All'
+                OAuthGrantTypeBait           = 'authorization_code refresh_token'
+                OAuthResourceBait            = 'Microsoft Graph, Exchange Online'
+                OAuthRedirectUriBait         = 'https://hr-workflow.contoso.com/oauth2/callback'
+                OAuthAdminConsentHint        = 'Admin consent exception linked to HR migration freeze window'
             }
             [PSCustomObject]@{
                 LureTheme                    = 'ConditionalAccessPolicyExceptionApp'
@@ -314,6 +344,11 @@ function Find-F4keH0undOpportunity {
                 ConsentScopeBait             = 'Policy.ReadWrite.ConditionalAccess Directory.Read.All'
                 ConditionalAccessBypassHint  = 'Policy exclusion retained during phased workload migration'
                 SecretHint                   = 'Certificate thumbprint reuse noted in migration worksheet'
+                OAuthPermissionBait          = 'Policy.ReadWrite.ConditionalAccess Directory.Read.All Application.Read.All'
+                OAuthGrantTypeBait           = 'client_credentials'
+                OAuthResourceBait            = 'Microsoft Graph (Policy + Directory)'
+                OAuthRedirectUriBait         = 'https://ca-pilot.contoso.com/authz/callback'
+                OAuthAdminConsentHint        = 'Temporary policy-admin consent scheduled for delayed revocation'
             }
         )
     }
@@ -944,6 +979,11 @@ function Find-F4keH0undOpportunity {
                         ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
                         ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
                         SecretHint                  = [string]$themeTemplate.SecretHint
+                        OAuthPermissionBait         = [string]$themeTemplate.OAuthPermissionBait
+                        OAuthGrantTypeBait          = [string]$themeTemplate.OAuthGrantTypeBait
+                        OAuthResourceBait           = [string]$themeTemplate.OAuthResourceBait
+                        OAuthRedirectUriBait        = [string]$themeTemplate.OAuthRedirectUriBait
+                        OAuthAdminConsentHint       = [string]$themeTemplate.OAuthAdminConsentHint
                     }
                 }
                 $allOpportunities.Add($opportunity)
@@ -980,6 +1020,11 @@ function Find-F4keH0undOpportunity {
                         ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
                         ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
                         SecretHint                  = [string]$themeTemplate.SecretHint
+                        OAuthPermissionBait         = [string]$themeTemplate.OAuthPermissionBait
+                        OAuthGrantTypeBait          = [string]$themeTemplate.OAuthGrantTypeBait
+                        OAuthResourceBait           = [string]$themeTemplate.OAuthResourceBait
+                        OAuthRedirectUriBait        = [string]$themeTemplate.OAuthRedirectUriBait
+                        OAuthAdminConsentHint       = [string]$themeTemplate.OAuthAdminConsentHint
                     }
                 }
                 $allOpportunities.Add($opportunity)
@@ -1004,6 +1049,11 @@ function Find-F4keH0undOpportunity {
                         ConsentScopeBait            = [string]$themeTemplate.ConsentScopeBait
                         ConditionalAccessBypassHint = [string]$themeTemplate.ConditionalAccessBypassHint
                         SecretHint                  = [string]$themeTemplate.SecretHint
+                        OAuthPermissionBait         = [string]$themeTemplate.OAuthPermissionBait
+                        OAuthGrantTypeBait          = [string]$themeTemplate.OAuthGrantTypeBait
+                        OAuthResourceBait           = [string]$themeTemplate.OAuthResourceBait
+                        OAuthRedirectUriBait        = [string]$themeTemplate.OAuthRedirectUriBait
+                        OAuthAdminConsentHint       = [string]$themeTemplate.OAuthAdminConsentHint
                     }
                 }
                 $allOpportunities.Add($opportunity)

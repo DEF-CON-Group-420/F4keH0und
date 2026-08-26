@@ -620,7 +620,7 @@ function New-F4keH0undDecoy {
                             Write-Verbose "[$($MyInvocation.MyCommand)] - Rollout profile '$($resolvedRolloutProfile.Name)' suppresses high-privilege role assignment for this service-principal decoy."
                         }
                     }
-                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'OAuthPermissionBait', 'OAuthGrantTypeBait', 'OAuthResourceBait', 'OAuthRedirectUriBait', 'OAuthAdminConsentHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                             $entraParams[$templateKey] = [string]$templateValue
@@ -651,7 +651,7 @@ function New-F4keH0undDecoy {
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
                     }
-                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'OAuthPermissionBait', 'OAuthGrantTypeBait', 'OAuthResourceBait', 'OAuthRedirectUriBait', 'OAuthAdminConsentHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                             $entraParams[$templateKey] = [string]$templateValue
@@ -682,7 +682,7 @@ function New-F4keH0undDecoy {
                         Description      = $opportunity.Template.Description
                         ErrorAction      = 'Stop'
                     }
-                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
+                    foreach ($templateKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'OAuthPermissionBait', 'OAuthGrantTypeBait', 'OAuthResourceBait', 'OAuthRedirectUriBait', 'OAuthAdminConsentHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint')) {
                         $templateValue = $opportunity.Template.$templateKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$templateValue)) {
                             $entraParams[$templateKey] = [string]$templateValue
@@ -803,7 +803,7 @@ function New-F4keH0undDecoy {
                         Justification = $opportunity.Justification
                         RolloutProfile = [string]$resolvedRolloutProfile.Name
                     }
-                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint', 'DisplayName', 'Department', 'Title', 'Company', 'Office', 'Location', 'DecoyUserDisplayName', 'DecoyUserDepartment', 'DecoyUserTitle', 'DecoyUserCompany', 'DecoyUserOffice', 'DecoyGroupDisplayName')) {
+                    foreach ($metadataKey in @('LureTheme', 'RoleAssignmentHint', 'ConsentScopeBait', 'ConditionalAccessBypassHint', 'SecretHint', 'OAuthPermissionBait', 'OAuthGrantTypeBait', 'OAuthResourceBait', 'OAuthRedirectUriBait', 'OAuthAdminConsentHint', 'PersonaJobTitle', 'PersonaDepartment', 'PersonaOfficeLocation', 'IdentityOwnerHint', 'GroupHint', 'DisplayName', 'Department', 'Title', 'Company', 'Office', 'Location', 'DecoyUserDisplayName', 'DecoyUserDepartment', 'DecoyUserTitle', 'DecoyUserCompany', 'DecoyUserOffice', 'DecoyGroupDisplayName')) {
                         $metadataValue = $opportunity.Template.$metadataKey
                         if (-not [string]::IsNullOrWhiteSpace([string]$metadataValue)) {
                             $inventoryMetadata[$metadataKey] = [string]$metadataValue

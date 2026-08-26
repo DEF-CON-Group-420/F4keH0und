@@ -106,6 +106,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Phase 5 Drift Ops**: `Test-F4keH0undDrift` flags stale token/artifact templates and suggests redesign commands.
 - **Response Playbooks**: High/Critical token-trigger response templates support consistent SOC triage and containment.
 - **Identity-Attribute Lures**: Low-cost persona attributes (display name, department, title, office/location, owner/group hints) enrich AD/Entra/Windows decoys.
+- **OAuth App Metadata Lures**: Entra decoys now include low-cost/high-signal OAuth metadata bait (permission bundles, grant types, resource/redirect hints, admin-consent breadcrumbs).
 - **Canary Text-Token Packs**: Deploys low-cost script/config/docs text canaries with lightweight Sysmon/Security collection hooks.
 - **Service Credential Packs**: Deploys vault-like fake service credential artifacts with dedicated low-cost Sysmon/Security monitoring hooks.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
@@ -491,6 +492,15 @@ For hybrid environments, analyze AzureHound data alongside SharpHound:
 
 ```powershell
 Find-F4keH0undOpportunity -AzureHoundPath C:\AzureHound_Data\
+
+# Inspect OAuth metadata lure fields before deployment
+Find-F4keH0undOpportunity -AzureHoundPath C:\AzureHound_Data\ -EntraPreferRecycling |
+    Where-Object { $_.DecoyType -in @('EntraServicePrincipalDecoy','EntraAppRegistrationDecoy') } |
+    Select-Object -First 5 DecoyType, Rank,
+        @{Name='Theme';Expression={ $_.Template.LureTheme }},
+        @{Name='OAuthPermission';Expression={ $_.Template.OAuthPermissionBait }},
+        @{Name='GrantType';Expression={ $_.Template.OAuthGrantTypeBait }},
+        @{Name='RedirectUri';Expression={ $_.Template.OAuthRedirectUriBait }}
 ```
 
 ### View Raw Recyclable Candidates

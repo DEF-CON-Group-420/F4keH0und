@@ -408,7 +408,8 @@ Entra opportunity templates now include themed lure metadata for:
 - role-assignment reconnaissance bait,
 - OAuth consent scope traps,
 - conditional-access bypass hinting,
-- stale secret/certificate lure context.
+- stale secret/certificate lure context,
+- expanded OAuth app metadata bait (permission bundles, grant-type hints, resource/redirect-uri hints, admin-consent breadcrumbs).
 
 This metadata is carried through deployment planning and inventory event metadata to keep analyst triage context close to each deployed Entra decoy.
 
@@ -686,7 +687,7 @@ Current behavior:
 
 - `Find-F4keH0undOpportunity` now emits identity-attributed templates (display name, department, title, company/office, location, and group/owner hints).
 - AD recycler commands (`Set-PrivateADDecoyUser`, `Set-PrivateADDecoyGroup`, `Set-PrivateADDecoyComputer`) apply optional persona attributes during recycle operations.
-- Entra lifecycle (`Set-PrivateEntraDecoyPrincipal`) supports persona office-location and owner/group hint metadata appended to notes context.
+- Entra lifecycle (`Set-PrivateEntraDecoyPrincipal`) supports persona office-location, owner/group hints, and expanded OAuth app metadata bait fields appended to notes context.
 - Windows identity token artifacts include low-cost identity-context fields (`RoleTitle`, `Department`, `GroupHint`, `IdentityOwnerHint`) in rendered decoy files.
 - Inventory events persist these template hints as metadata for downstream triage and redesign workflows.
 

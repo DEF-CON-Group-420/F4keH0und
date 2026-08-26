@@ -64,6 +64,21 @@ function Set-PrivateEntraDecoyPrincipal {
     .PARAMETER SecretHint
         Optional stale-secret/certificate lure hint appended to notes metadata where supported.
 
+    .PARAMETER OAuthPermissionBait
+        Optional OAuth permission-bundle lure text appended to notes metadata where supported.
+
+    .PARAMETER OAuthGrantTypeBait
+        Optional OAuth grant-type lure text appended to notes metadata where supported.
+
+    .PARAMETER OAuthResourceBait
+        Optional OAuth resource/API lure text appended to notes metadata where supported.
+
+    .PARAMETER OAuthRedirectUriBait
+        Optional OAuth redirect-URI lure text appended to notes metadata where supported.
+
+    .PARAMETER OAuthAdminConsentHint
+        Optional OAuth admin-consent lure text appended to notes metadata where supported.
+
     .PARAMETER PersonaJobTitle
         Optional guest-user persona job title override. If omitted for guest-user decoys,
         `Description` is used as `JobTitle`.
@@ -134,6 +149,21 @@ function Set-PrivateEntraDecoyPrincipal {
 
         [Parameter()]
         [string]$SecretHint,
+
+        [Parameter()]
+        [string]$OAuthPermissionBait,
+
+        [Parameter()]
+        [string]$OAuthGrantTypeBait,
+
+        [Parameter()]
+        [string]$OAuthResourceBait,
+
+        [Parameter()]
+        [string]$OAuthRedirectUriBait,
+
+        [Parameter()]
+        [string]$OAuthAdminConsentHint,
 
         [Parameter()]
         [string]$PersonaJobTitle,
@@ -255,6 +285,21 @@ function Set-PrivateEntraDecoyPrincipal {
         if ($PSBoundParameters.ContainsKey('SecretHint') -and -not [string]::IsNullOrWhiteSpace($SecretHint)) {
             $modificationsForAudit['SecretHint'] = $SecretHint
         }
+        if ($PSBoundParameters.ContainsKey('OAuthPermissionBait') -and -not [string]::IsNullOrWhiteSpace($OAuthPermissionBait)) {
+            $modificationsForAudit['OAuthPermissionBait'] = $OAuthPermissionBait
+        }
+        if ($PSBoundParameters.ContainsKey('OAuthGrantTypeBait') -and -not [string]::IsNullOrWhiteSpace($OAuthGrantTypeBait)) {
+            $modificationsForAudit['OAuthGrantTypeBait'] = $OAuthGrantTypeBait
+        }
+        if ($PSBoundParameters.ContainsKey('OAuthResourceBait') -and -not [string]::IsNullOrWhiteSpace($OAuthResourceBait)) {
+            $modificationsForAudit['OAuthResourceBait'] = $OAuthResourceBait
+        }
+        if ($PSBoundParameters.ContainsKey('OAuthRedirectUriBait') -and -not [string]::IsNullOrWhiteSpace($OAuthRedirectUriBait)) {
+            $modificationsForAudit['OAuthRedirectUriBait'] = $OAuthRedirectUriBait
+        }
+        if ($PSBoundParameters.ContainsKey('OAuthAdminConsentHint') -and -not [string]::IsNullOrWhiteSpace($OAuthAdminConsentHint)) {
+            $modificationsForAudit['OAuthAdminConsentHint'] = $OAuthAdminConsentHint
+        }
         if ($PSBoundParameters.ContainsKey('IdentityOwnerHint') -and -not [string]::IsNullOrWhiteSpace($IdentityOwnerHint)) {
             $modificationsForAudit['IdentityOwnerHint'] = $IdentityOwnerHint
         }
@@ -277,6 +322,21 @@ function Set-PrivateEntraDecoyPrincipal {
         }
         if (-not [string]::IsNullOrWhiteSpace($SecretHint)) {
             $notesDetailLines.Add("SecretHint: $SecretHint")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthPermissionBait)) {
+            $notesDetailLines.Add("OAuthPermissionBait: $OAuthPermissionBait")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthGrantTypeBait)) {
+            $notesDetailLines.Add("OAuthGrantTypeBait: $OAuthGrantTypeBait")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthResourceBait)) {
+            $notesDetailLines.Add("OAuthResourceBait: $OAuthResourceBait")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthRedirectUriBait)) {
+            $notesDetailLines.Add("OAuthRedirectUriBait: $OAuthRedirectUriBait")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthAdminConsentHint)) {
+            $notesDetailLines.Add("OAuthAdminConsentHint: $OAuthAdminConsentHint")
         }
         if (-not [string]::IsNullOrWhiteSpace($IdentityOwnerHint)) {
             $notesDetailLines.Add("IdentityOwnerHint: $IdentityOwnerHint")
@@ -434,6 +494,21 @@ function Set-PrivateEntraDecoyPrincipal {
         }
         if (-not [string]::IsNullOrWhiteSpace($SecretHint)) {
             $RecyclableObject | Add-Member -NotePropertyName 'SecretHint' -NotePropertyValue $SecretHint -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthPermissionBait)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'OAuthPermissionBait' -NotePropertyValue $OAuthPermissionBait -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthGrantTypeBait)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'OAuthGrantTypeBait' -NotePropertyValue $OAuthGrantTypeBait -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthResourceBait)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'OAuthResourceBait' -NotePropertyValue $OAuthResourceBait -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthRedirectUriBait)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'OAuthRedirectUriBait' -NotePropertyValue $OAuthRedirectUriBait -Force
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OAuthAdminConsentHint)) {
+            $RecyclableObject | Add-Member -NotePropertyName 'OAuthAdminConsentHint' -NotePropertyValue $OAuthAdminConsentHint -Force
         }
         if (-not [string]::IsNullOrWhiteSpace($IdentityOwnerHint)) {
             $RecyclableObject | Add-Member -NotePropertyName 'IdentityOwnerHint' -NotePropertyValue $IdentityOwnerHint -Force

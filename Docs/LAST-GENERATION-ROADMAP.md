@@ -114,6 +114,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Entra lifecycle events written to persistent inventory with canonical identity/location mapping
 - ✅ Parity scoring command surface (`Test-F4keH0undCoverage`, `Sync-F4keH0undEntraParity`)
 - ✅ Broadened Entra lure templates with role-assignment, OAuth consent, conditional-access bypass, and stale-credential themed metadata
+- ✅ Expanded OAuth app metadata bait fields in Entra templates and lifecycle metadata (`OAuthPermissionBait`, `OAuthGrantTypeBait`, `OAuthResourceBait`, `OAuthRedirectUriBait`, `OAuthAdminConsentHint`)
 
 ## Phase 3 — New Element Families (Weeks 6–7)
 
@@ -184,7 +185,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 1. ✅ **Decoy identity attributes** (display names, descriptions, group hints)
 2. ✅ **Canary text tokens** in scripts/config/docs repositories
 3. ✅ **Fake service credentials** in vault-like paths with monitoring
-4. **Decoy OAuth app metadata** (unused but attractive permissions)
+4. ✅ **Decoy OAuth app metadata** (unused but attractive permissions)
 5. **Honey SPN + constrained role lure combinations**
 6. **Fake admin troubleshooting artifacts** (`.txt`, `.ps1`, `.xml`) with token bait
 7. **RPC/API endpoint-name bait records** without running full emulators
@@ -195,4 +196,4 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Expand decoy OAuth app metadata templates with low-cost, high-signal permission lure patterns.
+1. Expand honey SPN + constrained role lure combinations with recycling-first deployment patterns.
