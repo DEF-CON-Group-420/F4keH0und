@@ -1101,6 +1101,8 @@ Get-F4keH0undInventory `
 
 Deploy low-cost RPC/API endpoint-name bait records with lifecycle-safe artifact deployment and lightweight file-access monitoring hooks.
 
+This flow uses `CorrelationHint = 'Correlated'` to demonstrate the endpoint-preset alert weighting profile.
+
 ```powershell
 # 1) Deploy RPC endpoint-name bait artifact
 $rpc = New-F4keH0undElement `
@@ -1142,9 +1144,10 @@ Register-F4keH0undTokenTrigger `
         User           = "CORP\\j.smith"
         Computer       = "WIN-RPC-01"
         EventRecordId  = "sysmon-51021"
+        CorrelationHint = "Correlated"
     } `
     -PassThru |
-    Format-List Identity, LastTriggerType, LastTriggerSource, AlertScore, AlertSeverity
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertScore, AlertSeverity
 
 # 4) Simulate Sysmon file-create trigger for API endpoint catalog
 Register-F4keH0undTokenTrigger `
@@ -1155,9 +1158,10 @@ Register-F4keH0undTokenTrigger `
         User           = "CORP\\j.smith"
         Computer       = "WIN-API-01"
         EventRecordId  = "sysmon-61042"
+        CorrelationHint = "Correlated"
     } `
     -PassThru |
-    Format-List Identity, LastTriggerType, LastTriggerSource, AlertScore, AlertSeverity
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertScore, AlertSeverity
 
 # 5) Triage RPC/API bait hits from inventory
 Get-F4keH0undInventory `

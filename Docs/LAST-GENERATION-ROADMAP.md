@@ -179,6 +179,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Honey SPN + constrained role lure combinations implemented for AD Kerberoast workflows (`KerberoastableUser` with `GroupsToAdd` / `ConstrainedRoleLure` metadata)
 - ✅ Fake admin troubleshooting artifact packs implemented with lightweight connector hooks (`AdminTroubleshootingTokenPackDecoy`, `AdminTroubleshootingPackSysmonFileCreate`, `AdminTroubleshootingPackSecurityObjectAccess`)
 - ✅ RPC/API endpoint-name bait records implemented with lifecycle hooks and lightweight connector presets (`RpcEndpointBait*`, `ApiEndpointBait*`)
+- ✅ Endpoint-name preset alert scoring tuned with correlation/source weighting for `RpcEndpointBait*` and `ApiEndpointBait*`
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 
 ---

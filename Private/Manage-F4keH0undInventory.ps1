@@ -242,6 +242,68 @@ function Get-PrivateF4keH0undTokenCorrelationContext {
     }
 }
 
+function Get-PrivateF4keH0undPresetAlertWeightProfile {
+    [CmdletBinding()]
+    [OutputType([PSObject])]
+    param(
+        [Parameter()]
+        [string]$ConnectorPreset,
+
+        [Parameter()]
+        [string]$TriggerSource
+    )
+
+    $profile = [ordered]@{
+        ProfileName         = 'Default'
+        FamilyBoost         = 0
+        CorrelatedBoost     = 15
+        UncorrelatedPenalty = -15
+        UnknownPenalty      = 0
+        TriggerSourceBoost  = 0
+        TriggerSourceReason = $null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ConnectorPreset)) {
+        return [PSCustomObject]$profile
+    }
+
+    switch -Regex ($ConnectorPreset) {
+        '^RpcEndpointBait' {
+            $profile.ProfileName = 'RpcEndpointBait'
+            $profile.FamilyBoost = 4
+            $profile.CorrelatedBoost = 18
+            $profile.UncorrelatedPenalty = -20
+            $profile.UnknownPenalty = -8
+            break
+        }
+        '^ApiEndpointBait' {
+            $profile.ProfileName = 'ApiEndpointBait'
+            $profile.FamilyBoost = 6
+            $profile.CorrelatedBoost = 18
+            $profile.UncorrelatedPenalty = -20
+            $profile.UnknownPenalty = -8
+            break
+        }
+    }
+
+    if ([string]$profile.ProfileName -ne 'Default') {
+        switch ([string]$TriggerSource) {
+            'Sysmon:EventID11' {
+                $profile.TriggerSourceBoost = 3
+                $profile.TriggerSourceReason = 'Endpoint bait Sysmon file-create signal quality boost'
+                break
+            }
+            'WindowsSecurity:EventID4663' {
+                $profile.TriggerSourceBoost = 1
+                $profile.TriggerSourceReason = 'Endpoint bait Security object-access signal quality boost'
+                break
+            }
+        }
+    }
+
+    return [PSCustomObject]$profile
+}
+
 function Get-PrivateF4keH0undAlertAssessment {
     [CmdletBinding()]
     [OutputType([PSObject])]
@@ -262,6 +324,26 @@ function Get-PrivateF4keH0undAlertAssessment {
     $score = 20
     $reasons = [System.Collections.Generic.List[string]]::new()
     $reasons.Add("Trigger events observed: $triggerCount")
+
+    $entryMetadata = Convert-PrivateF4keH0undInventoryObjectToHashtable -InputObject $Entry.Metadata
+    $connectorPreset = if ($entryMetadata.ContainsKey('ConnectorPreset')) {
+        [string]$entryMetadata['ConnectorPreset']
+    }
+    else {
+        $null
+    }
+
+    $effectiveTriggerSource = if (-not [string]::IsNullOrWhiteSpace([string]$Entry.LastTriggerSource)) {
+        [string]$Entry.LastTriggerSource
+    }
+    elseif ($entryMetadata.ContainsKey('TriggerSource')) {
+        [string]$entryMetadata['TriggerSource']
+    }
+    else {
+        $null
+    }
+
+    $alertWeightProfile = Get-PrivateF4keH0undPresetAlertWeightProfile -ConnectorPreset $connectorPreset -TriggerSource $effectiveTriggerSource
 
     $signalCount = [int]$Entry.TriggerSignalCount
     if ($signalCount -gt 0) {
@@ -290,20 +372,46 @@ function Get-PrivateF4keH0undAlertAssessment {
         $reasons.Add("Confidence contribution: +$confidenceContribution")
     }
 
+    if ([int]$alertWeightProfile.FamilyBoost -gt 0) {
+        $familyBoost = [int]$alertWeightProfile.FamilyBoost
+        $score += $familyBoost
+        $reasons.Add("Preset profile boost ($([string]$alertWeightProfile.ProfileName)): +$familyBoost")
+    }
+
+    if ([int]$alertWeightProfile.TriggerSourceBoost -gt 0) {
+        $sourceBoost = [int]$alertWeightProfile.TriggerSourceBoost
+        $score += $sourceBoost
+        if (-not [string]::IsNullOrWhiteSpace([string]$alertWeightProfile.TriggerSourceReason)) {
+            $reasons.Add("$([string]$alertWeightProfile.TriggerSourceReason): +$sourceBoost")
+        }
+        else {
+            $reasons.Add("Preset trigger source boost: +$sourceBoost")
+        }
+    }
+
     $correlationStatus = [string]$Entry.TokenCorrelationStatus
     switch ($correlationStatus) {
         'Correlated' {
-            $score += 15
-            $reasons.Add('Token correlation matched known canary fingerprint: +15')
+            $correlatedBoost = [int]$alertWeightProfile.CorrelatedBoost
+            $score += $correlatedBoost
+            $reasons.Add("Token correlation matched known canary fingerprint: +$correlatedBoost")
         }
         'Uncorrelated' {
-            $score -= 15
-            $reasons.Add('Token correlation mismatch penalty: -15')
+            $uncorrelatedPenalty = [int]$alertWeightProfile.UncorrelatedPenalty
+            $score += $uncorrelatedPenalty
+            $reasons.Add("Token correlation mismatch penalty: $uncorrelatedPenalty")
+        }
+        default {
+            $unknownPenalty = [int]$alertWeightProfile.UnknownPenalty
+            if ($unknownPenalty -ne 0) {
+                $score += $unknownPenalty
+                $reasons.Add("Token correlation unknown penalty: $unknownPenalty")
+            }
         }
     }
 
     $decoyType = [string]$Entry.DecoyType
-    if ($decoyType -match '(?i)token|credential|apihook|identity') {
+    if ($decoyType -match '(?i)token|credential|apihook|identity' -and [string]$alertWeightProfile.ProfileName -eq 'Default') {
         $score += 10
         $reasons.Add('Identity/token decoy family priority boost: +10')
     }

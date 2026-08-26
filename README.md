@@ -111,7 +111,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Canary Text-Token Packs**: Deploys low-cost script/config/docs text canaries with lightweight Sysmon/Security collection hooks.
 - **Service Credential Packs**: Deploys vault-like fake service credential artifacts with dedicated low-cost Sysmon/Security monitoring hooks.
 - **Admin Troubleshooting Packs**: Deploys fake `.txt`/`.ps1`/`.xml` admin troubleshooting artifacts with token bait and lightweight file-access monitoring hooks.
-- **RPC/API Endpoint-Name Bait**: Deploys low-cost endpoint-name records for RPC pipes and API route catalogs with dedicated file-access monitoring hooks.
+- **RPC/API Endpoint-Name Bait**: Deploys low-cost endpoint-name records for RPC pipes and API route catalogs with dedicated file-access monitoring hooks and correlation-weighted alert scoring.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
 - **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
 - **Automated Reporting**: Generates CSV handover reports for SecOps and purple-team operations.
@@ -524,9 +524,11 @@ New-F4keH0undElement -ElementType ApiHookConfigDecoy -ComputerName WIN-API-01 `
     -WhatIf
 
 # Trigger mapping examples
-Register-F4keH0undTokenTrigger -ConnectorPreset RpcEndpointBaitSysmonFileCreate -TelemetryPayload @{ Identity='fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6'; TargetFilename='C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6\rpc\Legacy-RpcBait-endpoint-names.decoy.txt'; User='CORP\\j.smith'; Computer='WIN-RPC-01'; EventRecordId='sysmon-51021' } -WhatIf
-Register-F4keH0undTokenTrigger -ConnectorPreset ApiEndpointBaitSysmonFileCreate -TelemetryPayload @{ Identity='fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6'; TargetFilename='C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6\api\Legacy-ApiBait-endpoint-catalog.decoy.txt'; User='CORP\\j.smith'; Computer='WIN-API-01'; EventRecordId='sysmon-61042' } -WhatIf
+Register-F4keH0undTokenTrigger -ConnectorPreset RpcEndpointBaitSysmonFileCreate -TelemetryPayload @{ Identity='fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6'; TargetFilename='C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6\rpc\Legacy-RpcBait-endpoint-names.decoy.txt'; User='CORP\\j.smith'; Computer='WIN-RPC-01'; EventRecordId='sysmon-51021'; CorrelationHint='Correlated' } -WhatIf
+Register-F4keH0undTokenTrigger -ConnectorPreset ApiEndpointBaitSysmonFileCreate -TelemetryPayload @{ Identity='fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6'; TargetFilename='C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6\api\Legacy-ApiBait-endpoint-catalog.decoy.txt'; User='CORP\\j.smith'; Computer='WIN-API-01'; EventRecordId='sysmon-61042'; CorrelationHint='Correlated' } -WhatIf
 ```
+
+Endpoint-name connector presets use tuned alert weights for lower noise and stronger confirmed-hit priority: `Correlated +18`, `Unknown -8`, `Uncorrelated -20`, plus source-quality boost (`Sysmon:EventID11 +3`, `WindowsSecurity:EventID4663 +1`).
 
 ### View Raw Recyclable Candidates
 

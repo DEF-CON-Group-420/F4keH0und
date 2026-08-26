@@ -617,6 +617,8 @@ Correlation behavior:
 Alert scoring behavior:
 
 - Score combines signal count, repeat triggers, confidence, decoy family priority, and correlation status.
+- Endpoint-name connector presets (`RpcEndpointBait*`, `ApiEndpointBait*`) use tuned preset profiles: stronger penalties for unconfirmed/mismatched correlation and stronger boost for confirmed matches.
+- Endpoint-name presets include trigger-source quality boosts (`Sysmon:EventID11` > `WindowsSecurity:EventID4663`).
 - Severity mapping: `None` (0), `Low`, `Medium`, `High`, `Critical`.
 - `Get-F4keH0undInventory` supports alert filtering via `-AlertSeverity` and `-MinAlertScore`.
 
@@ -743,6 +745,7 @@ Current behavior:
 - `RpcEndpointDecoy` templates now include endpoint-name catalogs and canary tokens (`rpc/<name>-endpoint-names.decoy.txt`) alongside structured RPC profile artifacts.
 - `ApiHookConfigDecoy` templates now include API route-name catalogs and canary tokens (`api/<name>-endpoint-catalog.decoy.txt`) alongside config/env bait artifacts.
 - Deploy/update lifecycle events persist monitoring presets for these families (`RpcEndpointBaitSysmonFileCreate`, `RpcEndpointBaitSecurityObjectAccess`, `ApiEndpointBaitSysmonFileCreate`, `ApiEndpointBaitSecurityObjectAccess`).
+- Alert model applies endpoint-preset-specific correlation/source weighting to prioritize confirmed endpoint bait interactions.
 - Windows opportunity ranking templates now emit endpoint-name seed data (`EndpointNames`, `ApiRouteNames`, owner/group hints) for faster deployment from explicit host targeting.
 
 ---

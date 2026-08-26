@@ -66,10 +66,28 @@ Resolution rules:
 4. Command-line parameters always take precedence over mapped values.
 5. If no `Identity` is mapped, trigger ingestion can resolve identity from inventory artifact path hints (`ArtifactLocations` / `TokenPathHints`).
 
+Correlation hint handling:
+
+- Payload field `CorrelationHint` (or boolean-like `Correlated`) marks upstream confirmed token correlation.
+- When omitted, correlation remains `Unknown` unless a token fingerprint match is found.
+
 Token handling:
 
 - `TokenIdentifier` values are normalized to fingerprint form (`sha256:<short>`).
 - Raw values are hashed before storage.
+
+---
+
+## Endpoint-Name Preset Alert Weights
+
+Endpoint-name bait presets use dedicated scoring weights in inventory alert assessment to reduce noise for unconfirmed file-access hits while prioritizing confirmed correlations.
+
+| Preset Pattern | Profile Family Boost | Correlated Boost | Unknown Penalty | Uncorrelated Penalty | Sysmon Event 11 Boost | Security 4663 Boost |
+|---|---:|---:|---:|---:|---:|---:|
+| `RpcEndpointBait*` | +4 | +18 | -8 | -20 | +3 | +1 |
+| `ApiEndpointBait*` | +6 | +18 | -8 | -20 | +3 | +1 |
+
+These weights are applied in `Get-PrivateF4keH0undAlertAssessment` after base signal/confidence contributions.
 
 ---
 
@@ -136,6 +154,7 @@ $rpcEndpointEvent = @{
     User           = "CORP\\j.smith"
     Computer       = "WIN-RPC-01"
     EventRecordId  = "sysmon-51021"
+    CorrelationHint = "Correlated"
 }
 
 Register-F4keH0undTokenTrigger `
@@ -150,6 +169,7 @@ $apiEndpointEvent = @{
     User           = "CORP\\j.smith"
     Computer       = "WIN-API-01"
     EventRecordId  = "sysmon-61042"
+    CorrelationHint = "Correlated"
 }
 
 Register-F4keH0undTokenTrigger `
