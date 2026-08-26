@@ -5,14 +5,35 @@
   <img src="https://deceiver.io/wp-content/uploads/2025/09/f4keh0und-git.png" alt="F4keH0und - Last Generation logo" width="50%">
 </p>
 
-[![CI](https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml/badge.svg)](https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml)
-[![PowerShell](https://img.shields.io/badge/PowerShell-7%2B-5391FE?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-1f6feb)](https://github.com/PowerShell/PowerShell)
-[![Active Directory](https://img.shields.io/badge/Active%20Directory-RSAT-0A66C2)](https://learn.microsoft.com/powershell/module/activedirectory/)
-[![Microsoft Graph](https://img.shields.io/badge/Microsoft%20Graph-Enabled-0078D4?logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/powershell/microsoftgraph/)
-[![BloodHound](https://img.shields.io/badge/BloodHound-SharpHound%20%2B%20AzureHound-8A2BE2)](https://bloodhound.specterops.io/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Fork me on GitHub](https://img.shields.io/badge/Fork%20me%20on-GitHub-blue?logo=github)](https://github.com/th3r3d/F4keH0und-LG/fork)
+<p align="center">
+  <a href="https://github.com/th3r3d/F4keH0und-LG/releases">
+    <img src="https://img.shields.io/github/v/release/th3r3d/F4keH0und-LG?display_name=tag&sort=semver&label=Version" alt="Latest release version">
+  </a>
+  <a href="https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml">
+    <img src="https://github.com/th3r3d/F4keH0und-LG/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <a href="https://github.com/PowerShell/PowerShell">
+    <img src="https://img.shields.io/badge/PowerShell-7%2B-5391FE?logo=powershell&logoColor=white" alt="PowerShell 7+">
+  </a>
+  <a href="https://github.com/PowerShell/PowerShell">
+    <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-1f6feb" alt="Platform">
+  </a>
+  <a href="https://learn.microsoft.com/powershell/module/activedirectory/">
+    <img src="https://img.shields.io/badge/Active%20Directory-RSAT-0A66C2" alt="Active Directory">
+  </a>
+  <a href="https://learn.microsoft.com/powershell/microsoftgraph/">
+    <img src="https://img.shields.io/badge/Microsoft%20Graph-Enabled-0078D4?logo=microsoftazure&logoColor=white" alt="Microsoft Graph">
+  </a>
+  <a href="https://bloodhound.specterops.io/">
+    <img src="https://img.shields.io/badge/BloodHound-SharpHound%20%2B%20AzureHound-8A2BE2" alt="BloodHound">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT">
+  </a>
+  <a href="https://github.com/th3r3d/F4keH0und-LG/fork">
+    <img src="https://img.shields.io/badge/Fork%20me%20on-GitHub-blue?logo=github" alt="Fork me on GitHub">
+  </a>
+</p>
 
 ---
 
