@@ -240,6 +240,12 @@ function Update-F4keH0undElement {
                     elseif ([string]$currentState.DecoyType -eq 'AdminTroubleshootingTokenPackDecoy') {
                         $eventMetadata['CollectionHookPresets'] = @('AdminTroubleshootingPackSysmonFileCreate', 'AdminTroubleshootingPackSecurityObjectAccess')
                     }
+                    elseif ([string]$currentState.DecoyType -eq 'RpcEndpointDecoy') {
+                        $eventMetadata['CollectionHookPresets'] = @('RpcEndpointBaitSysmonFileCreate', 'RpcEndpointBaitSecurityObjectAccess')
+                    }
+                    elseif ([string]$currentState.DecoyType -eq 'ApiHookConfigDecoy') {
+                        $eventMetadata['CollectionHookPresets'] = @('ApiEndpointBaitSysmonFileCreate', 'ApiEndpointBaitSecurityObjectAccess')
+                    }
 
                     Write-F4keH0undInventoryEvent -Action 'Update' -Identity $currentElementId -DecoyType ([string]$currentState.DecoyType) -Platform 'Windows' -ObjectType 'Element' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name
                 }

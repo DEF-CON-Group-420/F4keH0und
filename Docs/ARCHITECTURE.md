@@ -637,6 +637,10 @@ Default preset set:
 - `ServiceCredentialPackSecurityObjectAccess`
 - `AdminTroubleshootingPackSysmonFileCreate`
 - `AdminTroubleshootingPackSecurityObjectAccess`
+- `RpcEndpointBaitSysmonFileCreate`
+- `RpcEndpointBaitSecurityObjectAccess`
+- `ApiEndpointBaitSysmonFileCreate`
+- `ApiEndpointBaitSecurityObjectAccess`
 - `SysmonEvent3NetworkConnect`
 - `WindowsSecurity4624Logon`
 - `WindowsSecurity4663ObjectAccess`
@@ -729,6 +733,17 @@ Current behavior:
 - Template defaults focus on realistic ops context (`TroubleshootingArea`, `LegacyHost`, `AdminAlias`, `TicketReference`, `IdentityOwnerHint`, `GroupHint`) with embedded canary tokens.
 - Deploy/update inventory events persist `CollectionHookPresets` for lightweight monitoring (`AdminTroubleshootingPackSysmonFileCreate`, `AdminTroubleshootingPackSecurityObjectAccess`).
 - Opportunity ranking includes this family as a low-cost, high-detection Windows token candidate (`AdminTokenTroubleshootingBait`).
+
+### 8.16 RPC/API Endpoint-Name Bait Records
+
+Phase 5 adds low-cost endpoint-name bait records for RPC and API reconnaissance detection without full protocol emulation.
+
+Current behavior:
+
+- `RpcEndpointDecoy` templates now include endpoint-name catalogs and canary tokens (`rpc/<name>-endpoint-names.decoy.txt`) alongside structured RPC profile artifacts.
+- `ApiHookConfigDecoy` templates now include API route-name catalogs and canary tokens (`api/<name>-endpoint-catalog.decoy.txt`) alongside config/env bait artifacts.
+- Deploy/update lifecycle events persist monitoring presets for these families (`RpcEndpointBaitSysmonFileCreate`, `RpcEndpointBaitSecurityObjectAccess`, `ApiEndpointBaitSysmonFileCreate`, `ApiEndpointBaitSecurityObjectAccess`).
+- Windows opportunity ranking templates now emit endpoint-name seed data (`EndpointNames`, `ApiRouteNames`, owner/group hints) for faster deployment from explicit host targeting.
 
 ---
 

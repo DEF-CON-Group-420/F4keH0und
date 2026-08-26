@@ -46,7 +46,7 @@ function Get-PrivateF4keH0undDefaultElementTypeRegistry {
             CostScore       = 2
             DetectionScore  = 7
             TelemetryProfile = 'Windows-Artifact-Baseline'
-            Description     = 'Deploys fake RPC endpoint metadata and client connection profiles.'
+            Description     = 'Deploys fake RPC endpoint-name bait records and client connection profiles.'
         }
         [PSCustomObject]@{
             TypeId          = 'ApiHookConfigDecoy'
@@ -57,7 +57,7 @@ function Get-PrivateF4keH0undDefaultElementTypeRegistry {
             CostScore       = 1
             DetectionScore  = 9
             TelemetryProfile = 'Windows-Artifact-Baseline'
-            Description     = 'Deploys fake integration configs, webhook references, and canary tokens.'
+            Description     = 'Deploys fake API endpoint-name bait records, integration configs, and webhook token references.'
         }
         [PSCustomObject]@{
             TypeId          = 'ProcessThreadArtifactDecoy'

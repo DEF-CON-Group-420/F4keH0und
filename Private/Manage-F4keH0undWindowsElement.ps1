@@ -132,15 +132,37 @@ $templateJson
         }
 
         'RpcEndpointDecoy' {
+            $endpointNames = [System.Collections.Generic.List[string]]::new()
+            foreach ($endpointName in @($TemplateData['EndpointNames'])) {
+                $endpointText = [string]$endpointName
+                if (-not [string]::IsNullOrWhiteSpace($endpointText) -and -not $endpointNames.Contains($endpointText)) {
+                    $endpointNames.Add($endpointText)
+                }
+            }
+
+            if ($endpointNames.Count -eq 0) {
+                foreach ($defaultEndpointName in @('LegacyBackupOrchestrator', 'TicketCacheSync', 'AuthReplayBroker')) {
+                    $endpointNames.Add($defaultEndpointName)
+                }
+            }
+
+            $pipeName = if ($TemplateData['PipeName']) { [string]$TemplateData['PipeName'] } else { "\\.\pipe\$safeName-rpc" }
+            $endpointProtocol = if ($TemplateData['Endpoint']) { [string]$TemplateData['Endpoint'] } else { 'ncacn_np' }
+            $authProfile = if ($TemplateData['AuthProfile']) { [string]$TemplateData['AuthProfile'] } else { 'LegacyIntegrated' }
+            $rpcCanaryToken = if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-rpcendpoint-$([guid]::NewGuid().ToString('N').Substring(0,20))" }
+            $endpointNamesMultiLine = (@($endpointNames | ForEach-Object { "- $_" }) -join "`n")
+
             return @(
                 [PSCustomObject]@{
                     RelativePath = "rpc/$safeName-endpoints.json"
                     Content      = (@{
                             Name           = $ElementName
-                            PipeName       = if ($TemplateData['PipeName']) { [string]$TemplateData['PipeName'] } else { "\\\\.\\pipe\\$safeName-rpc" }
-                            Endpoint       = if ($TemplateData['Endpoint']) { [string]$TemplateData['Endpoint'] } else { 'ncacn_np' }
+                            PipeName       = $pipeName
+                            Endpoint       = $endpointProtocol
                             Version        = if ($TemplateData['Version']) { [string]$TemplateData['Version'] } else { '2.3' }
-                            AuthProfile    = if ($TemplateData['AuthProfile']) { [string]$TemplateData['AuthProfile'] } else { 'LegacyIntegrated' }
+                            AuthProfile    = $authProfile
+                            EndpointNames  = @($endpointNames)
+                            CanaryToken    = $rpcCanaryToken
                             GeneratedAtUtc = $generatedUtc
                         } | ConvertTo-Json -Depth 6)
                 }
@@ -149,26 +171,69 @@ $templateJson
                     Content      = @"
 [RpcClient]
 Name=$ElementName
-Pipe=$(if ($TemplateData['PipeName']) { [string]$TemplateData['PipeName'] } else { "\\\\.\\pipe\\$safeName-rpc" })
-Protocol=$(if ($TemplateData['Endpoint']) { [string]$TemplateData['Endpoint'] } else { 'ncacn_np' })
-Auth=$(if ($TemplateData['AuthProfile']) { [string]$TemplateData['AuthProfile'] } else { 'LegacyIntegrated' })
+Pipe=$pipeName
+Protocol=$endpointProtocol
+Auth=$authProfile
+EndpointNames=$(@($endpointNames) -join ';')
+CanaryToken=$rpcCanaryToken
 
 GeneratedAtUtc=$generatedUtc
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "rpc/$safeName-endpoint-names.decoy.txt"
+                    Content      = @"
+[$ElementName] RPC Endpoint Name Catalog
+
+PipeName: $pipeName
+Protocol: $endpointProtocol
+AuthProfile: $authProfile
+EndpointNames:
+$endpointNamesMultiLine
+CanaryToken: $rpcCanaryToken
+
+GeneratedAtUtc: $generatedUtc
 "@
                 }
             )
         }
 
         'ApiHookConfigDecoy' {
+            $apiRouteNames = [System.Collections.Generic.List[string]]::new()
+            foreach ($apiRouteName in @($TemplateData['ApiRouteNames'])) {
+                $routeText = [string]$apiRouteName
+                if (-not [string]::IsNullOrWhiteSpace($routeText) -and -not $apiRouteNames.Contains($routeText)) {
+                    $apiRouteNames.Add($routeText)
+                }
+            }
+
+            if ($apiRouteNames.Count -eq 0) {
+                foreach ($defaultRouteName in @('/api/v1/legacy/tokens/refresh', '/api/v1/legacy/hooks/sync', '/api/v1/ops/recovery/kerberos')) {
+                    $apiRouteNames.Add($defaultRouteName)
+                }
+            }
+
+            $apiBaseUrl = if ($TemplateData['ApiBaseUrl']) { [string]$TemplateData['ApiBaseUrl'] } else { 'https://legacy-api.internal.corp' }
+            $webhookUrl = if ($TemplateData['WebhookUrl']) { [string]$TemplateData['WebhookUrl'] } else { 'https://hooks.internal.corp/legacy' }
+            $apiToken = if ($TemplateData['ApiToken']) { [string]$TemplateData['ApiToken'] } else { "fhlg-token-$([guid]::NewGuid().ToString('N').Substring(0,20))" }
+            $apiCanaryToken = if ($TemplateData['CanaryToken']) { [string]$TemplateData['CanaryToken'] } else { "fhlg-apiendpoint-$([guid]::NewGuid().ToString('N').Substring(0,20))" }
+            $endpointOwnerHint = if ($TemplateData['EndpointOwnerHint']) { [string]$TemplateData['EndpointOwnerHint'] } else { 'integration.ops@contoso.com' }
+            $groupHint = if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Integration-Operations' }
+            $routeNamesMultiLine = (@($apiRouteNames | ForEach-Object { "- $_" }) -join "`n")
+
             return @(
                 [PSCustomObject]@{
                     RelativePath = "api/$safeName-appsettings.decoy.json"
                     Content      = (@{
                             Name            = $ElementName
-                            ApiBaseUrl      = if ($TemplateData['ApiBaseUrl']) { [string]$TemplateData['ApiBaseUrl'] } else { 'https://legacy-api.internal.corp' }
-                            WebhookUrl      = if ($TemplateData['WebhookUrl']) { [string]$TemplateData['WebhookUrl'] } else { 'https://hooks.internal.corp/legacy' }
-                            ApiToken        = if ($TemplateData['ApiToken']) { [string]$TemplateData['ApiToken'] } else { "fhlg-token-$([guid]::NewGuid().ToString('N').Substring(0,20))" }
+                            ApiBaseUrl      = $apiBaseUrl
+                            WebhookUrl      = $webhookUrl
+                            ApiToken        = $apiToken
+                            ApiRouteNames   = @($apiRouteNames)
                             IntegrationName = if ($TemplateData['IntegrationName']) { [string]$TemplateData['IntegrationName'] } else { 'LegacyBillingSync' }
+                            EndpointOwnerHint = $endpointOwnerHint
+                            GroupHint       = $groupHint
+                            CanaryToken     = $apiCanaryToken
                             GeneratedAtUtc  = $generatedUtc
                         } | ConvertTo-Json -Depth 6)
                 }
@@ -176,10 +241,30 @@ GeneratedAtUtc=$generatedUtc
                     RelativePath = "api/$safeName.env.decoy"
                     Content      = @"
 INTEGRATION_NAME=$(if ($TemplateData['IntegrationName']) { [string]$TemplateData['IntegrationName'] } else { 'LegacyBillingSync' })
-API_BASE_URL=$(if ($TemplateData['ApiBaseUrl']) { [string]$TemplateData['ApiBaseUrl'] } else { 'https://legacy-api.internal.corp' })
-WEBHOOK_URL=$(if ($TemplateData['WebhookUrl']) { [string]$TemplateData['WebhookUrl'] } else { 'https://hooks.internal.corp/legacy' })
-API_TOKEN=$(if ($TemplateData['ApiToken']) { [string]$TemplateData['ApiToken'] } else { "fhlg-token-$([guid]::NewGuid().ToString('N').Substring(0,20))" })
+API_BASE_URL=$apiBaseUrl
+WEBHOOK_URL=$webhookUrl
+API_TOKEN=$apiToken
+API_ROUTE_NAMES=$(@($apiRouteNames) -join ';')
+ENDPOINT_OWNER_HINT=$endpointOwnerHint
+GROUP_HINT=$groupHint
+CANARY_TOKEN=$apiCanaryToken
 GENERATED_UTC=$generatedUtc
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "api/$safeName-endpoint-catalog.decoy.txt"
+                    Content      = @"
+[$ElementName] API Endpoint Name Catalog
+
+ApiBaseUrl: $apiBaseUrl
+WebhookUrl: $webhookUrl
+EndpointOwnerHint: $endpointOwnerHint
+GroupHint: $groupHint
+ApiRouteNames:
+$routeNamesMultiLine
+CanaryToken: $apiCanaryToken
+
+GeneratedAtUtc: $generatedUtc
 "@
                 }
             )

@@ -216,6 +216,12 @@ function New-F4keH0undElement {
             elseif ([string]$ElementType -eq 'AdminTroubleshootingTokenPackDecoy') {
                 $eventMetadata['CollectionHookPresets'] = @('AdminTroubleshootingPackSysmonFileCreate', 'AdminTroubleshootingPackSecurityObjectAccess')
             }
+            elseif ([string]$ElementType -eq 'RpcEndpointDecoy') {
+                $eventMetadata['CollectionHookPresets'] = @('RpcEndpointBaitSysmonFileCreate', 'RpcEndpointBaitSecurityObjectAccess')
+            }
+            elseif ([string]$ElementType -eq 'ApiHookConfigDecoy') {
+                $eventMetadata['CollectionHookPresets'] = @('ApiEndpointBaitSysmonFileCreate', 'ApiEndpointBaitSecurityObjectAccess')
+            }
 
             Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $elementId -DecoyType $ElementType -Platform 'Windows' -ObjectType 'Element' -Strategy 'Create' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name
         }

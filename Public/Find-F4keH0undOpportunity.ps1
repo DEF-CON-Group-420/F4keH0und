@@ -942,8 +942,20 @@ function Find-F4keH0undOpportunity {
                                 }
                                 'ApiHookConfigDecoy' {
                                     @{
-                                        ApiBaseUrl      = 'https://legacy-api.internal.corp'
-                                        IntegrationName = 'LegacyBillingSync'
+                                        ApiBaseUrl        = 'https://legacy-api.internal.corp'
+                                        IntegrationName   = 'LegacyBillingSync'
+                                        ApiRouteNames     = @('/api/v1/legacy/tokens/refresh', '/api/v1/legacy/hooks/sync', '/api/v1/ops/recovery/kerberos')
+                                        EndpointOwnerHint = 'integration.ops@contoso.com'
+                                        GroupHint         = 'Integration-Operations'
+                                    }
+                                }
+                                'RpcEndpointDecoy' {
+                                    @{
+                                        PipeName       = "\\.\pipe\legacy-idm-rpc"
+                                        Endpoint       = 'ncacn_np'
+                                        AuthProfile    = 'LegacyIntegrated'
+                                        EndpointNames  = @('LegacyBackupOrchestrator', 'TicketCacheSync', 'AuthReplayBroker')
+                                        GroupHint      = 'Identity-Operations'
                                     }
                                 }
                                 'ServiceDefinitionDecoy' {

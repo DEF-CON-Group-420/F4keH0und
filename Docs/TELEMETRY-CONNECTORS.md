@@ -35,6 +35,10 @@ Register-F4keH0undTokenTrigger -ConnectorPreset <PresetId> -TelemetryPayload <Ob
 | `ServiceCredentialPackSecurityObjectAccess` | Security Event ID 4663 (service-pack tuned) | `CredentialUse` | `WindowsSecurity:EventID4663` | 2 | 90 |
 | `AdminTroubleshootingPackSysmonFileCreate` | Sysmon Event ID 11 (admin-troubleshooting tuned) | `FileAccess` | `Sysmon:EventID11` | 2 | 90 |
 | `AdminTroubleshootingPackSecurityObjectAccess` | Security Event ID 4663 (admin-troubleshooting tuned) | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 88 |
+| `RpcEndpointBaitSysmonFileCreate` | Sysmon Event ID 11 (RPC endpoint-name tuned) | `FileAccess` | `Sysmon:EventID11` | 2 | 86 |
+| `RpcEndpointBaitSecurityObjectAccess` | Security Event ID 4663 (RPC endpoint-name tuned) | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 84 |
+| `ApiEndpointBaitSysmonFileCreate` | Sysmon Event ID 11 (API endpoint-name tuned) | `FileAccess` | `Sysmon:EventID11` | 2 | 88 |
+| `ApiEndpointBaitSecurityObjectAccess` | Security Event ID 4663 (API endpoint-name tuned) | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 86 |
 | `SysmonEvent3NetworkConnect` | Sysmon Event ID 3 | `ApiAuth` | `Sysmon:EventID3` | 3 | 90 |
 | `WindowsSecurity4624Logon` | Security Event ID 4624 | `CredentialUse` | `WindowsSecurity:EventID4624` | 2 | 84 |
 | `WindowsSecurity4663ObjectAccess` | Security Event ID 4663 | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 82 |
@@ -123,6 +127,34 @@ $adminTroubleshootingEvent = @{
 Register-F4keH0undTokenTrigger `
     -ConnectorPreset AdminTroubleshootingPackSysmonFileCreate `
     -TelemetryPayload $adminTroubleshootingEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertSeverity
+
+$rpcEndpointEvent = @{
+    Identity       = "fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6"
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6\rpc\Legacy-RpcBait-endpoint-names.decoy.txt"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-RPC-01"
+    EventRecordId  = "sysmon-51021"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset RpcEndpointBaitSysmonFileCreate `
+    -TelemetryPayload $rpcEndpointEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertSeverity
+
+$apiEndpointEvent = @{
+    Identity       = "fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6"
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6\api\Legacy-ApiBait-endpoint-catalog.decoy.txt"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-API-01"
+    EventRecordId  = "sysmon-61042"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset ApiEndpointBaitSysmonFileCreate `
+    -TelemetryPayload $apiEndpointEvent `
     -PassThru |
     Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertSeverity
 ```

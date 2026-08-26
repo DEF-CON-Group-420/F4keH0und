@@ -178,6 +178,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 - ✅ Service credential packs implemented for vault-like paths with lightweight connector hooks (`ServiceCredentialPackDecoy`, `ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`)
 - ✅ Honey SPN + constrained role lure combinations implemented for AD Kerberoast workflows (`KerberoastableUser` with `GroupsToAdd` / `ConstrainedRoleLure` metadata)
 - ✅ Fake admin troubleshooting artifact packs implemented with lightweight connector hooks (`AdminTroubleshootingTokenPackDecoy`, `AdminTroubleshootingPackSysmonFileCreate`, `AdminTroubleshootingPackSecurityObjectAccess`)
+- ✅ RPC/API endpoint-name bait records implemented with lifecycle hooks and lightweight connector presets (`RpcEndpointBait*`, `ApiEndpointBait*`)
 - ✅ CI command-reference coverage guard in place (`scripts/Test-CommandReferenceCoverage.ps1`)
 
 ---
@@ -190,7 +191,7 @@ This roadmap defines the next evolution of the project with a PowerShell-first, 
 4. ✅ **Decoy OAuth app metadata** (unused but attractive permissions)
 5. ✅ **Honey SPN + constrained role lure combinations**
 6. ✅ **Fake admin troubleshooting artifacts** (`.txt`, `.ps1`, `.xml`) with token bait
-7. **RPC/API endpoint-name bait records** without running full emulators
+7. ✅ **RPC/API endpoint-name bait records** without running full emulators
 
 These deliver high attacker interaction probability with low compute and maintenance cost.
 
@@ -198,4 +199,4 @@ These deliver high attacker interaction probability with low compute and mainten
 
 ## 6) Immediate Next Steps (Suggested Execution Order)
 
-1. Expand RPC/API endpoint-name bait records with lightweight lifecycle coverage and monitoring hooks.
+1. Tune SIEM/SOAR mappings and response playbooks for the new endpoint/troubleshooting connector presets.

@@ -111,6 +111,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **Canary Text-Token Packs**: Deploys low-cost script/config/docs text canaries with lightweight Sysmon/Security collection hooks.
 - **Service Credential Packs**: Deploys vault-like fake service credential artifacts with dedicated low-cost Sysmon/Security monitoring hooks.
 - **Admin Troubleshooting Packs**: Deploys fake `.txt`/`.ps1`/`.xml` admin troubleshooting artifacts with token bait and lightweight file-access monitoring hooks.
+- **RPC/API Endpoint-Name Bait**: Deploys low-cost endpoint-name records for RPC pipes and API route catalogs with dedicated file-access monitoring hooks.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
 - **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
 - **Automated Reporting**: Generates CSV handover reports for SecOps and purple-team operations.
@@ -505,6 +506,28 @@ Find-F4keH0undOpportunity -AzureHoundPath C:\AzureHound_Data\ -EntraPreferRecycl
         @{Name='RedirectUri';Expression={ $_.Template.OAuthRedirectUriBait }}
 ```
 
+### RPC/API Endpoint-Name Bait (Windows Artifacts)
+
+Deploy low-cost endpoint-name bait records without running full RPC/API emulators:
+
+```powershell
+# RPC endpoint-name bait
+New-F4keH0undElement -ElementType RpcEndpointDecoy -ComputerName WIN-RPC-01 `
+    -Name "Legacy-RpcBait" `
+    -TemplateData @{ EndpointNames = @('LegacyBackupOrchestrator','TicketCacheSync','AuthReplayBroker') } `
+    -WhatIf
+
+# API endpoint-name bait
+New-F4keH0undElement -ElementType ApiHookConfigDecoy -ComputerName WIN-API-01 `
+    -Name "Legacy-ApiBait" `
+    -TemplateData @{ ApiRouteNames = @('/api/v1/legacy/tokens/refresh','/api/v1/legacy/hooks/sync') } `
+    -WhatIf
+
+# Trigger mapping examples
+Register-F4keH0undTokenTrigger -ConnectorPreset RpcEndpointBaitSysmonFileCreate -TelemetryPayload @{ Identity='fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6'; TargetFilename='C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-rpcendpointdecoy-a1b2c3d4e5f6\rpc\Legacy-RpcBait-endpoint-names.decoy.txt'; User='CORP\\j.smith'; Computer='WIN-RPC-01'; EventRecordId='sysmon-51021' } -WhatIf
+Register-F4keH0undTokenTrigger -ConnectorPreset ApiEndpointBaitSysmonFileCreate -TelemetryPayload @{ Identity='fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6'; TargetFilename='C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-apihookconfigdecoy-a1b2c3d4e5f6\api\Legacy-ApiBait-endpoint-catalog.decoy.txt'; User='CORP\\j.smith'; Computer='WIN-API-01'; EventRecordId='sysmon-61042' } -WhatIf
+```
+
 ### View Raw Recyclable Candidates
 
 Call the recycling engine directly to inspect candidates before deployment:
@@ -645,7 +668,7 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/README.md](Docs/README.md) | Documentation index and documentation maintenance policy |
 | [Docs/COMMAND-REFERENCE.md](Docs/COMMAND-REFERENCE.md) | Detailed command reference for every exported command, including parameters and behavior |
 | [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
-| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 27 complete deployment scenarios with annotated commands |
+| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 28 complete deployment scenarios with annotated commands |
 | [Docs/RESPONSE-PLAYBOOKS.md](Docs/RESPONSE-PLAYBOOKS.md) | High/Critical token-trigger response templates with containment and recovery workflows |
 | [Docs/TELEMETRY-CONNECTORS.md](Docs/TELEMETRY-CONNECTORS.md) | SIEM/SOAR connector preset catalog and payload mapping guide |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |

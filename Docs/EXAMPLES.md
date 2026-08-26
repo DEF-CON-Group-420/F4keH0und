@@ -33,6 +33,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 25. [Canary Text-Token Packs](#25-canary-text-token-packs)
 26. [Service Credential Packs (Vault-Style)](#26-service-credential-packs-vault-style)
 27. [Admin Troubleshooting Artifact Packs](#27-admin-troubleshooting-artifact-packs)
+28. [RPC/API Endpoint-Name Bait Records](#28-rpcapi-endpoint-name-bait-records)
 
 ---
 
@@ -1088,6 +1089,81 @@ Get-F4keH0undInventory `
     -Source Events `
     -Platform Windows `
     -ElementFamily AdminTokenTroubleshootingBait,TokenTextBait,CredentialBait `
+    -AlertSeverity Medium,High,Critical `
+    -SkipLiveStatus |
+    Sort-Object AlertScore -Descending |
+    Select-Object Identity, DecoyType, Status, LastTriggerSource, AlertScore, AlertSeverity
+```
+
+---
+
+## 28. RPC/API Endpoint-Name Bait Records
+
+Deploy low-cost RPC/API endpoint-name bait records with lifecycle-safe artifact deployment and lightweight file-access monitoring hooks.
+
+```powershell
+# 1) Deploy RPC endpoint-name bait artifact
+$rpc = New-F4keH0undElement `
+    -ElementType RpcEndpointDecoy `
+    -ComputerName "WIN-RPC-01" `
+    -Name "Legacy-RpcBait" `
+    -TemplateData @{
+        PipeName      = "\\.\pipe\legacy-idm-rpc"
+        Endpoint      = "ncacn_np"
+        AuthProfile   = "LegacyIntegrated"
+        EndpointNames = @("LegacyBackupOrchestrator", "TicketCacheSync", "AuthReplayBroker")
+        GroupHint     = "Identity-Operations"
+    } `
+    -PassThru
+
+# 2) Deploy API endpoint-name bait artifact
+$api = New-F4keH0undElement `
+    -ElementType ApiHookConfigDecoy `
+    -ComputerName "WIN-API-01" `
+    -Name "Legacy-ApiBait" `
+    -TemplateData @{
+        IntegrationName   = "LegacyBillingSync"
+        ApiBaseUrl        = "https://legacy-api.internal.corp"
+        ApiRouteNames     = @("/api/v1/legacy/tokens/refresh", "/api/v1/legacy/hooks/sync", "/api/v1/ops/recovery/kerberos")
+        EndpointOwnerHint = "integration.ops@contoso.com"
+        GroupHint         = "Integration-Operations"
+    } `
+    -PassThru
+
+$rpcRecord = @($rpc)[0]
+$apiRecord = @($api)[0]
+
+# 3) Simulate Sysmon file-create trigger for RPC endpoint catalog
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset RpcEndpointBaitSysmonFileCreate `
+    -TelemetryPayload @{
+        Identity       = $rpcRecord.ElementId
+        TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\$($rpcRecord.ElementId)\rpc\Legacy-RpcBait-endpoint-names.decoy.txt"
+        User           = "CORP\\j.smith"
+        Computer       = "WIN-RPC-01"
+        EventRecordId  = "sysmon-51021"
+    } `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, AlertScore, AlertSeverity
+
+# 4) Simulate Sysmon file-create trigger for API endpoint catalog
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset ApiEndpointBaitSysmonFileCreate `
+    -TelemetryPayload @{
+        Identity       = $apiRecord.ElementId
+        TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\$($apiRecord.ElementId)\api\Legacy-ApiBait-endpoint-catalog.decoy.txt"
+        User           = "CORP\\j.smith"
+        Computer       = "WIN-API-01"
+        EventRecordId  = "sysmon-61042"
+    } `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, AlertScore, AlertSeverity
+
+# 5) Triage RPC/API bait hits from inventory
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily RpcBait,ApiHookBait `
     -AlertSeverity Medium,High,Critical `
     -SkipLiveStatus |
     Sort-Object AlertScore -Descending |
