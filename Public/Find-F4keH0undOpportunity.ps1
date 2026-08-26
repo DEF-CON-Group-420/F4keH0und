@@ -923,6 +923,16 @@ function Find-F4keH0undOpportunity {
                                         GroupHint         = 'Identity-Engineering'
                                     }
                                 }
+                                'AdminTroubleshootingTokenPackDecoy' {
+                                    @{
+                                        TroubleshootingArea = 'KerberosTicketFailures'
+                                        LegacyHost          = 'WIN-LEGACY-IDM-01'
+                                        AdminAlias          = 'tier3-admin-ops'
+                                        TicketReference     = 'INC-48291'
+                                        IdentityOwnerHint   = 'identity.ops@contoso.com'
+                                        GroupHint           = 'Identity-Operations'
+                                    }
+                                }
                                 'CanaryTextTokenPackDecoy' {
                                     @{
                                         RepositoryHint    = 'legacy-identity-automation'

@@ -364,6 +364,87 @@ GeneratedAtUtc: $generatedUtc
             )
         }
 
+        'AdminTroubleshootingTokenPackDecoy' {
+            $baseCanaryToken = if ($TemplateData['CanaryToken']) {
+                [string]$TemplateData['CanaryToken']
+            }
+            else {
+                "fhlg-adminops-$([guid]::NewGuid().ToString('N').Substring(0,20))"
+            }
+
+            $notesCanaryToken = if ($TemplateData['NotesCanaryToken']) {
+                [string]$TemplateData['NotesCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-notes"
+            }
+
+            $scriptCanaryToken = if ($TemplateData['ScriptCanaryToken']) {
+                [string]$TemplateData['ScriptCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-script"
+            }
+
+            $xmlCanaryToken = if ($TemplateData['XmlCanaryToken']) {
+                [string]$TemplateData['XmlCanaryToken']
+            }
+            else {
+                "$baseCanaryToken-xml"
+            }
+
+            return @(
+                [PSCustomObject]@{
+                    RelativePath = "ops/$safeName-admin-troubleshooting.decoy.txt"
+                    Content      = @"
+[$ElementName] Legacy Admin Troubleshooting Notes
+
+TroubleshootingArea: $(if ($TemplateData['TroubleshootingArea']) { [string]$TemplateData['TroubleshootingArea'] } else { 'KerberosTicketFailures' })
+LegacyHost: $(if ($TemplateData['LegacyHost']) { [string]$TemplateData['LegacyHost'] } else { 'WIN-LEGACY-IDM-01' })
+AdminAlias: $(if ($TemplateData['AdminAlias']) { [string]$TemplateData['AdminAlias'] } else { 'tier3-admin-ops' })
+TicketReference: $(if ($TemplateData['TicketReference']) { [string]$TemplateData['TicketReference'] } else { 'INC-48291' })
+IdentityOwnerHint: $(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' })
+GroupHint: $(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Operations' })
+CanaryToken: $notesCanaryToken
+
+GeneratedAtUtc: $generatedUtc
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "ops/$safeName-cache-repair.decoy.ps1"
+                    Content      = @"
+# $ElementName - Legacy Admin Cache Repair
+# GeneratedAtUtc: $generatedUtc
+
+`$TroubleshootingArea = "$(if ($TemplateData['TroubleshootingArea']) { [string]$TemplateData['TroubleshootingArea'] } else { 'KerberosTicketFailures' })"
+`$LegacyHost = "$(if ($TemplateData['LegacyHost']) { [string]$TemplateData['LegacyHost'] } else { 'WIN-LEGACY-IDM-01' })"
+`$AdminAlias = "$(if ($TemplateData['AdminAlias']) { [string]$TemplateData['AdminAlias'] } else { 'tier3-admin-ops' })"
+`$TicketReference = "$(if ($TemplateData['TicketReference']) { [string]$TemplateData['TicketReference'] } else { 'INC-48291' })"
+`$GroupHint = "$(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Operations' })"
+`$CanaryToken = "$scriptCanaryToken"
+
+Write-Output "Area=`$TroubleshootingArea Host=`$LegacyHost Alias=`$AdminAlias Ticket=`$TicketReference Group=`$GroupHint Token=`$CanaryToken"
+"@
+                }
+                [PSCustomObject]@{
+                    RelativePath = "ops/$safeName-auth-recovery.decoy.xml"
+                    Content      = @"
+<AdminTroubleshootingPack>
+  <Name>$ElementName</Name>
+  <TroubleshootingArea>$(if ($TemplateData['TroubleshootingArea']) { [string]$TemplateData['TroubleshootingArea'] } else { 'KerberosTicketFailures' })</TroubleshootingArea>
+  <LegacyHost>$(if ($TemplateData['LegacyHost']) { [string]$TemplateData['LegacyHost'] } else { 'WIN-LEGACY-IDM-01' })</LegacyHost>
+  <AdminAlias>$(if ($TemplateData['AdminAlias']) { [string]$TemplateData['AdminAlias'] } else { 'tier3-admin-ops' })</AdminAlias>
+  <TicketReference>$(if ($TemplateData['TicketReference']) { [string]$TemplateData['TicketReference'] } else { 'INC-48291' })</TicketReference>
+  <IdentityOwnerHint>$(if ($TemplateData['IdentityOwnerHint']) { [string]$TemplateData['IdentityOwnerHint'] } else { 'identity.ops@contoso.com' })</IdentityOwnerHint>
+  <GroupHint>$(if ($TemplateData['GroupHint']) { [string]$TemplateData['GroupHint'] } else { 'Identity-Operations' })</GroupHint>
+  <CanaryToken>$xmlCanaryToken</CanaryToken>
+  <GeneratedAtUtc>$generatedUtc</GeneratedAtUtc>
+</AdminTroubleshootingPack>
+"@
+                }
+            )
+        }
+
         'CanaryTextTokenPackDecoy' {
             $baseCanaryToken = if ($TemplateData['CanaryToken']) {
                 [string]$TemplateData['CanaryToken']

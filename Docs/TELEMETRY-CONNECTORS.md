@@ -33,6 +33,8 @@ Register-F4keH0undTokenTrigger -ConnectorPreset <PresetId> -TelemetryPayload <Ob
 | `CanaryTextPackSecurityObjectAccess` | Security Event ID 4663 (text-pack tuned) | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 87 |
 | `ServiceCredentialPackSysmonFileCreate` | Sysmon Event ID 11 (service-pack tuned) | `CredentialUse` | `Sysmon:EventID11` | 2 | 91 |
 | `ServiceCredentialPackSecurityObjectAccess` | Security Event ID 4663 (service-pack tuned) | `CredentialUse` | `WindowsSecurity:EventID4663` | 2 | 90 |
+| `AdminTroubleshootingPackSysmonFileCreate` | Sysmon Event ID 11 (admin-troubleshooting tuned) | `FileAccess` | `Sysmon:EventID11` | 2 | 90 |
+| `AdminTroubleshootingPackSecurityObjectAccess` | Security Event ID 4663 (admin-troubleshooting tuned) | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 88 |
 | `SysmonEvent3NetworkConnect` | Sysmon Event ID 3 | `ApiAuth` | `Sysmon:EventID3` | 3 | 90 |
 | `WindowsSecurity4624Logon` | Security Event ID 4624 | `CredentialUse` | `WindowsSecurity:EventID4624` | 2 | 84 |
 | `WindowsSecurity4663ObjectAccess` | Security Event ID 4663 | `FileAccess` | `WindowsSecurity:EventID4663` | 2 | 82 |
@@ -107,6 +109,20 @@ $servicePackEvent = @{
 Register-F4keH0undTokenTrigger `
     -ConnectorPreset ServiceCredentialPackSysmonFileCreate `
     -TelemetryPayload $servicePackEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertSeverity
+
+$adminTroubleshootingEvent = @{
+    Identity       = "fhlg-win-admintroubleshootingtokenpackdecoy-a1b2c3d4e5f6"
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-admintroubleshootingtokenpackdecoy-a1b2c3d4e5f6\ops\LegacyKerberos-Troubleshooting-admin-troubleshooting.decoy.txt"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-OPS-01"
+    EventRecordId  = "sysmon-41017"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset AdminTroubleshootingPackSysmonFileCreate `
+    -TelemetryPayload $adminTroubleshootingEvent `
     -PassThru |
     Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertSeverity
 ```

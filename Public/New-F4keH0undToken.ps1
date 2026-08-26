@@ -13,6 +13,7 @@
     - CloudApiCanary     : fake OAuth/API token material and cloud env hints
     - CredentialFile     : fake credential notes and vault-export bait
     - ServiceCredentialPack : fake service-credential vault pack with canary tokens
+    - AdminTroubleshootingPack : fake admin troubleshooting artifacts (.txt/.ps1/.xml) with canary tokens
     - CanaryTextPack     : low-cost script/config/docs text-token canary pack
 
 .PARAMETER ComputerName
@@ -56,6 +57,9 @@
     New-F4keH0undToken -TokenType ServiceCredentialPack -ComputerName WIN-IDM-01 -Name "VaultSync-CredPack" -PassThru
 
 .EXAMPLE
+    New-F4keH0undToken -TokenType AdminTroubleshootingPack -ComputerName WIN-OPS-01 -Name "LegacyKerberos-Troubleshooting" -PassThru
+
+.EXAMPLE
     New-F4keH0undToken -TokenType CanaryTextPack -ComputerName WIN-DEV-01 -Name "IdentityRepo-CanaryPack" -PassThru
 #>
 function New-F4keH0undToken {
@@ -63,7 +67,7 @@ function New-F4keH0undToken {
     [OutputType([System.Object], [System.Object[]])]
     param(
         [Parameter()]
-        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile', 'ServiceCredentialPack', 'CanaryTextPack')]
+        [ValidateSet('IdentityBreadcrumb', 'CloudApiCanary', 'CredentialFile', 'ServiceCredentialPack', 'AdminTroubleshootingPack', 'CanaryTextPack')]
         [string]$TokenType = 'IdentityBreadcrumb',
 
         [Parameter(Mandatory = $true)]
@@ -116,6 +120,7 @@ function New-F4keH0undToken {
         CloudApiCanary     = 'CloudApiCanaryTokenDecoy'
         CredentialFile     = 'CredentialFileTokenDecoy'
         ServiceCredentialPack = 'ServiceCredentialPackDecoy'
+        AdminTroubleshootingPack = 'AdminTroubleshootingTokenPackDecoy'
         CanaryTextPack     = 'CanaryTextTokenPackDecoy'
     }
 
@@ -161,6 +166,26 @@ function New-F4keH0undToken {
             $templateTable['GroupHint'] = 'Identity-Engineering'
         }
     }
+    elseif ($TokenType -eq 'AdminTroubleshootingPack') {
+        if (-not $templateTable.ContainsKey('TroubleshootingArea')) {
+            $templateTable['TroubleshootingArea'] = 'KerberosTicketFailures'
+        }
+        if (-not $templateTable.ContainsKey('LegacyHost')) {
+            $templateTable['LegacyHost'] = 'WIN-LEGACY-IDM-01'
+        }
+        if (-not $templateTable.ContainsKey('AdminAlias')) {
+            $templateTable['AdminAlias'] = 'tier3-admin-ops'
+        }
+        if (-not $templateTable.ContainsKey('TicketReference')) {
+            $templateTable['TicketReference'] = 'INC-48291'
+        }
+        if (-not $templateTable.ContainsKey('IdentityOwnerHint')) {
+            $templateTable['IdentityOwnerHint'] = 'identity.ops@contoso.com'
+        }
+        if (-not $templateTable.ContainsKey('GroupHint')) {
+            $templateTable['GroupHint'] = 'Identity-Operations'
+        }
+    }
 
     $resolvedTags = [System.Collections.Generic.List[string]]::new()
     $defaultTokenTags = @('token', 'identity', "profile:$TokenType")
@@ -169,6 +194,9 @@ function New-F4keH0undToken {
     }
     elseif ($TokenType -eq 'ServiceCredentialPack') {
         $defaultTokenTags += @('phase5', 'service-credential-pack', 'vault-bait')
+    }
+    elseif ($TokenType -eq 'AdminTroubleshootingPack') {
+        $defaultTokenTags += @('phase5', 'admin-troubleshooting-pack', 'ops-runbook-bait')
     }
     else {
         $defaultTokenTags += @('phase4')

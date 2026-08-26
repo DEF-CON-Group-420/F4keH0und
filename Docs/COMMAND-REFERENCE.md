@@ -163,7 +163,7 @@ Lists supported Windows-only artifact element families/types from the element re
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
-| `Family` | `String` | No | — | Optional family filter (`ServiceLure`, `RpcBait`, `ApiHookBait`, `RuntimeArtifact`, `IdentityTokenBait`, `CloudTokenBait`, `CredentialBait`). |
+| `Family` | `String` | No | — | Optional family filter (`ServiceLure`, `RpcBait`, `ApiHookBait`, `RuntimeArtifact`, `IdentityTokenBait`, `CloudTokenBait`, `CredentialBait`, `ServiceCredentialBait`, `AdminTokenTroubleshootingBait`, `TokenTextBait`). |
 | `Platform` | `String` | No | `Windows` | Platform filter (Phase 3 supports `Windows` only). |
 | `Detailed` | `Switch` | No | `false` | Returns full registry metadata fields. |
 
@@ -184,7 +184,7 @@ Deploys Windows artifact deception elements to target hosts over WinRM/PSRP.
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
-| `ElementType` | `String` | Yes | — | Element type (`ServiceDefinitionDecoy`, `RpcEndpointDecoy`, `ApiHookConfigDecoy`, `ProcessThreadArtifactDecoy`, `IdentityBreadcrumbTokenDecoy`, `CloudApiCanaryTokenDecoy`, `CredentialFileTokenDecoy`). |
+| `ElementType` | `String` | Yes | — | Element type (`ServiceDefinitionDecoy`, `RpcEndpointDecoy`, `ApiHookConfigDecoy`, `ProcessThreadArtifactDecoy`, `IdentityBreadcrumbTokenDecoy`, `CloudApiCanaryTokenDecoy`, `CredentialFileTokenDecoy`, `ServiceCredentialPackDecoy`, `AdminTroubleshootingTokenPackDecoy`, `CanaryTextTokenPackDecoy`). |
 | `ComputerName` | `String[]` | Yes | — | Windows hosts to deploy to. |
 | `Name` | `String` | No | generated | Logical element name used for artifact rendering. |
 | `TemplateData` | `IDictionary` | No | `{}` | Template fields for artifact content rendering. |
@@ -222,7 +222,7 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
 
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
-| `TokenType` | `String` | No | `IdentityBreadcrumb` | Token profile: `IdentityBreadcrumb`, `CloudApiCanary`, `CredentialFile`, `ServiceCredentialPack`, `CanaryTextPack`. |
+| `TokenType` | `String` | No | `IdentityBreadcrumb` | Token profile: `IdentityBreadcrumb`, `CloudApiCanary`, `CredentialFile`, `ServiceCredentialPack`, `AdminTroubleshootingPack`, `CanaryTextPack`. |
 | `ComputerName` | `String[]` | Yes | — | Windows target hosts. |
 | `Name` | `String` | No | generated | Logical package name for rendered artifacts. |
 | `TemplateData` | `IDictionary` | No | `{}` | Optional token payload template fields. |
@@ -241,9 +241,11 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
   - `CloudApiCanary` → `CloudApiCanaryTokenDecoy`
   - `CredentialFile` → `CredentialFileTokenDecoy`
   - `ServiceCredentialPack` → `ServiceCredentialPackDecoy`
+  - `AdminTroubleshootingPack` → `AdminTroubleshootingTokenPackDecoy`
   - `CanaryTextPack` → `CanaryTextTokenPackDecoy`
 - Auto-generates a canary token value when none is supplied.
 - `ServiceCredentialPack` renders low-cost vault-like credential artifacts with owner/group hints and collection hook presets.
+- `AdminTroubleshootingPack` renders fake admin troubleshooting `.txt`/`.ps1`/`.xml` artifacts with token bait and collection hook presets.
 - `CanaryTextPack` adds low-cost script/config/docs text-token artifacts and default collection-hook tags.
 - Uses `New-F4keH0undElement` under the hood and preserves lifecycle coverage.
 - Supports rollout profile controls through the underlying element deployment command.
@@ -254,6 +256,7 @@ Deploys identity/token-prioritized Windows bait artifacts using low-cost profile
 New-F4keH0undToken -TokenType IdentityBreadcrumb -ComputerName WIN-APP-01 -WhatIf
 New-F4keH0undToken -TokenType CloudApiCanary -ComputerName WIN-API-01,WIN-API-02 -Credential (Get-Credential) -PassThru
 New-F4keH0undToken -TokenType ServiceCredentialPack -ComputerName WIN-IDM-01 -Name "VaultSync-CredPack" -PassThru
+New-F4keH0undToken -TokenType AdminTroubleshootingPack -ComputerName WIN-OPS-01 -Name "LegacyKerberos-Troubleshooting" -PassThru
 New-F4keH0undToken -TokenType CanaryTextPack -ComputerName WIN-DEV-01 -Name "IdentityRepo-CanaryPack" -PassThru
 ```
 
@@ -268,7 +271,7 @@ Records token/identity trigger telemetry in persistent inventory and updates cor
 | Parameter | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `Identity` | `String[]` | No | — | Inventory identity to correlate (element ID or decoy identity). Optional when connector payload contains mapped identity fields. |
-| `ConnectorPreset` | `String` | No | — | Telemetry connector preset ID (`SysmonEvent11FileCreate`, `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`, `ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`, `SysmonEvent3NetworkConnect`, `WindowsSecurity4624Logon`, `WindowsSecurity4663ObjectAccess`, `WindowsSecurity4688ProcessCreate`). Must be paired with `TelemetryPayload`. |
+| `ConnectorPreset` | `String` | No | — | Telemetry connector preset ID (`SysmonEvent11FileCreate`, `CanaryTextPackSysmonFileCreate`, `CanaryTextPackSecurityObjectAccess`, `ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`, `AdminTroubleshootingPackSysmonFileCreate`, `AdminTroubleshootingPackSecurityObjectAccess`, `SysmonEvent3NetworkConnect`, `WindowsSecurity4624Logon`, `WindowsSecurity4663ObjectAccess`, `WindowsSecurity4688ProcessCreate`). Must be paired with `TelemetryPayload`. |
 | `TelemetryPayload` | `Object` | No | — | Raw SIEM/SOAR telemetry object (hashtable/PSObject) used by `ConnectorPreset` mapping. |
 | `DecoyType` | `String` | No | from inventory | Optional decoy/element type override. |
 | `Platform` | `String` | No | from inventory/`Windows` | Optional platform override (`AD`, `Entra`, `Windows`). |
@@ -303,6 +306,7 @@ Register-F4keH0undTokenTrigger -Identity fhlg-win-cloudapicanarytokendecoy-a1b2c
 Register-F4keH0undTokenTrigger -Identity svc_legacy_sync -Platform AD -ObjectType User -TriggerType CredentialUse -TokenValue 'decoy-passphrase' -PassThru
 Register-F4keH0undTokenTrigger -ConnectorPreset SysmonEvent11FileCreate -TelemetryPayload @{ Identity = 'fhlg-win-identitybreadcrumbtokendecoy-a1b2c3d4e5f6'; User = 'CORP\j.smith'; Computer = 'WIN-APP-01'; EventRecordId = '42755'; TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\identity\notes.txt' } -PassThru
 Register-F4keH0undTokenTrigger -ConnectorPreset ServiceCredentialPackSysmonFileCreate -TelemetryPayload @{ TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-servicecredentialpackdecoy-a1b2c3d4e5f6\vault\VaultSync-CredPack\service-credentials.decoy.json'; User = 'CORP\j.smith'; Computer = 'WIN-IDM-01'; EventRecordId = 'sysmon-31009' } -PassThru
+Register-F4keH0undTokenTrigger -ConnectorPreset AdminTroubleshootingPackSysmonFileCreate -TelemetryPayload @{ Identity = 'fhlg-win-admintroubleshootingtokenpackdecoy-a1b2c3d4e5f6'; TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-admintroubleshootingtokenpackdecoy-a1b2c3d4e5f6\ops\LegacyKerberos-Troubleshooting-admin-troubleshooting.decoy.txt'; User = 'CORP\j.smith'; Computer = 'WIN-OPS-01'; EventRecordId = 'sysmon-41017' } -PassThru
 Register-F4keH0undTokenTrigger -ConnectorPreset CanaryTextPackSysmonFileCreate -TelemetryPayload @{ TargetFilename = 'C:\ProgramData\F4keH0und-LG\Elements\fhlg-win-canarytexttokenpackdecoy-a1b2c3d4e5f6\docs\IdentityRepo-CanaryPack-operator-runbook.decoy.md'; User = 'CORP\j.smith'; Computer = 'WIN-DEV-01'; EventRecordId = 'sysmon-22007' } -PassThru
 ```
 

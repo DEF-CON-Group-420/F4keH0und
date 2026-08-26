@@ -213,6 +213,9 @@ function New-F4keH0undElement {
             elseif ([string]$ElementType -eq 'ServiceCredentialPackDecoy') {
                 $eventMetadata['CollectionHookPresets'] = @('ServiceCredentialPackSysmonFileCreate', 'ServiceCredentialPackSecurityObjectAccess')
             }
+            elseif ([string]$ElementType -eq 'AdminTroubleshootingTokenPackDecoy') {
+                $eventMetadata['CollectionHookPresets'] = @('AdminTroubleshootingPackSysmonFileCreate', 'AdminTroubleshootingPackSecurityObjectAccess')
+            }
 
             Write-F4keH0undInventoryEvent -Action 'Deploy' -Identity $elementId -DecoyType $ElementType -Platform 'Windows' -ObjectType 'Element' -Strategy 'Create' -Status $result.Status -Location $result.BasePath -Metadata $eventMetadata -SourceCommand $MyInvocation.MyCommand.Name
         }

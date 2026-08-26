@@ -635,6 +635,8 @@ Default preset set:
 - `CanaryTextPackSecurityObjectAccess`
 - `ServiceCredentialPackSysmonFileCreate`
 - `ServiceCredentialPackSecurityObjectAccess`
+- `AdminTroubleshootingPackSysmonFileCreate`
+- `AdminTroubleshootingPackSecurityObjectAccess`
 - `SysmonEvent3NetworkConnect`
 - `WindowsSecurity4624Logon`
 - `WindowsSecurity4663ObjectAccess`
@@ -715,6 +717,18 @@ Current behavior:
 - Template defaults prioritize identity/token cues (`ServiceName`, `ServiceAccount`, `SecretReference`, `VaultPath`, `IdentityOwnerHint`, `GroupHint`) without requiring high-cost infrastructure.
 - Deploy/update inventory events persist `CollectionHookPresets` for low-cost monitoring (`ServiceCredentialPackSysmonFileCreate`, `ServiceCredentialPackSecurityObjectAccess`).
 - Opportunity ranking now includes this family as a high-efficiency Windows artifact candidate (`ServiceCredentialBait`).
+
+### 8.15 Admin Troubleshooting Packs
+
+Phase 5 expands low-cost operator-lure coverage with fake admin troubleshooting artifact packs.
+
+Current behavior:
+
+- `New-F4keH0undToken -TokenType AdminTroubleshootingPack` maps to `AdminTroubleshootingTokenPackDecoy`.
+- Windows artifact templates render three troubleshooting bait planes (`ops/<name>-admin-troubleshooting.decoy.txt`, `ops/<name>-cache-repair.decoy.ps1`, `ops/<name>-auth-recovery.decoy.xml`).
+- Template defaults focus on realistic ops context (`TroubleshootingArea`, `LegacyHost`, `AdminAlias`, `TicketReference`, `IdentityOwnerHint`, `GroupHint`) with embedded canary tokens.
+- Deploy/update inventory events persist `CollectionHookPresets` for lightweight monitoring (`AdminTroubleshootingPackSysmonFileCreate`, `AdminTroubleshootingPackSecurityObjectAccess`).
+- Opportunity ranking includes this family as a low-cost, high-detection Windows token candidate (`AdminTokenTroubleshootingBait`).
 
 ---
 

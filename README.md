@@ -110,6 +110,7 @@ For a detailed module structure, data-flow diagrams, and design decisions see [D
 - **OAuth App Metadata Lures**: Entra decoys now include low-cost/high-signal OAuth metadata bait (permission bundles, grant types, resource/redirect hints, admin-consent breadcrumbs).
 - **Canary Text-Token Packs**: Deploys low-cost script/config/docs text canaries with lightweight Sysmon/Security collection hooks.
 - **Service Credential Packs**: Deploys vault-like fake service credential artifacts with dedicated low-cost Sysmon/Security monitoring hooks.
+- **Admin Troubleshooting Packs**: Deploys fake `.txt`/`.ps1`/`.xml` admin troubleshooting artifacts with token bait and lightweight file-access monitoring hooks.
 - **Relationship Graphing**: `Add-F4keH0undRelationship` builds deceptive graph edges for path-based attacker detection.
 - **Safe by Default**: Full `-WhatIf` and `-Confirm` support; no changes occur without explicit approval.
 - **Automated Reporting**: Generates CSV handover reports for SecOps and purple-team operations.
@@ -644,7 +645,7 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/README.md](Docs/README.md) | Documentation index and documentation maintenance policy |
 | [Docs/COMMAND-REFERENCE.md](Docs/COMMAND-REFERENCE.md) | Detailed command reference for every exported command, including parameters and behavior |
 | [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) | Module internals, data-flow diagrams, design decisions, extension points |
-| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 26 complete deployment scenarios with annotated commands |
+| [Docs/EXAMPLES.md](Docs/EXAMPLES.md) | 27 complete deployment scenarios with annotated commands |
 | [Docs/RESPONSE-PLAYBOOKS.md](Docs/RESPONSE-PLAYBOOKS.md) | High/Critical token-trigger response templates with containment and recovery workflows |
 | [Docs/TELEMETRY-CONNECTORS.md](Docs/TELEMETRY-CONNECTORS.md) | SIEM/SOAR connector preset catalog and payload mapping guide |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |

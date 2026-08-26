@@ -32,6 +32,7 @@ This file contains annotated, real-world deployment scenarios for F4keH0und - La
 24. [Identity-Attribute Lure Expansion](#24-identity-attribute-lure-expansion)
 25. [Canary Text-Token Packs](#25-canary-text-token-packs)
 26. [Service Credential Packs (Vault-Style)](#26-service-credential-packs-vault-style)
+27. [Admin Troubleshooting Artifact Packs](#27-admin-troubleshooting-artifact-packs)
 
 ---
 
@@ -1036,6 +1037,57 @@ Get-F4keH0undInventory `
     -Source Events `
     -Platform Windows `
     -ElementFamily ServiceCredentialBait,CredentialBait,IdentityTokenBait `
+    -AlertSeverity Medium,High,Critical `
+    -SkipLiveStatus |
+    Sort-Object AlertScore -Descending |
+    Select-Object Identity, DecoyType, Status, LastTriggerSource, AlertScore, AlertSeverity
+```
+
+---
+
+## 27. Admin Troubleshooting Artifact Packs
+
+Deploy fake admin troubleshooting artifacts (`.txt`, `.ps1`, `.xml`) with embedded tokens and register lightweight file-access triggers.
+
+```powershell
+# 1) Deploy admin troubleshooting pack to Windows operations host
+$pack = New-F4keH0undToken `
+    -TokenType AdminTroubleshootingPack `
+    -ComputerName "WIN-OPS-01" `
+    -Name "LegacyKerberos-Troubleshooting" `
+    -TemplateData @{
+        TroubleshootingArea = "KerberosTicketFailures"
+        LegacyHost          = "WIN-LEGACY-IDM-01"
+        AdminAlias          = "tier3-admin-ops"
+        TicketReference     = "INC-48291"
+        IdentityOwnerHint   = "identity.ops@contoso.com"
+        GroupHint           = "Identity-Operations"
+    } `
+    -PassThru
+
+$pack | Format-Table ElementId, ElementType, ComputerName, BasePath, Status -AutoSize
+$packRecord = @($pack)[0]
+
+# 2) Simulate Sysmon file-create telemetry for troubleshooting note access
+$troubleshootingEvent = @{
+    Identity       = $packRecord.ElementId
+    TargetFilename = "C:\ProgramData\F4keH0und-LG\Elements\$($packRecord.ElementId)\ops\LegacyKerberos-Troubleshooting-admin-troubleshooting.decoy.txt"
+    User           = "CORP\\j.smith"
+    Computer       = "WIN-OPS-01"
+    EventRecordId  = "sysmon-41017"
+}
+
+Register-F4keH0undTokenTrigger `
+    -ConnectorPreset AdminTroubleshootingPackSysmonFileCreate `
+    -TelemetryPayload $troubleshootingEvent `
+    -PassThru |
+    Format-List Identity, LastTriggerType, LastTriggerSource, TokenCorrelationStatus, AlertScore, AlertSeverity
+
+# 3) Review operations-troubleshooting bait triage view
+Get-F4keH0undInventory `
+    -Source Events `
+    -Platform Windows `
+    -ElementFamily AdminTokenTroubleshootingBait,TokenTextBait,CredentialBait `
     -AlertSeverity Medium,High,Critical `
     -SkipLiveStatus |
     Sort-Object AlertScore -Descending |

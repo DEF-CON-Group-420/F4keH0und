@@ -115,6 +115,17 @@ function Get-PrivateF4keH0undDefaultElementTypeRegistry {
             Description     = 'Deploys vault-like fake service credential packs with embedded canary tokens and owner hints.'
         }
         [PSCustomObject]@{
+            TypeId          = 'AdminTroubleshootingTokenPackDecoy'
+            Family          = 'AdminTokenTroubleshootingBait'
+            Platforms       = @('Windows')
+            Capabilities    = @('Deploy', 'Update', 'Disable', 'Enable', 'Remove')
+            RiskLevel       = 'Low'
+            CostScore       = 1
+            DetectionScore  = 10
+            TelemetryProfile = 'Windows-Identity-Token'
+            Description     = 'Deploys fake admin troubleshooting artifacts (.txt/.ps1/.xml) with embedded canary tokens and ops role hints.'
+        }
+        [PSCustomObject]@{
             TypeId          = 'CanaryTextTokenPackDecoy'
             Family          = 'TokenTextBait'
             Platforms       = @('Windows')
