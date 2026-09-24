@@ -17,7 +17,7 @@ Trigger type:
 Inputs:
 
 - `bump_type` — `patch`, `minor`, `major`, `custom`
-- `custom_version` — required when `bump_type=custom` (for example `2.20.0`)
+- `custom_version` — required when `bump_type=custom` (for example `2.20.2`)
 - `changelog_note` — required short summary appended to `Docs/changelog.md`
 - `target_branch` — branch to version from (default: `main`)
 - `create_tag` — create `vX.Y.Z` tag
@@ -66,7 +66,7 @@ Use `bump_type = minor` or `major` with the same defaults.
 
 ### Exact release version
 
-Use `bump_type = custom` and set `custom_version` (for example `2.20.0`), plus `changelog_note`.
+Use `bump_type = custom` and set `custom_version` (for example `2.20.2`), plus `changelog_note`.
 
 ---
 
@@ -91,10 +91,10 @@ If you need to release manually:
 
 # 3) Commit
 git add F4keH0und.psd1 Docs/changelog.md README.md
-git commit -m "chore(version): bump module to 2.20.0"
+git commit -m "chore(version): bump module to 2.20.2"
 
 # 4) Tag + push
-git tag -a v2.20.0 -m "F4keH0und - Last Generation v2.20.0"
+git tag -a v2.20.2 -m "F4keH0und - Last Generation v2.20.2"
 git push origin main
-git push origin v2.20.0
+git push origin v2.20.2
 ```

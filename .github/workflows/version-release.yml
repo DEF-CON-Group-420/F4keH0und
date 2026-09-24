@@ -14,7 +14,7 @@ on:
           - major
           - custom
       custom_version:
-        description: "Required when bump_type=custom (for example 2.20.0)"
+        description: "Required when bump_type=custom (for example 2.20.2)"
         required: false
         type: string
       changelog_note:
@@ -70,7 +70,7 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($customVersionInput)) {
             $parsedCustom = $null
             if (-not [version]::TryParse($customVersionInput.Trim(), [ref]$parsedCustom)) {
-              throw "Invalid custom_version '$customVersionInput'. Use semantic version format like 2.20.0."
+              throw "Invalid custom_version '$customVersionInput'. Use semantic version format like 2.20.2."
             }
             $customVersion = [version]$parsedCustom
           }
