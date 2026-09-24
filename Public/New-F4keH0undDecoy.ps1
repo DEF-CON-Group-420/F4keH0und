@@ -42,6 +42,21 @@
 .PARAMETER RolloutProfile
     Optional rollout profile (`Lab`, `Pilot`, `Production`) used to apply
     Phase 5 deployment defaults.
+.PARAMETER All
+    Non-interactive: select every opportunity found by the analysis engine for
+    deployment, equivalent to answering 'all' at the interactive ID prompt.
+    Use with -Execute to fully script a run with no console interaction.
+.PARAMETER SelectId
+    Non-interactive: select specific opportunity IDs (as shown in the analysis
+    output, e.g. @(0,2,5)) for deployment, equivalent to typing those IDs at
+    the interactive ID prompt. Use with -Execute to fully script a run with no
+    console interaction.
+.PARAMETER SaveReport
+    Non-interactive: save the CSV deployment report without prompting,
+    equivalent to answering 'y' at the interactive save prompt.
+.PARAMETER NoReport
+    Non-interactive: skip saving the CSV deployment report without prompting,
+    equivalent to answering 'n' at the interactive save prompt.
 .EXAMPLE
     PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -Server "DC01.target.local" -Credential (Get-Credential) -WhatIf
 
@@ -52,6 +67,14 @@
     PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -PreferRecycling -Verbose
 
     Deploy decoys with recycling preference. Will automatically prefer recycling opportunities over creation.
+    Since neither -All nor -SelectId nor -SaveReport/-NoReport are given, this interactively
+    prompts for opportunity selection and report saving (original interactive behavior, unchanged).
+
+.EXAMPLE
+    PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Execute -All -SaveReport -Confirm:$false
+
+    Fully non-interactive run suitable for CI/cron/remote automation: deploys every opportunity
+    found and saves the CSV report without any console prompts.
 
 .EXAMPLE
     PS C:\> New-F4keH0undDecoy -BloodHoundPath C:\BH_Data\ -Verbose
@@ -121,7 +144,19 @@ function New-F4keH0undDecoy {
         [string]$RolloutProfile,
 
         [Parameter()]
-        [string]$AuditLogPath
+        [string]$AuditLogPath,
+
+        [Parameter()]
+        [switch]$All,
+
+        [Parameter()]
+        [string[]]$SelectId,
+
+        [Parameter()]
+        [switch]$SaveReport,
+
+        [Parameter()]
+        [switch]$NoReport
     )
 
     # Check mode-specific helper dependencies
@@ -223,12 +258,31 @@ function New-F4keH0undDecoy {
     }
 
     # Section 2: Approve - Handle user interaction
-    $selection = Read-Host "`n[PROMPT] Enter the IDs of the decoys you wish to create (e.g., '0,2,5' or 'all'), or press Enter to cancel"
-    if ([string]::IsNullOrWhiteSpace($selection)) {
-        Write-Host "[INFO] Operation cancelled by user." -ForegroundColor Yellow
+    if ($All -and $SelectId) {
+        Write-Error "[ERROR] -All and -SelectId are mutually exclusive. Specify only one."
         return
     }
-    $selectedIds = if ($selection -eq 'all') { $opportunities.ID } else { $selection -split ',' | ForEach-Object { $_.Trim() } }
+    if ($SaveReport -and $NoReport) {
+        Write-Error "[ERROR] -SaveReport and -NoReport are mutually exclusive. Specify only one."
+        return
+    }
+
+    if ($All) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - -All specified: selecting every opportunity non-interactively."
+        $selectedIds = $opportunities.ID
+    }
+    elseif ($SelectId) {
+        Write-Verbose "[$($MyInvocation.MyCommand)] - -SelectId specified: selecting $($SelectId.Count) opportunity ID(s) non-interactively."
+        $selectedIds = $SelectId
+    }
+    else {
+        $selection = Read-Host "`n[PROMPT] Enter the IDs of the decoys you wish to create (e.g., '0,2,5' or 'all'), or press Enter to cancel"
+        if ([string]::IsNullOrWhiteSpace($selection)) {
+            Write-Host "[INFO] Operation cancelled by user." -ForegroundColor Yellow
+            return
+        }
+        $selectedIds = if ($selection -eq 'all') { $opportunities.ID } else { $selection -split ',' | ForEach-Object { $_.Trim() } }
+    }
     $selectedOpportunities = $opportunities | Where-Object { $selectedIds -contains $_.ID }
     if (-not $selectedOpportunities) {
         Write-Error "[ERROR] No valid opportunities selected. Please check the IDs and try again."
@@ -900,8 +954,14 @@ function New-F4keH0undDecoy {
         Write-Host "`n--- Deployment Report ---" -ForegroundColor Cyan
         $reportData | Format-Table -AutoSize | Out-Host
 
-        $confirmSave = Read-Host "`n[PROMPT] Save this report to a CSV file? (y/n)"
-        if ($confirmSave -eq 'y') {
+        $shouldSave = if ($SaveReport) {
+            $true
+        } elseif ($NoReport) {
+            $false
+        } else {
+            (Read-Host "`n[PROMPT] Save this report to a CSV file? (y/n)") -eq 'y'
+        }
+        if ($shouldSave) {
             try {
                 $reportData | Export-Csv -Path $reportPath -NoTypeInformation -ErrorAction Stop
                 Write-Host "[REPORT] Deployment report saved to: $reportPath" -ForegroundColor Green

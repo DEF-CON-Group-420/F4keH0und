@@ -709,15 +709,29 @@ function Invoke-PrivateF4keH0undWindowsElementRemoteOperation {
                 }
             }
 
+            # ConvertFrom-Json -AsHashtable requires PS 6+; Disable/Enable/Deploy run via
+            # Invoke-Command against Windows PowerShell 5.1 remoting endpoints, so convert
+            # the PSCustomObject to a Hashtable manually for cross-version compatibility.
+            $convertToHashtable = {
+                param($InputObject)
+                if ($null -eq $InputObject) { return $null }
+                $hash = @{}
+                foreach ($prop in $InputObject.PSObject.Properties) {
+                    $hash[$prop.Name] = $prop.Value
+                }
+                return $hash
+            }
+
             $loadState = {
                 if (Test-Path -Path $statePath -PathType Leaf) {
-                    return Get-Content -Path $statePath -Raw | ConvertFrom-Json
+                    $raw = Get-Content -Path $statePath -Raw | ConvertFrom-Json
+                    return & $convertToHashtable $raw
                 }
                 return $null
             }
 
             $saveState = {
-                param([hashtable]$State)
+                param($State)
                 $jsonState = $State | ConvertTo-Json -Depth 10
                 Set-Content -Path $statePath -Value $jsonState -Encoding UTF8 -Force
             }

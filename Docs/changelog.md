@@ -10,6 +10,13 @@ Policy:
 
 ---
 
+## 2.20.3 - 2026-09-24
+
+- **Fixed BUG-001**: `New-F4keH0undDecoy -Execute` hung indefinitely on an unconditional `Read-Host` selection prompt (and a second `Read-Host` CSV-save prompt), making the flagship deployment workflow unusable in any non-interactive/automation context. Added `-All` and `-SelectId <string[]>` parameters to select opportunities non-interactively, and `-SaveReport`/`-NoReport` switches to control the CSV-save prompt without blocking.
+- **Fixed BUG-002**: `Disable-F4keH0undElement` and `Enable-F4keH0undElement` always threw `Cannot convert value "PSCustomObject" to type "Hashtable"` because element state loaded via `ConvertFrom-Json` was passed directly into a strictly-typed `[hashtable]$State` parameter. Fixed by converting the loaded state to a real hashtable before persisting, using a PS 5.1-compatible manual property copy (avoids `ConvertFrom-Json -AsHashtable`, which requires PS 6+ and breaks under Windows PowerShell 5.1 remoting endpoints).
+- **Fixed BUG-003**: The Create-mode fallback path in `New-F4keH0undDecoy` (used whenever no recyclable AD object exists for a given opportunity) called `New-PrivateADDecoyUser`, but that function had been renamed to `New-PrivateADDecoyUser.ps1.deprecated` during the recycling-first refactor and was no longer loaded by the module, so every Create-mode decoy deployment (`StaleAdminLure`, `KerberoastableUser`, `ACLAttackPath`, `UnconstrainedDelegationComputer` when nothing recyclable exists) failed with "term not recognized". Restored the file as `New-PrivateADDecoyUser.ps1` so the module loads it again; `Set-PrivateADDecoyUser` (recycle) remains the preferred path and is used automatically first.
+- All three fixes verified live against a real Ludus AD lab: `-SelectId` selection completes without hanging or prompting; `Disable-F4keH0undElement`/`Enable-F4keH0undElement` succeed end-to-end (`Status: Disabled` / `Status: Armed`); Create-mode now reaches real `New-ADUser` execution instead of failing on a missing cmdlet.
+
 ## 2.20.2 - 2026-09-24
 
 - Reverted release-facing version references and release examples to `2.20.2` across README, workflow metadata, and versioning docs to prepare a consistent `v2.20.2` release.

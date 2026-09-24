@@ -1,31 +1,19 @@
 <#
-.DEPRECATED
-    This file has been deprecated in favour of Set-PrivateADDecoyUser.
+.SYNOPSIS
+    Creates a brand-new AD decoy user object.
 
-    REASON FOR DEPRECATION:
-        New-PrivateADDecoyUser creates brand-new AD user objects, which receive
-        high, sequential RID values and a recent whenCreated timestamp.  An
-        attacker running even a basic domain-enumeration script can trivially
-        detect these as synthetic decoys by correlating:
-            - Anomalously high RID values relative to the account's claimed age
-            - whenCreated timestamps that contradict the "stale admin" narrative
-            - Sequential RID patterns matching automated creation bursts
+.DESCRIPTION
+    Used by New-F4keH0undDecoy's Create-mode fallback path when no existing
+    disabled/stale account is available to recycle (see
+    Find-F4keH0undRecyclableObject). When a suitable existing account IS
+    available, prefer Set-PrivateADDecoyUser instead: it recycles the object
+    in place, preserving its original RID and whenCreated metadata, which is
+    harder for an attacker to fingerprint than a freshly created object with
+    a high sequential RID and a recent creation timestamp.
 
-    MIGRATION PATH:
-        Replace calls to New-PrivateADDecoyUser with Set-PrivateADDecoyUser,
-        supplying an existing disabled account obtained from
-        Find-F4keH0undRecyclableObject.  The new function recycles the object in
-        place, preserving its original RID and whenCreated metadata while
-        transforming it into a functional decoy.
-
-        OLD (creates new object – detectable):
-            New-PrivateADDecoyUser -Name "svc_sql" -SamAccountName "svc_sql" \
-                -Description "SQL Service Account"
-
-        NEW (recycles existing object – authentic metadata):
-            $stale = Find-F4keH0undRecyclableObject -Type User | Select-Object -First 1
-            Set-PrivateADDecoyUser -ExistingUser $stale.Identity \
-                -Description "SQL Service Account"
+    PREFERENCE ORDER (used automatically by New-F4keH0undDecoy -PreferRecycling):
+        1. Set-PrivateADDecoyUser (recycle) - when a recyclable candidate exists.
+        2. New-PrivateADDecoyUser (this function, create) - fallback only.
 
     SEE ALSO:
         Private/Set-PrivateADDecoyUser.ps1
