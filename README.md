@@ -264,9 +264,20 @@ Get-Module F4keH0und
 
 ### Step 2 — Analyze
 
+> **`BH_Data` is not created by any install step.** `$PWD/BH_Data` in the snippet below is just an
+> example convention — point `-BloodHoundPath` at wherever you actually unzipped your SharpHound/AzureHound
+> output (e.g. `Expand-Archive` the collector's `.zip` into a folder first). Running the snippet as-written
+> against a fresh clone fails with:
+> `Cannot validate argument on parameter 'BloodHoundPath'... did not return a result of True`
+> because the path doesn't exist yet. Create/populate the folder — or point straight at your real
+> collector output directory — before calling `Find-F4keH0undOpportunity`.
+
 ```powershell
+# Unzip your SharpHound/AzureHound collector output somewhere first, e.g.:
+# Expand-Archive -Path .\20260101000000_BloodHound.zip -DestinationPath .\BH_Data -Force
+
 # Analyze AD data and discover recycling + creation opportunities
-$bloodHoundPath = Join-Path $PWD 'BH_Data'
+$bloodHoundPath = Join-Path $PWD 'BH_Data'   # must already exist and contain collector JSON
 $opportunities = Find-F4keH0undOpportunity -BloodHoundPath $bloodHoundPath -PreferRecycling -Verbose
 
 # Review what was found
@@ -698,6 +709,52 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 | [Docs/changelog.md](Docs/changelog.md) | Append-only changelog required for every change set |
 | [Docs/LAST-GENERATION-ROADMAP.md](Docs/LAST-GENERATION-ROADMAP.md) | Detailed phased plan for interface, Entra parity, lifecycle controls, and new element types |
 | [Docs/CONTRIBUTING.md](Docs/CONTRIBUTING.md) | How to fork, develop, test, and submit pull requests |
+
+---
+
+## 🧪 Lab Validation
+
+F4keH0und-LG 2.20.1 was installed and exercised end-to-end against a live, disposable Active
+Directory lab (Ludus range `F4KEHOUND`: 1x Windows Server DC, 1x Windows 11 endpoint, 1x Kali Linux
+collector, all forwarding to a Wazuh SIEM) to validate the Quick Start flow against a real domain
+rather than synthetic fixtures.
+
+**Environment seeded with [PyroTek3/ADLab](https://github.com/PyroTek3/ADLab):**
+- 19 OUs, 221 users, 59 groups, 13 computer objects, 10 service accounts with SPNs/Kerberos delegation
+- 9 gMSAs (KDS root key had to be added with a backdated `-EffectiveTime` — `-EffectiveImmediately`
+  did not actually make new keys usable right away on this single-DC lab; see note below)
+
+**Collection:** `SharpHound_v2.16.0` (`-c All`) against the domain — 640 objects enumerated in ~12s,
+default BloodHound CE 5.0.0 collection methods (Group, LocalAdmin, Sessions, ACLs, Trusts, GPOs,
+Certificate Services, NTLM registry data).
+
+**Analysis (`Find-F4keH0undOpportunity -PreferRecycling`) against the collected data:**
+
+| DecoyType | Rank | Count | Recyclable |
+|---|---|---|---|
+| StaleAdminLure | Critical | 13 | 0 (data seeded same-day; younger than `RecyclingMinimumAgeDays`) |
+| KerberoastableUser | High | 1 | 0 |
+| UnconstrainedDelegationComputer | High | 1 | 0 |
+| ACLAttackPath | High | 1 | 0 |
+
+`New-F4keH0undDecoy -Execute -PreferRecycling -WhatIf` confirmed all 16 opportunities as `[CREATE]`
+candidates with zero AD writes, as expected when nothing in the dataset clears the staleness age
+window yet.
+
+**Findings from this pass:**
+- The `BH_Data`-relative path convention in Quick Start Step 2 (above) is not created by
+  `Reinstall-F4keH0und.ps1` or any other install step — point `-BloodHoundPath` at your real
+  unzipped collector output instead.
+- There is **no `New-AADToken` cmdlet** in this module. The exported surface for token/credential
+  artifacts is `New-F4keH0undToken` (deploys a honeytoken/decoy credential artifact onto a target
+  `-ComputerName` — not an Entra ID auth-token generator), and Entra/hybrid analysis goes through
+  `Sync-F4keH0undEntraParity -AzureHoundPath ...` (requires an AzureHound dataset; not exercised in
+  this on-prem-only lab pass).
+- KDS root key propagation for gMSAs on a single-DC lab: `Add-KdsRootKey -EffectiveImmediately`
+  does not reliably make the key usable right away — `New-ADServiceAccount` kept failing with
+  "Key does not exist" until a key was added with `-EffectiveTime ((Get-Date).AddHours(-11))`.
+  Not a F4keH0und-LG issue, but worth knowing if you're building a fresh gMSA-bearing lab to test
+  recycling against.
 
 ---
 
