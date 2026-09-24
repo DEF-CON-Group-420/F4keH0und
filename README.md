@@ -690,6 +690,20 @@ Get-ChildItem -Path $HOME -Filter F4keH0und.psd1 -Recurse -ErrorAction SilentlyC
 If `(Get-Module F4keH0und).Path` points anywhere other than your freshly installed copy, delete
 that location and re-run `Import-Module F4keH0und -Force`.
 
+### `New-AADToken` is not recognized
+
+**Cause:** This cmdlet does not exist in F4keH0und-LG. It's easy to assume it should, since the
+module talks about Entra ID / AAD, but the actual exported command surface uses different names:
+
+- **`New-F4keH0undToken`** deploys a honeytoken/decoy credential artifact onto a target machine
+  (`-ComputerName`) — it is not an Entra ID authentication-token generator.
+- **`Sync-F4keH0undEntraParity -AzureHoundPath <path>`** is the entry point for Entra ID / hybrid
+  parity analysis and deployment; it consumes AzureHound collector output the same way
+  `Find-F4keH0undOpportunity` consumes SharpHound output for on-prem AD.
+
+Run `Get-Command -Module F4keH0und` (or see [Docs/COMMAND-REFERENCE.md](Docs/COMMAND-REFERENCE.md))
+for the full, authoritative list of exported commands for your installed version.
+
 ---
 
 ## 📚 Documentation
@@ -712,49 +726,39 @@ All project docs (except this root `README.md`) live in `Docs/`, and every code/
 
 ---
 
-## 🧪 Lab Validation
+## 🧫 Testing in a Lab Environment
 
-F4keH0und-LG 2.20.1 was installed and exercised end-to-end against a live, disposable Active
-Directory lab (Ludus range `F4KEHOUND`: 1x Windows Server DC, 1x Windows 11 endpoint, 1x Kali Linux
-collector, all forwarding to a Wazuh SIEM) to validate the Quick Start flow against a real domain
-rather than synthetic fixtures.
+Before pointing F4keH0und-LG at a production domain, validate it end-to-end in a disposable test
+domain. A minimal validation lab needs:
 
-**Environment seeded with [PyroTek3/ADLab](https://github.com/PyroTek3/ADLab):**
-- 19 OUs, 221 users, 59 groups, 13 computer objects, 10 service accounts with SPNs/Kerberos delegation
-- 9 gMSAs (KDS root key had to be added with a backdated `-EffectiveTime` — `-EffectiveImmediately`
-  did not actually make new keys usable right away on this single-DC lab; see note below)
+- A domain controller (Windows Server) with a **non-trivial number of users/groups/computers** —
+  a handful of accounts won't exercise recycling logic meaningfully. Tools like
+  [ADLab](https://github.com/PyroTek3/ADLab) or similar AD-seeding scripts can populate a synthetic
+  domain with users, groups, service accounts, SPNs, delegation configs, and gMSAs quickly.
+- One or more domain-joined Windows endpoints to run [SharpHound](https://github.com/SpecterOps/SharpHound)
+  against for BloodHound collector data.
+- Optionally, Entra ID tenant access + [AzureHound](https://github.com/BloodHoundAD/AzureHound) if
+  you want to test the hybrid/Entra parity workflows.
 
-**Collection:** `SharpHound_v2.16.0` (`-c All`) against the domain — 640 objects enumerated in ~12s,
-default BloodHound CE 5.0.0 collection methods (Group, LocalAdmin, Sessions, ACLs, Trusts, GPOs,
-Certificate Services, NTLM registry data).
+### Suggested validation flow
 
-**Analysis (`Find-F4keH0undOpportunity -PreferRecycling`) against the collected data:**
-
-| DecoyType | Rank | Count | Recyclable |
-|---|---|---|---|
-| StaleAdminLure | Critical | 13 | 0 (data seeded same-day; younger than `RecyclingMinimumAgeDays`) |
-| KerberoastableUser | High | 1 | 0 |
-| UnconstrainedDelegationComputer | High | 1 | 0 |
-| ACLAttackPath | High | 1 | 0 |
-
-`New-F4keH0undDecoy -Execute -PreferRecycling -WhatIf` confirmed all 16 opportunities as `[CREATE]`
-candidates with zero AD writes, as expected when nothing in the dataset clears the staleness age
-window yet.
-
-**Findings from this pass:**
-- The `BH_Data`-relative path convention in Quick Start Step 2 (above) is not created by
-  `Reinstall-F4keH0und.ps1` or any other install step — point `-BloodHoundPath` at your real
-  unzipped collector output instead.
-- There is **no `New-AADToken` cmdlet** in this module. The exported surface for token/credential
-  artifacts is `New-F4keH0undToken` (deploys a honeytoken/decoy credential artifact onto a target
-  `-ComputerName` — not an Entra ID auth-token generator), and Entra/hybrid analysis goes through
-  `Sync-F4keH0undEntraParity -AzureHoundPath ...` (requires an AzureHound dataset; not exercised in
-  this on-prem-only lab pass).
-- KDS root key propagation for gMSAs on a single-DC lab: `Add-KdsRootKey -EffectiveImmediately`
-  does not reliably make the key usable right away — `New-ADServiceAccount` kept failing with
-  "Key does not exist" until a key was added with `-EffectiveTime ((Get-Date).AddHours(-11))`.
-  Not a F4keH0und-LG issue, but worth knowing if you're building a fresh gMSA-bearing lab to test
-  recycling against.
+1. Seed the test domain with a realistic mix of stale/disabled accounts, service accounts, and at
+   least a few objects old enough to clear `MinimumObjectAgeDays` (default `180`) — otherwise every
+   `Find-F4keH0undOpportunity` result will show `Source: Create` with nothing recyclable, since
+   freshly-created test data can't satisfy the staleness window.
+2. Run a full SharpHound collection (`SharpHound.exe -c All`), unzip the resulting `.zip` into a
+   folder, and point `-BloodHoundPath` at that folder (see the path note in
+   [Quick Start Step 2](#step-2--analyze) above).
+3. Run `Find-F4keH0undOpportunity -PreferRecycling -Verbose` and review the ranked opportunity
+   table before doing anything else.
+4. Always run `New-F4keH0undDecoy ... -WhatIf` first and review the projected changes before
+   dropping `-WhatIf` and executing for real — even in a disposable lab.
+5. If you want to exercise gMSA-related decoys, be aware that gMSAs require a KDS root key, and on
+   a **single-DC lab** `Add-KdsRootKey -EffectiveImmediately` does not always make the key usable
+   right away — `New-ADServiceAccount` can fail with `"Key does not exist"` for a while afterward.
+   If you hit that, add a root key with a backdated effective time instead:
+   `Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-11))`. This is a general AD/KDS caching
+   quirk on lab-sized domains, not specific to F4keH0und-LG.
 
 ---
 
