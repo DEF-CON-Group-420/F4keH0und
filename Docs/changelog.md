@@ -10,6 +10,42 @@ Policy:
 
 ---
 
+## 2.20.4 - 2026-09-25
+
+- **Fixed CI automation bug**: The "must bump version + append changelog" policy check
+  (`scripts/Test-VersionChangelogPolicy.ps1`, enforced via `.github/workflows/ci.yml`) was
+  silently unusable in two independent ways — this is why the `2.20.2` version bump had to be
+  applied manually:
+  1. **Single sequential CI job**: the `PSScriptAnalyzer` lint step and the version/changelog
+     policy step lived in the same job. When lint failed (even on a single low-severity finding),
+     GitHub Actions skipped every subsequent step in that job by default — including the policy
+     check — so the mandatory version-bump enforcement silently never ran. Split into two
+     independent jobs (`lint` and `policy`) so a lint failure can never suppress policy
+     enforcement again.
+  2. **Lint failed on non-blocking findings**: `PSScriptAnalyzer`'s failure condition was
+     `if ($results)`, meaning *any* finding of *any* severity (including `Information`-level
+     trailing-whitespace notices) failed the whole build. Changed to only fail on `Error`-severity
+     findings; `Warning`/`Information` findings are now printed for visibility but non-blocking.
+  3. **Changelog "append-only" check assumed the wrong insertion point**: `Test-VersionChangelogPolicy.ps1`
+     required `newContent.StartsWith(oldContent)` (pure end-of-file append), but this changelog's
+     actual convention — used in every prior entry, including this one — inserts new entries
+     newest-first, immediately after the leading `---` separator. That mismatch meant the policy
+     check would fail on *every single correctly-formatted changelog update*, making the
+     automation unusable by design rather than by accident. Fixed by validating that old content
+     survives fully intact, split at exactly one insertion point anywhere in the file (via
+     longest-common-prefix/suffix comparison), rather than assuming append happens only at the
+     very start or very end.
+- Also fixed a `PSScriptAnalyzer` `Error`-severity finding (`PSAvoidUsingConvertToSecureStringWithPlainText`)
+  in `Private/New-PrivateADDecoyUser.ps1` introduced when that file was restored from
+  `.ps1.deprecated` in `2.20.3`: the random decoy password is now built directly as a
+  `SecureString` (character-by-character) instead of round-tripping through a plaintext
+  `[string]`. Also added `SupportsShouldProcess` to the function per `PSUseShouldProcessForStateChangingFunctions`.
+- Verified the fix by simulating the exact policy check against yesterday's real `2.20.3` push
+  (`5af06dc..1fabfed`): it now correctly PASSES (previously would have thrown on both the
+  skipped-job bug and the append-only-direction bug, if it had run at all). Also unit-verified the
+  new splice-based append-only check against synthetic middle-insert, tampered-content, pure-append,
+  and pure-prepend cases — tampering with existing entries is still correctly rejected.
+
 ## 2.20.3 - 2026-09-24
 
 - **Fixed BUG-001**: `New-F4keH0undDecoy -Execute` hung indefinitely on an unconditional `Read-Host` selection prompt (and a second `Read-Host` CSV-save prompt), making the flagship deployment workflow unusable in any non-interactive/automation context. Added `-All` and `-SelectId <string[]>` parameters to select opportunities non-interactively, and `-SaveReport`/`-NoReport` switches to control the CSV-save prompt without blocking.

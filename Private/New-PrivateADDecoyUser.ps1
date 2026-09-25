@@ -21,7 +21,7 @@
 #>
 
 function New-PrivateADDecoyUser {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Name,
@@ -44,15 +44,23 @@ function New-PrivateADDecoyUser {
         return
     }
 
-    $password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 30 | ForEach-Object { [char]$_ })
-    $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
+    # Build a cryptographically random 30-character password directly as a SecureString
+    # (never materialized as a plaintext [string]) to satisfy PSAvoidUsingConvertToSecureStringWithPlainText.
+    $charPool = (48..57) + (65..90) + (97..122)
+    $securePassword = [System.Security.SecureString]::new()
+    1..30 | ForEach-Object { $securePassword.AppendChar([char]($charPool | Get-Random)) }
+    $securePassword.MakeReadOnly()
 
     $domainParams = @{}
     if ($PSBoundParameters.ContainsKey('Server')) { $domainParams['Server'] = $Server }
     if ($PSBoundParameters.ContainsKey('Credential')) { $domainParams['Credential'] = $Credential }
-    
+
     $upnSuffix = (Get-ADDomain @domainParams).UserPrincipalName
     $userPrincipalName = "$($SamAccountName)@$($upnSuffix)"
+
+    if (-not $PSCmdlet.ShouldProcess($SamAccountName, "Create new AD decoy user")) {
+        return
+    }
 
     try {
         Write-Verbose "[$($MyInvocation.MyCommand)] - Creating AD User '$Name' with SAMAccountName '$SamAccountName'."

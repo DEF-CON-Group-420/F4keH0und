@@ -200,11 +200,35 @@ if ($oldChangelogExists) {
         throw "Policy violation: '$changelogGitPath' must append new content."
     }
 
-    if (-not $newChangelogContent.StartsWith($oldChangelogContent, [System.StringComparison]::Ordinal)) {
-        throw "Policy violation: '$changelogGitPath' must be append-only (existing content changed)."
+    # This project's changelog convention inserts new entries at a fixed splice point
+    # (right after the leading '---' separator, ahead of all prior version entries) —
+    # not strictly at the start or end of the file. "Append-only" here means the old
+    # content must remain fully intact, split at exactly one point, with new content
+    # inserted at that single splice point (no other part of history may be edited).
+    #
+    # Find the longest common prefix and longest common suffix between old and new
+    # content, then verify prefix + suffix together account for the ENTIRE old content
+    # (i.e. old content == commonPrefix + commonSuffix, meaning nothing in the old
+    # content was touched — only new text was spliced in between).
+    $maxPrefixLen = [Math]::Min($oldChangelogContent.Length, $newChangelogContent.Length)
+    $prefixLen = 0
+    while ($prefixLen -lt $maxPrefixLen -and $oldChangelogContent[$prefixLen] -eq $newChangelogContent[$prefixLen]) {
+        $prefixLen++
     }
 
-    $appendedContent = $newChangelogContent.Substring($oldChangelogContent.Length)
+    $maxSuffixLen = $oldChangelogContent.Length - $prefixLen
+    $suffixLen = 0
+    while ($suffixLen -lt $maxSuffixLen -and
+           $oldChangelogContent[$oldChangelogContent.Length - 1 - $suffixLen] -eq $newChangelogContent[$newChangelogContent.Length - 1 - $suffixLen]) {
+        $suffixLen++
+    }
+
+    if (($prefixLen + $suffixLen) -lt $oldChangelogContent.Length) {
+        throw "Policy violation: '$changelogGitPath' must be append-only (existing content changed outside of a single insertion point)."
+    }
+
+    $appendedContent = $newChangelogContent.Substring($prefixLen, $newChangelogContent.Length - $prefixLen - $suffixLen)
+
     if ([string]::IsNullOrWhiteSpace($appendedContent)) {
         throw "Policy violation: '$changelogGitPath' append content is empty."
     }

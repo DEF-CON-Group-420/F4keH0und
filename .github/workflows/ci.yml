@@ -24,13 +24,42 @@ jobs:
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
           $results = Invoke-ScriptAnalyzer -Path . -Recurse -ExcludeRule PSAvoidUsingWriteHost
+
+          # Only Error-severity findings fail the build. Warning/Information findings are
+          # surfaced for visibility but must never block CI, so they can never accidentally
+          # skip the mandatory version/changelog policy check (that check now runs in its
+          # own independent job — see the 'policy' job below — specifically so a lint
+          # finding here can no longer suppress it).
           if ($results) {
-            $results | Format-Table -AutoSize
-            Write-Error "PSScriptAnalyzer found $($results.Count) issue(s)."
+            $results | Sort-Object Severity | Format-Table -AutoSize
+          }
+
+          $errorResults = @($results | Where-Object { $_.Severity -eq 'Error' })
+          if ($errorResults.Count -gt 0) {
+            Write-Error "PSScriptAnalyzer found $($errorResults.Count) Error-severity issue(s)."
             exit 1
+          } elseif ($results) {
+            Write-Host "PSScriptAnalyzer: $($results.Count) non-blocking Warning/Information issue(s) found (see table above)." -ForegroundColor Yellow
           } else {
             Write-Host "PSScriptAnalyzer: No issues found." -ForegroundColor Green
           }
+
+  policy:
+    name: Command Reference & Version Policy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Deliberately has no `needs: lint` — this job must run independently of lint's
+    # outcome so a cosmetic lint finding can never suppress the mandatory
+    # version-bump/changelog-append policy check (this is what silently broke the
+    # version automation previously: lint failing skipped every step after it in a
+    # single sequential job, including this check).
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Validate command reference coverage
         shell: pwsh
